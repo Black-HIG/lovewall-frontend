@@ -1,0 +1,206 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    height: 100%;
+  }
+  
+  body {
+    @apply bg-gradient-to-br from-pink-100 via-purple-50 to-indigo-100;
+    @apply text-gray-800;
+    @apply font-sans;
+    @apply leading-relaxed;
+    height: 100%;
+    overflow: hidden; /* 禁止全页滚动，使用块内滚动 */
+  }
+  
+  /* Nuxt root 占满视口高度，避免出现全页滚动条 */
+  #__nuxt {
+    height: 100%;
+  }
+  
+  * {
+    @apply transition-all duration-300 ease-in-out;
+  }
+  /* 避免在表单控件上强制过渡，防止输入卡顿/焦点异常 */
+  input, textarea, select {
+    transition: none;
+  }
+}
+
+@layer components {
+  .glass-card {
+    /* 统一为首页块样式 */
+    @apply bg-white/50 backdrop-blur-md rounded-3xl p-6 border border-white/30 shadow-lg;
+    @apply hover:bg-white/60 transition-all duration-300;
+    @apply relative;
+    pointer-events: auto;
+  }
+  
+  .glass-input {
+    @apply rounded-xl bg-white/80 backdrop-blur-sm border-2 border-white/50;
+    @apply px-4; /* 水平内边距，保证点击区域与文字留白 */
+    @apply focus:ring-4 focus:ring-pink-300/40 focus:border-pink-400/70 focus:bg-white/90;
+    @apply placeholder-gray-500/70 text-gray-800;
+    @apply transition-all duration-300 ease-in-out;
+    @apply outline-none;
+    pointer-events: auto; /* 确保可交互 */
+  }
+  
+  .glass-button {
+    @apply font-medium inline-flex items-center justify-center gap-2;
+    @apply h-11 px-5 text-sm; /* 统一高度与留白，视觉更平衡 */
+    @apply bg-gradient-to-r from-brand-500 to-brand-600;
+    @apply text-white shadow-lg border border-white/20;
+    @apply hover:shadow-xl hover:scale-105 hover:from-brand-600 hover:to-brand-700;
+    @apply active:scale-95 active:shadow-inner;
+    @apply disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100;
+    @apply transition-all duration-300 ease-in-out;
+    border-radius: 0.75rem; /* 默认圆角，可被 class 覆盖 */
+  }
+  
+  .glass-button-secondary {
+    @apply glass-button;
+    @apply bg-gradient-to-r from-white/70 to-white/60;
+    @apply text-gray-700 hover:text-gray-900 hover:from-white/80 hover:to-white/70;
+    @apply border-white/40;
+  }
+
+  /* Compact toolbar button for headers/toolbars */
+  .toolbar-button {
+    @apply glass-button-secondary !h-10 !px-4 text-sm;
+  }
+
+
+  .content-section {
+    @apply bg-white/50 backdrop-blur-md rounded-3xl p-6 border border-white/30 shadow-lg;
+    @apply hover:bg-white/60 transition-all duration-300;
+    /* 让区块自适应内容高度，避免过高浪费 */
+    pointer-events: auto;
+  }
+
+  .navigation-section {
+    @apply bg-white/60 backdrop-blur-lg border-b border-white/30 shadow-sm; /* 提高对比度，保证按钮可见 */
+  }
+  
+  .glass-bar {
+    @apply bg-white/60 backdrop-blur-lg border border-white/30 shadow-lg rounded-2xl;
+  }
+  
+  .content-container {
+    /* PC 端铺满宽度，移动端保留左右内边距 */
+    @apply relative z-10 w-full mx-auto px-4 sm:px-6 lg:px-8;
+    max-width: none;
+  }
+  
+  .page-header {
+    @apply mb-8 text-center;
+  }
+  
+  .page-title {
+    @apply text-3xl md:text-4xl font-bold text-gray-800 mb-2;
+    @apply bg-gradient-to-r from-brand-600 to-purple-600 bg-clip-text text-transparent;
+  }
+  
+  .fade-in {
+    animation: fadeIn 0.5s ease-in-out;
+  }
+  
+  .slide-up {
+    animation: slideUp 0.3s ease-out;
+  }
+  
+  .line-clamp-3 {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  
+  .line-clamp-4 {
+    display: -webkit-box;
+    -webkit-line-clamp: 4;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  
+  /* 卡片样式增强 */
+  .post-card {
+    @apply glass-card;
+    @apply hover:shadow-glow-lg transform hover:scale-[1.02];
+    @apply transition-all duration-300 ease-out;
+    /* 设置固定最小高度确保一致性 */
+    min-height: 280px;
+  }
+  
+  /* 列表模式下的卡片样式 */
+  .post-card-list {
+    @apply glass-card;
+    @apply hover:shadow-glow-lg transform hover:scale-[1.01];
+    @apply transition-all duration-300 ease-out;
+    /* 列表模式下不设置固定高度，让内容决定 */
+    min-height: auto;
+  }
+  
+  .post-card:hover {
+    @apply bg-white/70;
+  }
+  
+  .post-card-list:hover {
+    @apply bg-white/70;
+  }
+  
+  /* 头像样式增强 */
+  .avatar-ring {
+    @apply ring-2 ring-white/30 shadow-md;
+    @apply hover:ring-brand-300/50 hover:shadow-lg;
+    @apply transition-all duration-300;
+  }
+}
+
+@layer utilities {
+  .no-scrollbar {
+    -ms-overflow-style: none; /* IE/Edge */
+    scrollbar-width: none; /* Firefox */
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none; /* Chrome/Safari */
+  }
+  .text-shadow {
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+  
+  .backdrop-blur-strong {
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+  }
+}
+
+/* Dark mode adjustments */
+@media (prefers-color-scheme: dark) {
+  body {
+    @apply bg-gradient-to-br from-gray-900 via-purple-900 to-indigo-900;
+    @apply text-gray-100;
+  }
+  
+  .bg-blur-overlay {
+    background: rgba(0, 0, 0, 0.18);
+  }
+  
+  .glass-card {
+    @apply bg-black/25 border-white/10;
+  }
+  
+  .glass-input {
+    @apply bg-black/30 border-white/10 text-white placeholder-gray-400;
+  }
+  
+  .glass-button-secondary {
+    @apply bg-gradient-to-r from-black/40 to-black/30;
+    @apply text-gray-300 hover:text-white;
+  }
+
+}
