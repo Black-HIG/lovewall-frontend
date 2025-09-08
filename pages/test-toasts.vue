@@ -80,4 +80,5 @@ const showMultiple = () => {
 definePageMeta({
   title: '通知测试 - Love Wall',
   middleware: 'auth',
-})</script>
+})
+</script>

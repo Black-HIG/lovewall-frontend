@@ -33,10 +33,14 @@
 
 @layer components {
   .glass-card {
-    /* 统一为首页块样式 */
-    @apply bg-white/50 backdrop-blur-md rounded-3xl p-6 border border-white/30 shadow-lg;
-    @apply hover:bg-white/60 transition-all duration-300;
-    @apply relative;
+    /* Liquid glass panels */
+    @apply relative rounded-3xl p-6 border border-white/20 shadow-lg backdrop-blur-xl;
+    background: rgba(255,255,255,0.28);
+    background-image:
+      radial-gradient(1200px 500px at -15% -10%, rgba(255,92,163,0.20), rgba(255,92,163,0) 45%),
+      radial-gradient(1000px 420px at 115% -10%, rgba(99,102,241,0.20), rgba(99,102,241,0) 50%),
+      radial-gradient(1400px 700px at 120% 120%, rgba(45,212,191,0.20), rgba(45,212,191,0) 55%);
+    background-blend-mode: screen;
     pointer-events: auto;
   }
   
@@ -49,45 +53,151 @@
     @apply outline-none;
     pointer-events: auto; /* 确保可交互 */
   }
-  
-  .glass-button {
-    @apply font-medium inline-flex items-center justify-center gap-2;
-    @apply h-11 px-5 text-sm; /* 统一高度与留白，视觉更平衡 */
-    @apply bg-gradient-to-r from-brand-500 to-brand-600;
-    @apply text-white shadow-lg border border-white/20;
-    @apply hover:shadow-xl hover:scale-105 hover:from-brand-600 hover:to-brand-700;
-    @apply active:scale-95 active:shadow-inner;
-    @apply disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100;
-    @apply transition-all duration-300 ease-in-out;
-    border-radius: 0.75rem; /* 默认圆角，可被 class 覆盖 */
+
+  /* Select 元素右侧为下拉箭头，需额外留白，避免文字与箭头重叠 */
+  select.glass-input:not([multiple]) {
+    @apply pr-10; /* 右侧预留空间给箭头 */
+    background-position: right 0.75rem center; /* 箭头位置更贴近右侧 */
+    background-repeat: no-repeat;
+    background-size: 1.1em 1.1em;
   }
   
+  .glass-button {
+    /* Liquid glass button */
+    @apply relative font-medium inline-flex items-center justify-center gap-2;
+    @apply h-11 px-5 text-sm rounded-xl;
+    @apply text-white shadow-lg border border-white/25 backdrop-blur-xl;
+    @apply disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply transition-all duration-300 ease-in-out;
+    background: rgba(255, 255, 255, 0.12);
+    background-image:
+      radial-gradient(600px 260px at -10% -10%, rgba(255,92,163,0.35), rgba(255,92,163,0) 45%),
+      radial-gradient(520px 240px at 110% -10%, rgba(99,102,241,0.35), rgba(99,102,241,0) 50%),
+      radial-gradient(640px 300px at 120% 120%, rgba(45,212,191,0.35), rgba(45,212,191,0) 55%);
+    background-blend-mode: screen;
+  }
+
+  .glass-button::after,
+  .glass-button-secondary::after,
+  .glass-button-outline::after {
+    /* subtle inner highlight */
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    background: linear-gradient(180deg, rgba(255,255,255,0.55), rgba(255,255,255,0) 35%),
+                linear-gradient(90deg, rgba(255,255,255,0.12), rgba(255,255,255,0));
+    mix-blend-mode: soft-light;
+  }
+  
+  .glass-button:hover {
+    background-color: rgba(255, 255, 255, 0.18);
+    transform: scale(1.02);
+    box-shadow: 0 10px 30px -10px rgba(255,92,163,0.45);
+  }
+
+  .glass-button:active {
+    transform: scale(0.95);
+    box-shadow: inset 0 2px 6px rgba(0,0,0,0.12);
+  }
+
+  .glass-button:disabled:hover {
+    transform: none;
+  }
+
   .glass-button-secondary {
-    @apply glass-button;
-    @apply bg-gradient-to-r from-white/70 to-white/60;
-    @apply text-gray-700 hover:text-gray-900 hover:from-white/80 hover:to-white/70;
-    @apply border-white/40;
+    /* Liquid glass button (soft variant) */
+    @apply relative font-medium inline-flex items-center justify-center gap-2;
+    @apply h-11 px-5 text-sm rounded-xl;
+    @apply text-gray-900 shadow-lg border border-white/25 backdrop-blur-xl;
+    @apply disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply transition-all duration-300 ease-in-out;
+    background: rgba(255,255,255,0.18);
+    background-image:
+      radial-gradient(550px 240px at -10% -10%, rgba(255,92,163,0.22), rgba(255,92,163,0) 45%),
+      radial-gradient(480px 220px at 110% -10%, rgba(99,102,241,0.22), rgba(99,102,241,0) 50%),
+      radial-gradient(600px 280px at 120% 120%, rgba(45,212,191,0.22), rgba(45,212,191,0) 55%);
+    background-blend-mode: screen;
+  }
+
+  /* Outline variant: framed button without solid fill */
+  .glass-button-outline {
+    @apply relative inline-flex items-center justify-center gap-2;
+    @apply h-11 px-5 text-sm rounded-xl shadow-lg border backdrop-blur-xl;
+    border-color: rgba(255,255,255,0.35);
+    color: #1f2937; /* gray-800 */
+    background: rgba(255,255,255,0.06);
+  }
+  .glass-button-outline:hover {
+    background: rgba(255,255,255,0.12);
+    transform: scale(1.01);
+  }
+  .glass-button-outline:active {
+    transform: scale(0.98);
+    box-shadow: inset 0 2px 6px rgba(0,0,0,0.1);
   }
 
   /* Compact toolbar button for headers/toolbars */
   .toolbar-button {
-    @apply glass-button-secondary !h-10 !px-4 text-sm;
+    @apply relative inline-flex items-center justify-center gap-2 text-sm rounded-xl;
+    @apply h-10 px-4 border border-white/25 shadow-lg backdrop-blur-xl;
+    color: #1f2937; /* gray-800 text */
+    background: rgba(255,255,255,0.18);
+    background-image:
+      radial-gradient(500px 200px at -10% -10%, rgba(255,92,163,0.20), rgba(255,92,163,0) 45%),
+      radial-gradient(420px 180px at 110% -10%, rgba(99,102,241,0.20), rgba(99,102,241,0) 50%),
+      radial-gradient(520px 240px at 120% 120%, rgba(45,212,191,0.20), rgba(45,212,191,0) 55%);
+    background-blend-mode: screen;
+  }
+
+  /* Pure text button (for inline actions) */
+  .text-button {
+    @apply p-0 h-auto bg-transparent border-0 shadow-none;
+    @apply font-medium;
+    color: #e04a91; /* brand-600 */
+    text-underline-offset: 2px;
+  }
+  .text-button:hover {
+    color: #c73472; /* brand-700 */
+    text-decoration: underline;
   }
 
 
   .content-section {
     @apply bg-white/50 backdrop-blur-md rounded-3xl p-6 border border-white/30 shadow-lg;
-    @apply hover:bg-white/60 transition-all duration-300;
+    @apply transition-all duration-300;
     /* 让区块自适应内容高度，避免过高浪费 */
     pointer-events: auto;
   }
 
+  /* Lighter glass section for dense lists to avoid opacity stacking */
+  .glass-section-lite {
+    /* Liquid glass container: very light fill to avoid stacking darkness */
+    @apply w-full mx-auto px-4 sm:px-6 lg:px-8;
+    @apply backdrop-blur-xl rounded-3xl border border-white/15 shadow-glow;
+    background: rgba(255, 255, 255, 0.12);
+    isolation: isolate; /* prevent backdrop/opacity stacking with parents */
+  }
+
   .navigation-section {
-    @apply bg-white/60 backdrop-blur-lg border-b border-white/30 shadow-sm; /* 提高对比度，保证按钮可见 */
+    @apply backdrop-blur-xl border-b border-white/20 shadow-sm;
+    background: rgba(255,255,255,0.28);
+    background-image:
+      radial-gradient(1000px 420px at -15% -10%, rgba(255,92,163,0.16), rgba(255,92,163,0) 45%),
+      radial-gradient(880px 360px at 115% -10%, rgba(99,102,241,0.16), rgba(99,102,241,0) 50%),
+      radial-gradient(1200px 620px at 120% 120%, rgba(45,212,191,0.16), rgba(45,212,191,0) 55%);
+    background-blend-mode: screen;
   }
   
   .glass-bar {
-    @apply bg-white/60 backdrop-blur-lg border border-white/30 shadow-lg rounded-2xl;
+    @apply rounded-2xl border border-white/20 shadow-lg backdrop-blur-xl;
+    background: rgba(255,255,255,0.28);
+    background-image:
+      radial-gradient(1000px 420px at -15% -10%, rgba(255,92,163,0.18), rgba(255,92,163,0) 45%),
+      radial-gradient(880px 360px at 115% -10%, rgba(99,102,241,0.18), rgba(99,102,241,0) 50%),
+      radial-gradient(1200px 620px at 120% 120%, rgba(45,212,191,0.18), rgba(45,212,191,0) 55%);
+    background-blend-mode: screen;
   }
   
   .content-container {
@@ -129,35 +239,55 @@
   
   /* 卡片样式增强 */
   .post-card {
-    @apply glass-card;
-    @apply hover:shadow-glow-lg transform hover:scale-[1.02];
+    @apply relative rounded-3xl p-6 border border-white/20 shadow-lg backdrop-blur-xl;
+    /* Liquid glass: softer background, stronger blur and lower alpha to reduce stacking */
+    @apply bg-white/25 border-white/20 backdrop-blur-xl transform;
     @apply transition-all duration-300 ease-out;
     /* 设置固定最小高度确保一致性 */
     min-height: 280px;
+    /* Liquid gradient overlay */
+    background-image:
+      radial-gradient(800px 400px at -10% -20%, rgba(255,92,163,0.28), rgba(255,92,163,0) 45%),
+      radial-gradient(700px 300px at 110% -10%, rgba(99,102,241,0.28), rgba(99,102,241,0) 50%),
+      radial-gradient(900px 480px at 120% 120%, rgba(45,212,191,0.28), rgba(45,212,191,0) 55%);
+    background-blend-mode: screen;
+    isolation: isolate;
   }
   
   /* 列表模式下的卡片样式 */
   .post-card-list {
-    @apply glass-card;
-    @apply hover:shadow-glow-lg transform hover:scale-[1.01];
+    @apply relative rounded-3xl p-6 border border-white/20 shadow-lg backdrop-blur-xl;
+    @apply bg-white/25 border-white/20 backdrop-blur-xl transform;
     @apply transition-all duration-300 ease-out;
     /* 列表模式下不设置固定高度，让内容决定 */
     min-height: auto;
+    background-image:
+      radial-gradient(800px 400px at -10% -20%, rgba(255,92,163,0.26), rgba(255,92,163,0) 45%),
+      radial-gradient(700px 300px at 110% -10%, rgba(99,102,241,0.26), rgba(99,102,241,0) 50%),
+      radial-gradient(900px 480px at 120% 120%, rgba(45,212,191,0.26), rgba(45,212,191,0) 55%);
+    background-blend-mode: screen;
+    isolation: isolate;
   }
   
   .post-card:hover {
-    @apply bg-white/70;
+    /* keep subtle — avoid jump to very high contrast */
+    @apply bg-white/40;
+    transform: scale(1.02);
+    box-shadow: 0 20px 60px -15px rgba(255,92,163,0.35);
   }
   
   .post-card-list:hover {
-    @apply bg-white/70;
+    @apply bg-white/40;
+    transform: scale(1.01);
+    box-shadow: 0 20px 60px -15px rgba(255,92,163,0.30);
   }
   
   /* 头像样式增强 */
   .avatar-ring {
-    @apply ring-2 ring-white/30 shadow-md;
-    @apply hover:ring-brand-300/50 hover:shadow-lg;
-    @apply transition-all duration-300;
+    @apply ring-2 ring-white/30 shadow-md transition-all duration-300;
+  }
+  .avatar-ring:hover {
+    box-shadow: 0 10px 25px -10px rgba(255,92,163,0.30);
   }
 }
 
@@ -190,17 +320,47 @@
     background: rgba(0, 0, 0, 0.18);
   }
   
+  .glass-section-lite {
+    @apply border-white/10 shadow-glow;
+    background: rgba(0, 0, 0, 0.15);
+  }
+  
   .glass-card {
-    @apply bg-black/25 border-white/10;
+    @apply border-white/10 backdrop-blur-xl;
+    background: rgba(0,0,0,0.25);
+    background-image:
+      radial-gradient(1200px 500px at -15% -10%, rgba(255,92,163,0.16), rgba(255,92,163,0) 45%),
+      radial-gradient(1000px 420px at 115% -10%, rgba(99,102,241,0.16), rgba(99,102,241,0) 50%),
+      radial-gradient(1400px 700px at 120% 120%, rgba(45,212,191,0.16), rgba(45,212,191,0) 55%);
+    background-blend-mode: screen;
   }
   
   .glass-input {
     @apply bg-black/30 border-white/10 text-white placeholder-gray-400;
   }
   
-  .glass-button-secondary {
-    @apply bg-gradient-to-r from-black/40 to-black/30;
-    @apply text-gray-300 hover:text-white;
+  .glass-button,
+  .glass-button-secondary,
+  .glass-button-outline {
+    @apply border-white/10 text-white;
+    background: rgba(255,255,255,0.08);
+    background-image:
+      radial-gradient(600px 260px at -10% -10%, rgba(255,92,163,0.28), rgba(255,92,163,0) 45%),
+      radial-gradient(520px 240px at 110% -10%, rgba(99,102,241,0.28), rgba(99,102,241,0) 50%),
+      radial-gradient(640px 300px at 120% 120%, rgba(45,212,191,0.28), rgba(45,212,191,0) 55%);
+    background-blend-mode: screen;
+  }
+
+  /* Dark tune for homepage cards (avoid excessive darkness stacking) */
+  .post-card,
+  .post-card-list {
+    @apply bg-black/15 border-white/10 backdrop-blur-xl;
+    /* Dark: keep the liquid tint subtle */
+    background-image:
+      radial-gradient(800px 400px at -10% -20%, rgba(255,92,163,0.22), rgba(255,92,163,0) 45%),
+      radial-gradient(700px 300px at 110% -10%, rgba(99,102,241,0.22), rgba(99,102,241,0) 50%),
+      radial-gradient(900px 480px at 120% 120%, rgba(45,212,191,0.20), rgba(45,212,191,0) 55%);
+    background-blend-mode: screen;
   }
 
 }

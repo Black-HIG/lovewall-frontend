@@ -89,7 +89,7 @@
                   <div class="w-10 h-10 rounded-full bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center text-white font-medium">
                     <img
                       v-if="user.avatar_url"
-                      :src="user.avatar_url"
+                      :src="assetUrl(user.avatar_url)"
                       :alt="user.username"
                       class="w-10 h-10 rounded-full object-cover"
                     >
@@ -144,9 +144,9 @@
                   <TagBadge
                     v-for="tag in getUserTags(user.id)"
                     :key="tag.user_tag_id"
-                    :title="tag.tag?.title"
-                    :background="tag.tag?.background_color"
-                    :text="tag.tag?.text_color"
+                    :title="tag.tag?.title || ''"
+                    :background="tag.tag?.background_color || '#6b7280'"
+                    :text="tag.tag?.text_color || '#ffffff'"
                     :class="{ 'ring-2 ring-blue-300': tag.is_active }"
                   />
                   <span v-if="!getUserTags(user.id).length" class="text-xs text-gray-400">暂无标签</span>
@@ -395,7 +395,7 @@
           <div class="w-10 h-10 rounded-full bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center text-white font-medium">
             <img
               v-if="permissionsModal.user.avatar_url"
-              :src="permissionsModal.user.avatar_url"
+              :src="assetUrl(permissionsModal.user.avatar_url)"
               :alt="permissionsModal.user.username"
               class="w-10 h-10 rounded-full object-cover"
             >
@@ -457,7 +457,7 @@
           <div class="w-10 h-10 rounded-full bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center text-white font-medium">
             <img
               v-if="passwordModal.user.avatar_url"
-              :src="passwordModal.user.avatar_url"
+              :src="assetUrl(passwordModal.user.avatar_url)"
               :alt="passwordModal.user.username"
               class="w-10 h-10 rounded-full object-cover"
             >
@@ -504,7 +504,7 @@
         <div class="flex gap-3 justify-end">
           <GlassButton
             @click="closePasswordModal"
-            class="glass-button-secondary"
+            variant="secondary"
           >
             取消
           </GlassButton>
@@ -531,7 +531,7 @@
           <div class="w-12 h-12 rounded-full bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center text-white font-medium">
             <img
               v-if="editModal.user.avatar_url"
-              :src="editModal.user.avatar_url"
+              :src="assetUrl(editModal.user.avatar_url)"
               :alt="editModal.user.username"
               class="w-12 h-12 rounded-full object-cover"
             >
@@ -627,11 +627,11 @@
                 >
                 <img
                   v-else-if="editModal.user?.avatar_url"
-                  :src="editModal.user.avatar_url"
+                  :src="assetUrl(editModal.user.avatar_url)"
                   :alt="editModal.user.username"
                   class="w-16 h-16 rounded-full object-cover"
                 >
-                <span v-else>{{ editForm.username.slice(0, 2).toUpperCase() }}</span>
+                <span v-else>{{ (editForm.username || '').slice(0, 2).toUpperCase() }}</span>
               </div>
               
               <!-- File Input -->
@@ -645,7 +645,7 @@
                 >
                 <GlassButton
                   type="button"
-                  @click="$refs.avatarInput.click()"
+                  @click="avatarInput?.click()"
                   variant="secondary"
                 >
                   选择头像
@@ -690,7 +690,7 @@
           <div class="w-10 h-10 rounded-full bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center text-white font-medium">
             <img
               v-if="userTagsModal.user.avatar_url"
-              :src="userTagsModal.user.avatar_url"
+              :src="assetUrl(userTagsModal.user.avatar_url)"
               :alt="userTagsModal.user.username"
               class="w-10 h-10 rounded-full object-cover"
             >
@@ -712,21 +712,22 @@
               class="flex items-center gap-2 p-2 border border-gray-200 rounded-lg"
             >
               <TagBadge
-                :title="userTag.tag?.title"
-                :background="userTag.tag?.background_color"
-                :text="userTag.tag?.text_color"
+                :title="userTag.tag?.title || ''"
+                :background="userTag.tag?.background_color || '#6b7280'"
+                :text="userTag.tag?.text_color || '#ffffff'"
                 :class="{ 'ring-2 ring-blue-300': userTag.is_active }"
               />
               <button
-                @click="removeUserTag(userTagsModal.user!.id, userTag.tag?.id)"
+                v-if="userTag.tag?.id"
+                @click="removeUserTag(userTagsModal.user!.id, userTag.tag.id)"
                 class="text-red-500 hover:text-red-700 text-sm"
                 title="删除标签"
               >
                 ×
               </button>
               <button
-                v-if="!userTag.is_active"
-                @click="setActiveUserTag(userTagsModal.user!.id, userTag.tag?.id)"
+                v-if="!userTag.is_active && userTag.tag?.id"
+                @click="setActiveUserTag(userTagsModal.user!.id, userTag.tag.id)"
                 class="text-blue-500 hover:text-blue-700 text-xs"
                 title="设为活跃"
               >
@@ -792,7 +793,7 @@
           <div class="w-10 h-10 rounded-full bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center text-white font-medium">
             <img
               v-if="banModal.user.avatar_url"
-              :src="banModal.user.avatar_url"
+              :src="assetUrl(banModal.user.avatar_url)"
               :alt="banModal.user.username"
               class="w-10 h-10 rounded-full object-cover"
             >
@@ -885,6 +886,7 @@ definePageMeta({
 
 // Stores
 const auth = useAuthStore()
+const assetUrl = useAssetUrl()
 const toast = useToast()
 
 // State
@@ -936,6 +938,7 @@ const editForm = reactive<AdminUpdateUserForm>({
 const editErrors = reactive<Partial<Record<keyof AdminUpdateUserForm, string>>>({})
 const editSubmitting = ref(false)
 const avatarPreview = ref<string>('')
+const avatarInput = ref<HTMLInputElement | null>(null)
 
 // User tags management modal state
 const userTagsModal = reactive({
@@ -1080,7 +1083,7 @@ const loadUsers = async (page = 1) => {
     
     // 从用户数据中提取权限信息
     userPermissions.value = {}
-    data.items.forEach(user => {
+    data.items.forEach((user: User) => {
       if (user.permissions) {
         userPermissions.value[user.id] = user.permissions
       }

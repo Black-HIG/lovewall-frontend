@@ -14,7 +14,7 @@
       </GlassCard>
       
       <GlassCard class="p-6 text-center">
-        <div class="flex items-center justify-center gap-2">
+        <div class="flex items-center justify-center gap-2 flex-wrap">
           <div class="text-lg font-semibold text-gray-700">当前标签:</div>
           <TagBadge
             v-if="activeTag"
@@ -23,6 +23,11 @@
             :text="activeTag.tag?.text_color || '#ffffff'"
           />
           <span v-else class="text-gray-500">未设置</span>
+          <span v-if="activeStatus && activeStatus.has_active" class="ml-2 px-2 py-0.5 text-xs rounded-full"
+            :class="activeStatus.current_tag_enabled ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'"
+          >
+            {{ activeStatus.current_tag_enabled ? '已启用' : '已停用' }}
+          </span>
         </div>
       </GlassCard>
     </div>
@@ -35,9 +40,10 @@
           <p class="text-sm text-gray-600 mt-1">输入兑换码获取新的专属标签</p>
         </div>
         
-        <div class="flex items-center gap-3 glass-button-secondary">
+        <div class="flex items-center gap-3">
           <GlassButton
               @click="openRedeemModal"
+              variant="secondary"
               class="px-6 py-3"
               style="display:inline-flex;align-items:center;white-space:nowrap;"
           >
@@ -131,7 +137,10 @@
                   v-if="!userTag.is_active"
                   @click="activateTag(userTag)"
                   :loading="activating === userTag.user_tag_id"
-                  class="text-sm px-4 py-2 glass-button-secondary"
+                  :disabled="!userTag.tag?.is_active"
+                  :title="userTag.tag?.is_active ? '设为当前标签' : '该标签已被停用，无法设为当前标签'"
+                  variant="secondary"
+                  class="text-sm px-4 py-2"
                 >
                   设为当前标签
                 </GlassButton>
@@ -201,7 +210,7 @@
         <div class="flex gap-3 justify-end">
           <GlassButton
             @click="closeRedeemModal"
-            class="glass-button-secondary"
+            variant="secondary"
           >
             取消
           </GlassButton>
@@ -209,7 +218,7 @@
             @click="redeemCode"
             :loading="redeeming"
             :disabled="!isValidRedeemCode"
-            class="glass-button-secondary"
+            variant="secondary"
           >
             {{ redeeming ? '兑换中...' : '立即兑换' }}
           </GlassButton>
@@ -263,7 +272,7 @@
 import { TagIcon, CheckCircleIcon } from 'lucide-vue-next'
 import GlassModal from '~/components/ui/GlassModal.vue'
 import TagBadge from '~/components/ui/TagBadge.vue'
-import type { UserTagDto, RedeemForm, RedeemResponse } from '~/types'
+import type { UserTagDto, RedeemForm, RedeemResponse, MyActiveTagStatusResponse } from '~/types'
 
 definePageMeta({
   middleware: 'auth'
@@ -293,6 +302,9 @@ const redeemSuccess = reactive({
   show: false,
   tag: null as UserTagDto | null
 })
+
+// Active tag status from new API
+const activeStatus = ref<MyActiveTagStatusResponse | null>(null)
 
 // Computed
 const activeTag = computed(() => {
@@ -379,6 +391,10 @@ const loadUserTags = async () => {
     const api = useApi()
     const response = await api.getMyTags(true) // 传入 all=true 获取所有标签
     userTags.value = response.items // 取出 items 数组
+    // 同步查询当前活跃标签状态（如果存在）
+    try {
+      activeStatus.value = await api.getMyActiveTagStatus()
+    } catch {}
   } catch (error: any) {
     console.error('Load tags error:', error)
     toast.error('加载标签列表失败')
@@ -426,6 +442,11 @@ const redeemCode = async () => {
     redeemSuccess.show = true
     
     toast.success('兑换成功！新标签已自动设为当前标签')
+    // 刷新活动标签状态徽章
+    try {
+      const api = useApi()
+      activeStatus.value = await api.getMyActiveTagStatus()
+    } catch {}
   } catch (error: any) {
     redeemErrors.value.code = error.message || '兑换失败'
   } finally {
@@ -437,6 +458,11 @@ const activateTag = async (userTag: UserTagDto) => {
   activating.value = userTag.user_tag_id
   try {
     const api = useApi()
+    // 禁止选择已被全局停用的标签
+    if (!userTag.tag?.is_active) {
+      toast.warning('该标签已被停用，无法设为当前标签')
+      return
+    }
     await api.activateTag(userTag.tag?.id || '')
     
     // Update local state
@@ -445,6 +471,10 @@ const activateTag = async (userTag: UserTagDto) => {
     })
     
     toast.success(`已设置 "${userTag.tag?.title}" 为当前标签`)
+    // 刷新活动标签状态徽章
+    try {
+      activeStatus.value = await api.getMyActiveTagStatus()
+    } catch {}
   } catch (error: any) {
     console.error('Activate tag failed:', error)
     toast.error('设置标签失败')
@@ -465,6 +495,10 @@ const deactivateTag = async (userTag: UserTagDto) => {
     })
     
     toast.success('已取消当前标签，现在没有激活的标签')
+    // 刷新活动标签状态徽章
+    try {
+      activeStatus.value = await api.getMyActiveTagStatus()
+    } catch {}
   } catch (error: any) {
     toast.error('取消标签失败')
   } finally {

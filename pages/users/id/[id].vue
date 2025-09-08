@@ -10,7 +10,7 @@
       <GlassCard class="p-8">
         <h1 class="text-2xl font-bold text-red-600 mb-4">用户不存在</h1>
         <p class="text-gray-600 mb-4">{{ error }}</p>
-        <GlassButton @click="$router.back()" class="glass-button-secondary">
+        <GlassButton @click="$router.back()" variant="secondary">
           返回上页
         </GlassButton>
       </GlassCard>
@@ -149,7 +149,7 @@
             <GlassButton
               @click="loadMorePosts"
               :loading="postsLoading"
-              class="glass-button-secondary"
+              variant="secondary"
             >
               加载更多表白
             </GlassButton>

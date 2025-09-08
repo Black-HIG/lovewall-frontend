@@ -81,9 +81,11 @@ export const useHomeStore = defineStore('home', {
         
         // 普通用户只能看到正常帖子，管理员可以看到隐藏的帖子
         if (canModerate) {
-          this.posts = (listResp.items || []).filter(p => p.status !== 2) // 显示隐藏但不显示已删除
+          const items: PostDto[] = listResp.items || []
+          this.posts = items.filter((p: PostDto) => p.status !== 2) // 显示隐藏但不显示已删除
         } else {
-          this.posts = (listResp.items || []).filter(p => p.status === 0) // 只显示正常帖子
+          const items: PostDto[] = listResp.items || []
+          this.posts = items.filter((p: PostDto) => p.status === 0) // 只显示正常帖子
         }
         
         this.pinned = pinnedResp.items || []
@@ -127,9 +129,10 @@ export const useHomeStore = defineStore('home', {
         const listResp: Pagination<PostDto> = await api.listPosts(params)
         
         // 普通用户只能看到正常帖子，管理员可以看到隐藏的帖子
+        const items: PostDto[] = listResp.items || []
         const newPosts = canModerate
-          ? (listResp.items || []).filter(p => p.status !== 2) // 显示隐藏但不显示已删除
-          : (listResp.items || []).filter(p => p.status === 0) // 只显示正常帖子
+          ? items.filter((p: PostDto) => p.status !== 2) // 显示隐藏但不显示已删除
+          : items.filter((p: PostDto) => p.status === 0) // 只显示正常帖子
           
         this.posts.push(...newPosts)
         this.page = next

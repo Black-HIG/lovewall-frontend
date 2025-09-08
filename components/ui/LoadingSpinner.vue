@@ -34,4 +34,5 @@ interface Props {
 withDefaults(defineProps<Props>(), {
   size: 'md',
   variant: 'default',
-})</script>
+})
+</script>

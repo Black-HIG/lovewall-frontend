@@ -424,4 +424,5 @@ const formatTimeAgo = (dateString: string) => {
   if (days < 7) return `${days}天前`
   
   return date.toLocaleDateString('zh-CN', { month: 'numeric', day: 'numeric' })
-}</script>
+}
+</script>

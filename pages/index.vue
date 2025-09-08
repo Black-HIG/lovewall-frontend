@@ -1,7 +1,7 @@
 <template>
   <div class="space-y-8">
-    <!-- Header -->
-    <div class="content-section">
+    <!-- Header (no outer frame) -->
+    <section>
       <div class="page-header">
         <h1 class="page-title">Love Wall</h1>
         <p class="text-gray-600 max-w-2xl mx-auto">
@@ -19,12 +19,12 @@
           发布表白
         </NuxtLink>
       </div>
-    </div>
+    </section>
 
     <!-- 移除置顶/精选单独区块，统一在最新列表展示（卡片上有标识） -->
 
     <!-- Recent Posts -->
-    <section class="content-section space-y-6">
+    <section class="space-y-6">
       <div class="flex items-center justify-between">
         <div class="flex items-center gap-2">
           <ClockIcon class="w-5 h-5 text-gray-600" />
@@ -33,7 +33,7 @@
         
         <div class="flex items-center gap-2">
           <!-- Layout Toggle -->
-          <div class="flex items-center gap-1 p-1 bg-white/30 rounded-lg">
+          <div class="flex items-center gap-1 p-1 bg-white/20 border border-white/20 backdrop-blur-sm rounded-lg shadow-sm">
             <button
               @click="layoutMode = 'grid'"
               :class="[
@@ -63,7 +63,8 @@
           <GlassButton
             @click="refreshPosts"
             :disabled="loading"
-            class="glass-button-secondary !px-3 !py-1.5 text-sm"
+            variant="secondary"
+            class="!px-3 !py-1.5 text-sm"
           >
             <RefreshCwIcon :class="['w-4 h-4', { 'animate-spin': loading }]" />
             刷新
@@ -128,7 +129,7 @@
         <GlassButton
           @click="loadMore"
           :disabled="loadingMore"
-          class="glass-button-secondary"
+          variant="secondary"
         >
           <LoadingSpinner v-if="loadingMore" size="sm" variant="white" />
           <span>{{ loadingMore ? '加载中...' : '加载更多' }}</span>
@@ -205,7 +206,8 @@ onActivated(async () => {
 })
 
 // Set page meta
-definePageMeta({
-  title: 'Love Wall - 表白墙',
-  description: '一个温暖的表白墙，记录美好的告白时刻',
-})</script>
+  definePageMeta({
+    title: 'Love Wall - 表白墙',
+    description: '一个温暖的表白墙，记录美好的告白时刻',
+})
+</script>

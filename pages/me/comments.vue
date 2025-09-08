@@ -31,7 +31,7 @@
           <GlassButton
             @click="refresh"
             :loading="loading"
-            class="glass-button-secondary"
+            variant="secondary"
           >
             <RefreshCwIcon class="w-4 h-4 mr-2" />
             刷新
@@ -87,7 +87,7 @@
                 <div class="w-8 h-8 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center text-white text-sm font-medium">
                   <img
                     v-if="auth.currentUser?.avatar_url"
-                    :src="auth.currentUser.avatar_url"
+                    :src="assetUrl(auth.currentUser.avatar_url)"
                     :alt="auth.userDisplayName"
                     class="w-8 h-8 rounded-full object-cover"
                   >
@@ -130,7 +130,8 @@
                 <GlassButton
                   v-if="canEdit(comment)"
                   @click="startEdit(comment)"
-                  class="glass-button-secondary !p-2"
+                  variant="secondary"
+                  class="!p-2"
                   title="编辑评论"
                 >
                   <EditIcon class="w-4 h-4" />
@@ -138,7 +139,8 @@
                 
                 <GlassButton
                   @click="confirmDelete(comment)"
-                  class="glass-button-secondary !p-2 !text-red-600 hover:!bg-red-50"
+                  variant="secondary"
+                  class="!p-2 !text-red-600 hover:!bg-red-50"
                   title="删除评论"
                 >
                   <Trash2Icon class="w-4 h-4" />
@@ -158,7 +160,8 @@
               <div class="flex gap-2 justify-end">
                 <GlassButton
                   @click="cancelEdit"
-                  class="glass-button-secondary text-sm px-3 py-1"
+                  variant="secondary"
+                  class="text-sm px-3 py-1"
                 >
                   取消
                 </GlassButton>
@@ -201,7 +204,7 @@
         <GlassButton
           @click="loadMore"
           :loading="loadingMore"
-          class="glass-button-secondary"
+          variant="secondary"
         >
           加载更多
         </GlassButton>
@@ -221,7 +224,7 @@
         <div class="flex gap-3 justify-end">
           <GlassButton
             @click="deleteModal.show = false"
-            class="glass-button-secondary"
+            variant="secondary"
           >
             取消
           </GlassButton>
@@ -255,6 +258,7 @@ definePageMeta({
 // Stores
 const auth = useAuthStore()
 const toast = useToast()
+const assetUrl = useAssetUrl()
 
 // State
 const comments = ref<CommentDto[]>([])

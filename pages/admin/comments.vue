@@ -158,7 +158,8 @@
                   <GlassButton
                     v-if="comment.status === 0"
                     @click="hideComment(comment)"
-                    class="!p-2 glass-button-secondary !text-yellow-600 hover:!bg-yellow-50"
+                    variant="secondary"
+                    class="!p-2 !text-yellow-600 hover:!bg-yellow-50"
                     title="隐藏评论"
                   >
                     <EyeOffIcon class="w-4 h-4" />
@@ -167,7 +168,8 @@
                   <GlassButton
                     v-else
                     @click="showComment(comment)"
-                    class="!p-2 glass-button-secondary !text-green-600 hover:!bg-green-50"
+                    variant="secondary"
+                    class="!p-2 !text-green-600 hover:!bg-green-50"
                     title="恢复评论"
                   >
                     <EyeIcon class="w-4 h-4" />
@@ -175,7 +177,8 @@
                   
                   <GlassButton
                     @click="confirmDelete(comment)"
-                    class="!p-2 glass-button-secondary !text-red-600 hover:!bg-red-50"
+                    variant="secondary"
+                    class="!p-2 !text-red-600 hover:!bg-red-50"
                     title="删除评论"
                   >
                     <TrashIcon class="w-4 h-4" />

@@ -63,7 +63,8 @@
         <div class="flex gap-4 pt-6">
           <GlassButton
             type="button"
-            class="glass-button-secondary flex-1"
+            variant="secondary"
+            class="flex-1"
             @click="$router.back()"
           >
             取消

@@ -182,85 +182,48 @@
 
     <!-- System Logs (Only for Superadmin) -->
     <GlassCard class="p-6">
-      <div class="flex items-center justify-between mb-6">
-        <h2 class="text-lg font-semibold text-gray-800">系统日志</h2>
-        <div class="flex gap-3">
-          <GlassButton
-            @click="activeLogType = 'submissions'"
-            :variant="activeLogType === 'submissions' ? 'primary' : 'secondary'"
-            class="text-sm"
-          >
-            <ScrollTextIcon class="w-4 h-4 mr-2" />
-            提交日志
+      <div class="flex items-center justify-between mb-4">
+        <div class="flex items-center gap-3">
+          <h2 class="text-lg font-semibold text-gray-800">系统日志</h2>
+          <span v-if="logsData" class="px-2 py-0.5 text-xs rounded-full bg-white/50 text-gray-700 border border-white/40">
+            共 {{ logsData.total }} 条
+          </span>
+        </div>
+        <div class="flex gap-2">
+          <GlassButton @click="activeLogType = 'submissions'" :variant="activeLogType === 'submissions' ? 'primary' : 'secondary'" class="toolbar-button">
+            <ScrollTextIcon class="w-4 h-4 mr-2" /> 提交日志
           </GlassButton>
-          <GlassButton
-            @click="activeLogType = 'operations'"
-            :variant="activeLogType === 'operations' ? 'primary' : 'secondary'"
-            class="text-sm"
-          >
-            <DatabaseIcon class="w-4 h-4 mr-2" />
-            操作日志
+          <GlassButton @click="activeLogType = 'operations'" :variant="activeLogType === 'operations' ? 'primary' : 'secondary'" class="toolbar-button">
+            <DatabaseIcon class="w-4 h-4 mr-2" /> 操作日志
           </GlassButton>
         </div>
       </div>
 
       <!-- Log Filters -->
-      <div class="mb-6 p-4 bg-gray-50 rounded-lg">
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-          <GlassInput
-            v-model="logFilters.action"
-            placeholder="操作类型..."
-            class="text-sm"
-          />
-          <GlassInput
-            v-model="logFilters.object_type"
-            placeholder="对象类型..."
-            class="text-sm"
-          />
-          <GlassInput
-            v-model="logFilters.object_id"
-            placeholder="对象ID..."
-            class="text-sm"
-          />
-          <GlassInput
-            v-if="activeLogType === 'submissions'"
-            v-model="logFilters.user_id"
-            placeholder="用户ID..."
-            class="text-sm"
-          />
-          <GlassInput
-            v-if="activeLogType === 'operations'"
-            v-model="logFilters.admin_id"
-            placeholder="管理员ID..."
-            class="text-sm"
-          />
-        </div>
-        
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-          <div>
-            <label class="block text-xs text-gray-600 mb-1">开始时间</label>
-            <input
-              v-model="logFilters.from"
-              type="datetime-local"
-              class="glass-input w-full text-sm"
-            />
+      <div class="glass-bar p-4 mb-6">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-3 items-end">
+          <GlassInput v-model="logFilters.q" placeholder="关键字（操作/对象/ID/元数据）" class="text-sm lg:col-span-4" />
+          <GlassInput v-model="logFilters.action" placeholder="操作类型" class="text-sm lg:col-span-2" />
+          <GlassInput v-model="logFilters.object_type" placeholder="对象类型" class="text-sm lg:col-span-2" />
+          <GlassInput v-model="logFilters.object_id" placeholder="对象ID" class="text-sm lg:col-span-2" />
+          <GlassInput v-if="activeLogType === 'submissions'" v-model="logFilters.user_id" placeholder="用户ID" class="text-sm lg:col-span-2" />
+          <GlassInput v-if="activeLogType === 'operations'" v-model="logFilters.admin_id" placeholder="管理员ID" class="text-sm lg:col-span-2" />
+          <div class="grid grid-cols-2 gap-3 lg:col-span-4">
+            <input v-model="logFilters.from" type="datetime-local" class="glass-input w-full text-sm" />
+            <input v-model="logFilters.to" type="datetime-local" class="glass-input w-full text-sm" />
           </div>
-          <div>
-            <label class="block text-xs text-gray-600 mb-1">结束时间</label>
-            <input
-              v-model="logFilters.to"
-              type="datetime-local"
-              class="glass-input w-full text-sm"
-            />
-          </div>
-          <div class="flex items-end">
-            <GlassButton
-              @click="loadLogs(1)"
-              :loading="loadingLogs"
-              class="w-full"
-            >
-              查询日志
-            </GlassButton>
+          <div class="flex flex-wrap gap-2 justify-end lg:col-span-4">
+            <div class="flex items-center gap-2 text-sm text-gray-700 mr-auto lg:mr-0">
+              <span>每页</span>
+              <select v-model.number="logsPageSize" @change="changeLogsPageSize" class="glass-input px-2 py-1 text-sm">
+                <option :value="20">20</option>
+                <option :value="50">50</option>
+                <option :value="100">100</option>
+                <option :value="500">500</option>
+              </select>
+            </div>
+            <GlassButton @click="clearLogFilters" variant="secondary" class="toolbar-button">清空</GlassButton>
+            <GlassButton @click="loadLogs(1)" :loading="loadingLogs" class="toolbar-button">查询</GlassButton>
           </div>
         </div>
       </div>
@@ -279,117 +242,93 @@
         <p class="text-gray-600">当前筛选条件下没有找到日志记录</p>
       </div>
 
-      <!-- Logs List -->
+      <!-- Logs Timeline List -->
       <div v-else class="space-y-3">
-        <div
-          v-for="log in logs"
-          :key="log.id"
-          class="p-4 bg-white/50 rounded-lg border border-gray-200 hover:shadow-md transition-shadow"
-        >
-          <div class="flex items-start justify-between">
-            <div class="flex-1 min-w-0">
-              <!-- Main log info -->
-              <div class="flex items-center gap-3 mb-2">
-                <div class="flex items-center text-sm text-gray-600">
-                  <span class="font-medium">{{ formatLogAction(log.action) }}</span>
-                  <span class="mx-2">•</span>
-                  <span>{{ log.object_type }}</span>
-                  <span v-if="log.object_id" class="mx-2">•</span>
-                  <span v-if="log.object_id" class="font-mono text-xs">{{ log.object_id.slice(0, 8) }}...</span>
+        <div v-for="log in logs" :key="log.id" class="relative pl-6 cursor-pointer" @click="openLogDetails(log)">
+          <div class="absolute left-0 top-5 w-3 h-3 rounded-full bg-brand-500 ring-4 ring-white/60" />
+          <div class="p-4 bg-white/60 rounded-xl border border-white/40 hover:shadow-glow-sm transition-all">
+            <div class="flex items-start justify-between gap-3">
+              <div class="flex-1 min-w-0">
+                <div class="flex flex-wrap items-center gap-2 mb-1 text-sm">
+                  <span class="px-2 py-0.5 rounded-full bg-brand-100 text-brand-700">{{ formatLogAction(log.action) }}</span>
+                  <span class="px-2 py-0.5 rounded-full bg-gray-100 text-gray-700">{{ log.object_type }}</span>
+                  <code v-if="log.object_id" class="px-2 py-0.5 rounded bg-gray-50 border text-xs">{{ log.object_id }}</code>
                 </div>
-                <div class="text-xs text-gray-500">
-                  {{ formatDate(log.created_at) }}
+                <div class="text-xs text-gray-500 mb-2">{{ formatDate(log.created_at) }}</div>
+                <div class="text-sm text-gray-700 mb-2 flex flex-wrap gap-4">
+                  <span v-if="log.user_id">
+                    用户:
+                    <NuxtLink :to="`/users/id/${log.user_id}`" class="text-brand-600 hover:text-brand-700 hover:underline">
+                      {{ userLabel(log.user_id) }}
+                    </NuxtLink>
+                  </span>
+                  <span v-if="log.admin_id">
+                    管理员:
+                    <NuxtLink :to="`/users/id/${log.admin_id}`" class="text-brand-600 hover:text-brand-700 hover:underline">
+                      {{ userLabel(log.admin_id) }}
+                    </NuxtLink>
+                  </span>
+                </div>
+                <div v-if="log.parsedMetadata && Object.keys(log.parsedMetadata).length" class="text-xs text-gray-600">
+                  <span class="font-medium">附加信息:</span>
+                  <span class="ml-1">{{ metadataPreview(log.parsedMetadata) }}</span>
                 </div>
               </div>
-
-              <!-- User info -->
-              <div class="text-sm text-gray-700 mb-2">
-                <span v-if="activeLogType === 'submissions' && log.user_id" class="font-medium">
-                  用户: {{ log.user_id.slice(0, 8) }}...
-                </span>
-                <span v-if="activeLogType === 'operations' && log.admin_id" class="font-medium">
-                  管理员: {{ log.admin_id.slice(0, 8) }}...
-                </span>
-              </div>
-
-              <!-- Metadata preview -->
-              <div v-if="log.parsedMetadata && Object.keys(log.parsedMetadata).length" class="text-xs text-gray-500">
-                <span class="font-medium">附加信息:</span>
-                <span class="ml-2">
-                  {{ Object.keys(log.parsedMetadata).slice(0, 3).map(key => `${key}: ${log.parsedMetadata![key]}`).join(', ') }}
-                  <span v-if="Object.keys(log.parsedMetadata).length > 3">...</span>
-                </span>
-              </div>
+              <GlassButton @click.stop="openLogDetails(log)" variant="secondary" class="!p-2" title="查看详情">
+                <ChevronDownIcon class="w-4 h-4" />
+              </GlassButton>
             </div>
-
-            <!-- Expand button -->
-            <GlassButton
-              @click="toggleLogDetails(log)"
-              variant="secondary"
-              class="!p-2"
-              :title="expandedLogId === log.id ? '收起详情' : '展开详情'"
-            >
-              <component
-                :is="expandedLogId === log.id ? 'ChevronUpIcon' : 'ChevronDownIcon'"
-                class="w-4 h-4"
-              />
-            </GlassButton>
-          </div>
-
-          <!-- Expanded details -->
-          <div v-if="expandedLogId === log.id" class="mt-4 pt-4 border-t border-gray-200">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <h4 class="text-sm font-medium text-gray-700 mb-2">基本信息</h4>
-                <div class="space-y-1 text-sm">
-                  <div class="flex justify-between">
-                    <span class="text-gray-600">日志ID:</span>
-                    <code class="text-xs bg-gray-100 px-1 rounded">{{ log.id }}</code>
-                  </div>
-                  <div v-if="log.user_id" class="flex justify-between">
-                    <span class="text-gray-600">用户ID:</span>
-                    <code class="text-xs bg-gray-100 px-1 rounded">{{ log.user_id }}</code>
-                  </div>
-                  <div v-if="log.admin_id" class="flex justify-between">
-                    <span class="text-gray-600">管理员ID:</span>
-                    <code class="text-xs bg-gray-100 px-1 rounded">{{ log.admin_id }}</code>
-                  </div>
-                  <div class="flex justify-between">
-                    <span class="text-gray-600">操作类型:</span>
-                    <span>{{ formatLogAction(log.action) }}</span>
-                  </div>
-                  <div class="flex justify-between">
-                    <span class="text-gray-600">对象类型:</span>
-                    <span>{{ log.object_type }}</span>
-                  </div>
-                  <div v-if="log.object_id" class="flex justify-between">
-                    <span class="text-gray-600">对象ID:</span>
-                    <code class="text-xs bg-gray-100 px-1 rounded">{{ log.object_id }}</code>
-                  </div>
-                  <div v-if="log.ip" class="flex justify-between">
-                    <span class="text-gray-600">IP地址:</span>
-                    <span class="font-mono text-xs">{{ log.ip }}</span>
-                  </div>
-                </div>
-              </div>
-
-              <div v-if="log.parsedMetadata && Object.keys(log.parsedMetadata).length">
-                <h4 class="text-sm font-medium text-gray-700 mb-2">附加信息</h4>
-                <div class="bg-gray-50 p-3 rounded text-xs font-mono max-h-40 overflow-y-auto">
-                  <pre>{{ JSON.stringify(log.parsedMetadata, null, 2) }}</pre>
-                </div>
-              </div>
-
-              <div v-if="log.user_agent" class="md:col-span-2">
-                <h4 class="text-sm font-medium text-gray-700 mb-2">用户代理</h4>
-                <div class="bg-gray-50 p-3 rounded text-xs break-all">
-                  {{ log.user_agent }}
-                </div>
-              </div>
-            </div>
+            <!-- 详情改为 Modal 展示 -->
           </div>
         </div>
       </div>
+
+      <!-- Log Details Modal -->
+      <GlassModal :is-open="logDetails.show" title="日志详情" max-width="max-w-3xl" @close="closeLogDetails">
+        <div v-if="logDetails.log" class="space-y-4">
+          <div class="flex flex-wrap items-center gap-2">
+            <span class="px-2 py-0.5 rounded-full bg-brand-100 text-brand-700">{{ formatLogAction(logDetails.log.action) }}</span>
+            <span class="px-2 py-0.5 rounded-full bg-gray-100 text-gray-700">{{ logDetails.log.object_type }}</span>
+            <code v-if="logDetails.log.object_id" class="px-2 py-0.5 rounded bg-gray-50 border text-xs">{{ logDetails.log.object_id }}</code>
+            <span class="text-xs text-gray-500 ml-auto">{{ formatDate(logDetails.log.created_at) }}</span>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <h4 class="text-sm font-medium text-gray-700 mb-2">基本信息</h4>
+              <div class="space-y-1 text-sm">
+                <div class="flex justify-between"><span class="text-gray-600">日志ID:</span><code class="text-xs bg-white px-2 py-0.5 rounded border">{{ logDetails.log.id }}</code></div>
+                <div class="flex justify-between"><span class="text-gray-600">对象:</span><span>{{ logDetails.log.object_type }}</span></div>
+                <div v-if="logDetails.log.user_id" class="flex justify-between">
+                  <span class="text-gray-600">用户:</span>
+                  <NuxtLink :to="`/users/id/${logDetails.log.user_id}`" class="text-brand-600 hover:text-brand-700 hover:underline">
+                    {{ userLabel(logDetails.log.user_id) }}
+                  </NuxtLink>
+                </div>
+                <div v-if="logDetails.log.admin_id" class="flex justify-between">
+                  <span class="text-gray-600">管理员:</span>
+                  <NuxtLink :to="`/users/id/${logDetails.log.admin_id}`" class="text-brand-600 hover:text-brand-700 hover:underline">
+                    {{ userLabel(logDetails.log.admin_id) }}
+                  </NuxtLink>
+                </div>
+                <div v-if="logDetails.log.ip" class="flex justify-between"><span class="text-gray-600">IP:</span><span class="font-mono text-xs">{{ logDetails.log.ip }}</span></div>
+              </div>
+            </div>
+            <div>
+              <h4 class="text-sm font-medium text-gray-700 mb-2">元数据</h4>
+              <pre class="text-xs bg-white/70 rounded-lg p-3 border overflow-auto max-h-64">{{ (logDetails.log.metadata || '{}') }}</pre>
+            </div>
+            <div v-if="logDetails.log.user_agent" class="md:col-span-2">
+              <h4 class="text-sm font-medium text-gray-700 mb-2">User-Agent</h4>
+              <div class="bg-white/70 p-3 rounded text-xs break-all border">{{ logDetails.log.user_agent }}</div>
+            </div>
+          </div>
+        </div>
+        <template #footer>
+          <div class="flex justify-end">
+            <GlassButton variant="secondary" class="toolbar-button" @click="closeLogDetails">关闭</GlassButton>
+          </div>
+        </template>
+      </GlassModal>
 
       <!-- Pagination -->
       <div
@@ -436,8 +375,9 @@ import {
   ChevronUpIcon,
   ChevronDownIcon
 } from 'lucide-vue-next'
+import GlassModal from '~/components/ui/GlassModal.vue'
 import { PERMISSIONS } from '~/types'
-import type { LogEntry, LogFilters, Pagination } from '~/types'
+import type { LogEntry, LogFilters, Pagination, User } from '~/types'
 
 definePageMeta({
   middleware: ['admin', 'require-superadmin']
@@ -461,6 +401,10 @@ const logs = ref<LogEntry[]>([])
 const logsData = ref<Pagination<LogEntry> | null>(null)
 const loadingLogs = ref(false)
 const expandedLogId = ref<string>('')
+const logsPageSize = ref<number>(20)
+const logDetails = reactive<{ show: boolean; log: LogEntry | null }>({ show: false, log: null })
+// cache user info to render names and links
+const userMap = ref<Record<string, User | null>>({})
 
 const logFilters = reactive<LogFilters>({
   action: '',
@@ -503,34 +447,42 @@ const getPermissionName = (permission: string) => {
 // Logs related methods
 const formatLogAction = (action: string): string => {
   const actionNames: Record<string, string> = {
-    // Submissions
+    // 提交类
     'create_post': '创建帖子',
     'create_comment': '创建评论',
     'redeem_tag': '兑换标签',
     'activate_tag': '激活标签',
     'deactivate_tag': '停用标签',
-    // Operations
+    // 用户管理（管理员）
+    'set_user_permissions': '设置用户权限',
+    'update_user_password': '重置用户密码',
+    'update_user': '更新用户信息',
+    'ban_user': '封禁用户',
+    'unban_user': '解除封禁',
+    // 帖子管理
     'pin_post': '置顶帖子',
     'unpin_post': '取消置顶',
     'feature_post': '精选帖子',
     'unfeature_post': '取消精选',
     'hide_post': '隐藏帖子',
-    'restore_post': '恢复帖子',
+    'unhide_post': '取消隐藏帖子',
     'delete_post': '删除帖子',
+    // 评论管理
+    'edit_comment': '编辑评论',
     'hide_comment': '隐藏评论',
-    'restore_comment': '恢复评论',
-    'delete_comment': '删除评论',
+    'unhide_comment': '取消隐藏评论',
+    // 标签与兑换码
     'create_tag': '创建标签',
     'update_tag': '更新标签',
     'delete_tag': '删除标签',
-    'generate_codes': '生成兑换码',
+    'generate_redemption_codes': '生成兑换码',
+    'delete_redemption_codes': '批量删除兑换码',
     'assign_user_tag': '分配用户标签',
-    'remove_user_tag': '删除用户标签',
+    'remove_user_tag': '移除用户标签',
+    // 公告
     'create_announcement': '创建公告',
     'update_announcement': '更新公告',
     'delete_announcement': '删除公告',
-    'set_user_permissions': '设置用户权限',
-    'change_user_password': '修改用户密码'
   }
   return actionNames[action] || action
 }
@@ -542,6 +494,16 @@ const convertToRFC3339 = (dateTimeLocal: string): string => {
   return new Date(dateTimeLocal).toISOString()
 }
 
+const toDatetimeLocal = (date: Date): string => {
+  const pad = (n: number) => String(n).padStart(2, '0')
+  const y = date.getFullYear()
+  const m = pad(date.getMonth() + 1)
+  const d = pad(date.getDate())
+  const hh = pad(date.getHours())
+  const mm = pad(date.getMinutes())
+  return `${y}-${m}-${d}T${hh}:${mm}`
+}
+
 const loadLogs = async (page = 1) => {
   loadingLogs.value = true
   
@@ -551,10 +513,11 @@ const loadLogs = async (page = 1) => {
     // Prepare filters
     const filters: LogFilters = {
       page,
-      page_size: 20
+      page_size: logsPageSize.value
     }
     
     // Add non-empty filters
+    if (logFilters.q) (filters as any).q = logFilters.q
     if (logFilters.action) filters.action = logFilters.action
     if (logFilters.object_type) filters.object_type = logFilters.object_type
     if (logFilters.object_id) filters.object_id = logFilters.object_id
@@ -574,13 +537,14 @@ const loadLogs = async (page = 1) => {
       : await api.getOperationLogs(filters)
     
     // Process metadata for each log entry
-    const processedLogs = data.items.map(log => ({
+    const processedLogs = data.items.map((log: LogEntry) => ({
       ...log,
       parsedMetadata: log.metadata ? JSON.parse(log.metadata) : null
     }))
     
     logs.value = processedLogs
     logsData.value = data
+    await preloadUserNames(processedLogs)
     
   } catch (error: any) {
     toast.error('加载日志失败')
@@ -608,6 +572,66 @@ const nextLogsPage = () => {
   if (logsData.value && logsData.value.page * logsData.value.page_size < logsData.value.total) {
     loadLogs(logsData.value.page + 1)
   }
+}
+
+const clearLogFilters = () => {
+  logFilters.action = ''
+  logFilters.object_type = ''
+  logFilters.object_id = ''
+  logFilters.user_id = ''
+  logFilters.admin_id = ''
+  logFilters.from = ''
+  logFilters.to = ''
+  logFilters.q = ''
+}
+
+const metadataPreview = (obj: Record<string, any>) => {
+  const keys = Object.keys(obj)
+  if (!keys.length) return ''
+  const parts = keys.slice(0, 3).map(k => `${k}: ${String(obj[k])}`)
+  return parts.join(', ') + (keys.length > 3 ? ' ...' : '')
+}
+
+const changeLogsPageSize = () => {
+  loadLogs(1)
+}
+
+const openLogDetails = (log: LogEntry) => {
+  logDetails.log = log
+  logDetails.show = true
+}
+
+const closeLogDetails = () => {
+  logDetails.show = false
+  logDetails.log = null
+}
+
+// preload user/admin names for logs
+const preloadUserNames = async (items: LogEntry[]) => {
+  const ids = new Set<string>()
+  items.forEach(l => {
+    if (l.user_id) ids.add(l.user_id)
+    if (l.admin_id) ids.add(l.admin_id)
+  })
+  const missing = Array.from(ids).filter(id => !(id in userMap.value))
+  if (!missing.length) return
+  const api = useApi()
+  await Promise.all(missing.map(async (id) => {
+    try {
+      const u = await api.getUser(id)
+      userMap.value[id] = u
+    } catch {
+      userMap.value[id] = null
+    }
+  }))
+}
+
+const userLabel = (id?: string) => {
+  if (!id) return '-'
+  const u = userMap.value[id]
+  if (u === undefined) return '加载中...'
+  if (!u) return id
+  return u.display_name || u.username || id
 }
 
 // Watch for log type changes to reload data
@@ -659,7 +683,17 @@ const loadStats = async () => {
 // Initialize
 onMounted(() => {
   loadStats()
-  // Load initial logs
+  // 默认时间范围：站点建立时间（以当前管理员注册时间）到现在
+  try {
+    if (!logFilters.from && auth.currentUser?.created_at) {
+      const created = new Date(auth.currentUser.created_at)
+      logFilters.from = toDatetimeLocal(created)
+    }
+  } catch {}
+  if (!logFilters.to) {
+    logFilters.to = toDatetimeLocal(new Date())
+  }
+  // Load initial logs with default range
   loadLogs(1)
 })
 

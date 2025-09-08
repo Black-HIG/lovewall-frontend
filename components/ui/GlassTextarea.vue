@@ -73,4 +73,5 @@ const handleInput = (event: Event) => {
   }
   
   emit('update:modelValue', value)
-}</script>
+}
+</script>

@@ -14,7 +14,7 @@
               <div class="w-24 h-24 rounded-full bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center text-white text-2xl font-bold overflow-hidden">
                 <img
                   v-if="avatarPreview || user?.avatar_url"
-                  :src="avatarPreview || user?.avatar_url"
+                  :src="avatarPreview || (user?.avatar_url ? assetUrl(user.avatar_url) : undefined)"
                   :alt="user?.display_name || user?.username"
                   class="w-24 h-24 object-cover"
                 >
@@ -90,7 +90,7 @@
               id="bio"
               v-model="form.bio"
               placeholder="介绍一下你自己吧（可选）"
-              rows="4"
+              :rows="4"
               :max-length="500"
               :error="errors.bio"
             />
@@ -142,10 +142,11 @@ interface Emits {
 
 const props = defineProps<Props>()
 const emit = defineEmits<Emits>()
+const assetUrl = useAssetUrl()
 
 // State
 const loading = ref(false)
-const avatarPreview = ref<string | null>(null)
+const avatarPreview = ref<string | undefined>(undefined)
 const form = reactive<UpdateProfileForm & { display_name: string; email: string; phone: string; bio: string }>({
   display_name: '',
   email: '',
@@ -170,7 +171,7 @@ const resetForm = () => {
     form.bio = props.user.bio || ''
   }
   form.avatar = null
-  avatarPreview.value = null
+  avatarPreview.value = undefined
   Object.keys(errors).forEach(key => {
     (errors as any)[key] = ''
   })

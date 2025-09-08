@@ -120,7 +120,8 @@
               <div class="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                 <GlassButton
                   @click="editAnnouncement(announcement)"
-                  class="!p-2 glass-button-secondary"
+                  variant="secondary"
+                  class="!p-2"
                   title="编辑公告"
                 >
                   <EditIcon class="w-4 h-4" />
@@ -128,7 +129,8 @@
                 
                 <GlassButton
                   @click="toggleStatus(announcement)"
-                  class="!p-2 glass-button-secondary"
+                  variant="secondary"
+                  class="!p-2"
                   :title="announcement.is_active ? '停用公告' : '启用公告'"
                 >
                   <component :is="announcement.is_active ? PauseIcon : PlayIcon" class="w-4 h-4" />
@@ -136,7 +138,8 @@
                 
                 <GlassButton
                   @click="confirmDelete(announcement)"
-                  class="!p-2 glass-button-secondary !text-red-600 hover:!bg-red-50"
+                  variant="secondary"
+                  class="!p-2 !text-red-600 hover:!bg-red-50"
                   title="删除公告"
                 >
                   <TrashIcon class="w-4 h-4" />

@@ -26,6 +26,10 @@ import type {
   AdminChangePasswordForm,
   AdminUpdateUserForm,
   User,
+  MyActiveTagStatusResponse,
+  MyTagStatusResponse,
+  DeleteRedemptionCodesRequest,
+  DeleteRedemptionCodesResponse,
 } from '~/types'
 
 let fallbackApi: any | null = null
@@ -115,27 +119,34 @@ export const useApi = () => {
     }
   )
 
+  const unwrap = <T>(res: AxiosResponse<ApiResp<T>>): T => {
+    const body = res.data as ApiResp<T>
+    if ((body as any)?.success) return (body as any).data as T
+    const msg = (body as any)?.error?.message || '请求失败'
+    throw new Error(msg)
+  }
+
   const api = {
     // Auth
     async register(data: RegisterForm): Promise<AuthResponse> {
       const res = await instance.post<ApiResp<AuthResponse>>('/register', data)
-      return res.data.data
+      return unwrap(res)
     },
     async login(data: LoginForm): Promise<AuthResponse> {
       const res = await instance.post<ApiResp<AuthResponse>>('/login', data)
-      return res.data.data
+      return unwrap(res)
     },
     async logout(): Promise<{ ok: boolean }> {
       const res = await instance.post<ApiResp<{ ok: boolean }>>('/logout')
-      return res.data.data
+      return unwrap(res)
     },
     async getProfile(): Promise<UserProfile> {
       const res = await instance.get<ApiResp<UserProfile>>('/profile')
-      return res.data.data
+      return unwrap(res)
     },
     async getOnlineStatus(): Promise<{ online: boolean; expires_at?: string }> {
       const res = await instance.get<ApiResp<{ online: boolean; expires_at?: string }>>('/users/me/online')
-      return res.data.data
+      return unwrap(res)
     },
     async updateProfile(data: UpdateProfileForm): Promise<User> {
       const requestData: any = {}
@@ -159,32 +170,32 @@ export const useApi = () => {
       }
       
       const res = await instance.patch<ApiResp<User>>('/profile', requestData)
-      return res.data.data
+      return unwrap(res)
     },
     async changePassword(data: ChangePasswordForm): Promise<void> {
       const res = await instance.post<ApiResp<void>>('/change-password', {
         old_password: data.old_password,
         new_password: data.new_password
       })
-      return res.data.data
+      return unwrap(res)
     },
 
     // 获取用户信息
     async getUser(id: string): Promise<User> {
       const res = await instance.get<ApiResp<User>>(`/users/${id}`)
-      return res.data.data
+      return unwrap(res)
     },
     async getUserByUsername(username: string): Promise<User> {
       const res = await instance.get<ApiResp<User>>(`/users/by-username/${username}`)
-      return res.data.data
+      return unwrap(res)
     },
     async getUserPosts(userId: string, params: { page?: number; page_size?: number } = {}): Promise<Pagination<PostDto>> {
       // TODO: 这个接口需要后端实现，暂时使用普通帖子列表并过滤
       // 实际应该是：GET /api/users/{userId}/posts
       const res = await instance.get<ApiResp<Pagination<PostDto>>>('/posts', { params })
-      const data = res.data.data
+      const data = unwrap(res)
       // 前端临时过滤（实际应该由后端处理）
-      const filteredPosts = data.items.filter(post => post.author_id === userId)
+      const filteredPosts = data.items.filter((post: PostDto) => post.author_id === userId)
       return {
         ...data,
         items: filteredPosts
@@ -194,81 +205,81 @@ export const useApi = () => {
     // Posts
     async listPosts(params: { page?: number; page_size?: number; featured?: boolean; pinned?: boolean } = {}): Promise<Pagination<PostDto>> {
       const res = await instance.get<ApiResp<Pagination<PostDto>>>('/posts', { params })
-      return res.data.data
+      return unwrap(res)
     },
     async getPost(id: string): Promise<PostDto> {
       const res = await instance.get<ApiResp<PostDto>>(`/posts/${id}`)
-      return res.data.data
+      return unwrap(res)
     },
     async createPost(formData: FormData): Promise<PostDto> {
       const res = await instance.post<ApiResp<PostDto>>('/posts', formData, { headers: { 'Content-Type': 'multipart/form-data' } })
-      return res.data.data
+      return unwrap(res)
     },
     async updatePost(id: string, data: Partial<PostDto>): Promise<PostDto> {
       const res = await instance.put<ApiResp<PostDto>>(`/posts/${id}`, data)
-      return res.data.data
+      return unwrap(res)
     },
     async deletePost(id: string): Promise<void> {
       await instance.delete(`/posts/${id}`)
     },
     async moderationPosts(params: { status?: 0 | 1 | 2; author_id?: string; featured?: boolean; pinned?: boolean; page?: number; page_size?: number } = {}): Promise<Pagination<PostDto>> {
       const res = await instance.get<ApiResp<Pagination<PostDto>>>('/posts/moderation', { params })
-      return res.data.data
+      return unwrap(res)
     },
     async restorePost(id: string): Promise<{ id: string; status: number }> {
       const res = await instance.post<ApiResp<{ id: string; status: number }>>(`/posts/${id}/restore`)
-      return res.data.data
+      return unwrap(res)
     },
     async pinPost(id: string, pin: boolean): Promise<{ id: string; is_pinned: boolean }> {
       const res = await instance.post<ApiResp<{ id: string; is_pinned: boolean }>>(`/posts/${id}/pin`, { pin })
-      return res.data.data
+      return unwrap(res)
     },
     async featurePost(id: string, feature: boolean): Promise<{ id: string; is_featured: boolean }> {
       const res = await instance.post<ApiResp<{ id: string; is_featured: boolean }>>(`/posts/${id}/feature`, { feature })
-      return res.data.data
+      return unwrap(res)
     },
     async hidePost(id: string, hide: boolean): Promise<{ id: string; status: number }> {
       const res = await instance.post<ApiResp<{ id: string; status: number }>>(`/posts/${id}/hide`, { hide })
-      return res.data.data
+      return unwrap(res)
     },
 
     // Comments
     async listComments(postId: string, params: { page?: number; page_size?: number } = {}): Promise<Pagination<CommentDto>> {
       const res = await instance.get<ApiResp<Pagination<CommentDto>>>(`/posts/${postId}/comments`, { params })
-      return res.data.data
+      return unwrap(res)
     },
     async createComment(postId: string, data: CommentForm): Promise<CommentDto> {
       const res = await instance.post<ApiResp<CommentDto>>(`/posts/${postId}/comments`, data)
-      return res.data.data
+      return unwrap(res)
     },
     async deleteComment(id: string): Promise<void> {
       await instance.delete(`/comments/${id}`)
     },
     async hideComment(id: string, hide: boolean): Promise<{ id: string; status: number }> {
       const res = await instance.post<ApiResp<{ id: string; status: number }>>(`/comments/${id}/hide`, { hide })
-      return res.data.data
+      return unwrap(res)
     },
     async getMyComments(params: { page?: number; page_size?: number } = {}): Promise<Pagination<CommentDto>> {
       const res = await instance.get<ApiResp<Pagination<CommentDto>>>('/my/comments', { params })
-      return res.data.data
+      return unwrap(res)
     },
     async getAdminComments(params: { post_id?: string; user_id?: string; status?: number; page?: number; page_size?: number } = {}): Promise<Pagination<CommentDto>> {
       const res = await instance.get<ApiResp<Pagination<CommentDto>>>('/comments', { params })
-      return res.data.data
+      return unwrap(res)
     },
 
     // Announcements
     async listAnnouncements(): Promise<AnnouncementDto[]> {
       const res = await instance.get<ApiResp<AnnouncementDto[]>>('/announcements')
-      return res.data.data
+      return unwrap(res)
     },
     async createAnnouncement(data: AnnouncementForm): Promise<AnnouncementDto> {
       const res = await instance.post<ApiResp<AnnouncementDto>>('/announcements', data)
-      return res.data.data
+      return unwrap(res)
     },
     async updateAnnouncement(id: string, data: Partial<AnnouncementForm>): Promise<AnnouncementDto> {
       const res = await instance.put<ApiResp<AnnouncementDto>>(`/announcements/${id}`, data)
-      return res.data.data
+      return unwrap(res)
     },
     async deleteAnnouncement(id: string): Promise<void> {
       await instance.delete(`/announcements/${id}`)
@@ -277,7 +288,7 @@ export const useApi = () => {
     // Users
     async listUsers(params: { q?: string; status?: number; page?: number; page_size?: number } = {}): Promise<Pagination<User>> {
       const res = await instance.get<ApiResp<Pagination<User>>>('/users', { params })
-      return res.data.data
+      return unwrap(res)
     },
     async updateUser(id: string, data: AdminUpdateUserForm): Promise<User> {
       const requestData: any = {}
@@ -293,7 +304,7 @@ export const useApi = () => {
       if (data.old_password !== undefined) requestData.old_password = data.old_password
       
       const res = await instance.put<ApiResp<User>>(`/users/${id}`, requestData)
-      return res.data.data
+      return unwrap(res)
     },
     async setUserPerms(id: string, data: { permissions: string[] }): Promise<void> {
       await instance.post(`/users/${id}/permissions`, data)
@@ -302,25 +313,25 @@ export const useApi = () => {
       const res = await instance.post<ApiResp<void>>(`/users/${userId}/change-password`, {
         new_password: data.new_password
       })
-      return res.data.data
+      return unwrap(res)
     },
 
     // Tags
     async listTags(params: { active?: boolean; page?: number; page_size?: number } = {}): Promise<Pagination<TagDto>> {
       const res = await instance.get<ApiResp<Pagination<TagDto>>>('/tags', { params })
-      return res.data.data
+      return unwrap(res)
     },
     async getTag(id: string): Promise<TagDto> {
       const res = await instance.get<ApiResp<TagDto>>(`/tags/${id}`)
-      return res.data.data
+      return unwrap(res)
     },
     async createTag(data: TagForm): Promise<TagDto> {
       const res = await instance.post<ApiResp<TagDto>>('/tags', data)
-      return res.data.data
+      return unwrap(res)
     },
     async updateTag(id: string, data: Partial<TagForm>): Promise<TagDto> {
       const res = await instance.put<ApiResp<TagDto>>(`/tags/${id}`, data)
-      return res.data.data
+      return unwrap(res)
     },
     async deleteTag(id: string): Promise<void> {
       await instance.delete(`/tags/${id}`)
@@ -329,26 +340,34 @@ export const useApi = () => {
     // Redemption codes
     async generateCodes(data: GenerateCodesForm): Promise<{ batch_id: string; tag: TagDto; count: number; codes: RedemptionCodeDto[] }>{
       const res = await instance.post<ApiResp<{ batch_id: string; tag: TagDto; count: number; codes: RedemptionCodeDto[] }>>('/tags/generate-codes', data)
-      return res.data.data
+      return unwrap(res)
     },
     async listCodes(params: { tag_id?: string; batch_id?: string; code?: string; used?: boolean; page?: number; page_size?: number } = {}): Promise<Pagination<RedemptionCodeDto>>{
       const res = await instance.get<ApiResp<Pagination<RedemptionCodeDto>>>('/redemption-codes', { params })
-      return res.data.data
+      return unwrap(res)
     },
     async getCodeByCode(code: string): Promise<RedemptionCodeDto> {
       const res = await instance.get<ApiResp<RedemptionCodeDto>>(`/redemption-codes/by-code/${code}`)
-      return res.data.data
+      return unwrap(res)
     },
     async redeem(data: RedeemForm): Promise<RedeemResponse> {
       const res = await instance.post<ApiResp<RedeemResponse>>('/redeem', data)
-      return res.data.data
+      return unwrap(res)
     },
 
     // User tags
     async getMyTags(all?: boolean): Promise<Pagination<UserTagDto>> {
       const params = all ? { all: true } : {}
       const res = await instance.get<ApiResp<Pagination<UserTagDto>>>('/my/tags', { params })
-      return res.data.data
+      return unwrap(res)
+    },
+    async getMyActiveTagStatus(): Promise<MyActiveTagStatusResponse> {
+      const res = await instance.get<ApiResp<MyActiveTagStatusResponse>>('/my/tags/current-status')
+      return unwrap(res)
+    },
+    async getMyTagStatus(tagId: string): Promise<MyTagStatusResponse> {
+      const res = await instance.get<ApiResp<MyTagStatusResponse>>(`/my/tags/${tagId}/status`)
+      return unwrap(res)
     },
     async activateTag(tagId: string): Promise<void> {
       await instance.post(`/my/tags/${tagId}/activate`)
@@ -361,7 +380,7 @@ export const useApi = () => {
     async getUserActiveTag(userId: string): Promise<{ name: string; title: string; background_color: string; text_color: string } | null> {
       try {
         const res = await instance.get<ApiResp<{ name: string; title: string; background_color: string; text_color: string }>>(`/users/${userId}/active-tag`)
-        return res.data.data
+        return unwrap(res)
       } catch (error: any) {
         if (error.response?.status === 404) {
           return null // No active tag or user not found
@@ -372,7 +391,7 @@ export const useApi = () => {
     async getUserActiveTagByUsername(username: string): Promise<{ name: string; title: string; background_color: string; text_color: string } | null> {
       try {
         const res = await instance.get<ApiResp<{ name: string; title: string; background_color: string; text_color: string }>>(`/users/by-username/${username}/active-tag`)
-        return res.data.data
+        return unwrap(res)
       } catch (error: any) {
         if (error.response?.status === 404) {
           return null // No active tag or user not found
@@ -392,17 +411,23 @@ export const useApi = () => {
     // Admin metrics
     async getAdminMetrics(): Promise<{ total_comments: number; today_comments: number; today_new_users: number; since: string }> {
       const res = await instance.get<ApiResp<{ total_comments: number; today_comments: number; today_new_users: number; since: string }>>('/admin/metrics/overview')
-      return res.data.data
+      return unwrap(res)
     },
 
     // Admin logs (only for superadmin)
     async getSubmissionLogs(filters: LogFilters = {}): Promise<Pagination<LogEntry>> {
       const res = await instance.get<ApiResp<Pagination<LogEntry>>>('/admin/logs/submissions', { params: filters })
-      return res.data.data
+      return unwrap(res)
     },
     async getOperationLogs(filters: LogFilters = {}): Promise<Pagination<LogEntry>> {
       const res = await instance.get<ApiResp<Pagination<LogEntry>>>('/admin/logs/operations', { params: filters })
-      return res.data.data
+      return unwrap(res)
+    },
+
+    // Admin: delete redemption codes (unused only)
+    async deleteRedemptionCodes(payload: DeleteRedemptionCodesRequest): Promise<DeleteRedemptionCodesResponse> {
+      const res = await instance.delete<ApiResp<DeleteRedemptionCodesResponse>>('/redemption-codes', { data: payload })
+      return unwrap(res)
     },
   }
 

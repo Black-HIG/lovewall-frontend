@@ -242,4 +242,5 @@ definePageMeta({
   title: '注册 - Love Wall',
   description: '创建您的 Love Wall 账户',
   layout: false, // Use custom layout
-})</script>
+})
+</script>

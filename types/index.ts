@@ -106,6 +106,7 @@ export interface RedemptionCodeDto {
   id: string
   code: string
   tag_id: string
+  tag?: TagDto
   is_used: boolean
   used_by?: string | null
   used_at?: string | null
@@ -222,6 +223,38 @@ export interface RedeemResponse {
   user_tag: UserTagDto
 }
 
+// Tag status simple type
+export interface TagSimple {
+  id: string
+  name: string
+  title: string
+  is_active: boolean
+}
+
+// My tag status APIs
+export interface MyActiveTagStatusResponse {
+  has_active: boolean
+  current_tag_enabled: boolean
+  tag?: TagSimple
+  status: 'active' | 'tag_disabled'
+}
+
+export interface MyTagStatusResponse {
+  enabled: boolean
+  status: 'active' | 'tag_disabled'
+  tag: TagSimple
+}
+
+// Admin: delete redemption codes
+export interface DeleteRedemptionCodesRequest {
+  ids?: string[]
+  codes?: string[]
+}
+
+export interface DeleteRedemptionCodesResponse {
+  deleted: number
+}
+
 // Permission constants
 export const PERMISSIONS = {
   MANAGE_USERS: 'MANAGE_USERS',
@@ -280,6 +313,7 @@ export interface LogFilters {
   action?: string
   object_type?: string
   object_id?: string
+  q?: string
   from?: string // RFC3339 格式
   to?: string   // RFC3339 格式
   page?: number

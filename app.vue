@@ -40,7 +40,7 @@
               <template v-if="!auth.isAuthenticated">
                 <NuxtLink
                   to="/auth/login"
-                  class="px-3 py-1.5 text-sm font-medium text-gray-700 hover:text-brand-600 transition-colors rounded-lg hover:bg-white/20 bg-white/60"
+                  class="glass-button-secondary px-3 py-1.5 text-sm font-medium"
                 >
                   登录
                 </NuxtLink>
@@ -126,8 +126,8 @@
 
       <!-- Page Content -->
       <main class="content-container flex-1 min-h-0 py-6 relative">
-        <!-- 页面内容始终占满剩余空间 -->
-        <div class="content-section h-full overflow-auto no-scrollbar">
+        <!-- 页面内容始终占满剩余空间（去掉全局外层玻璃框） -->
+        <div class="h-full overflow-auto no-scrollbar">
           <NuxtPage />
         </div>
         <!-- Toast Notifications -->

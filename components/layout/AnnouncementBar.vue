@@ -97,4 +97,5 @@ onUnmounted(() => {
 // Filter out dismissed announcements
 const announcements = computed(() => {
   return dismissed.value ? [] : props.announcements
-})</script>
+})
+</script>

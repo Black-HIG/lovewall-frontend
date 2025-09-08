@@ -59,11 +59,11 @@ import { EyeIcon, EyeOffIcon } from 'lucide-vue-next'
 
 interface Props {
   id?: string
-  type?: 'text' | 'email' | 'password' | 'number' | 'tel' | 'url'
+  type?: 'text' | 'email' | 'password' | 'number' | 'tel' | 'url' | 'datetime-local'
   placeholder?: string
   disabled?: boolean
   required?: boolean
-  modelValue?: string | number
+  modelValue?: string | number | null
   error?: string
   showPasswordToggle?: boolean
   inputClass?: string
@@ -75,7 +75,7 @@ const props = withDefaults(defineProps<Props>(), {
 })
 
 const emit = defineEmits<{
-  'update:modelValue': [value: string | number]
+  'update:modelValue': [value: string | number | null]
   blur: [event: Event]
   focus: [event: Event]
   keyup: [event: KeyboardEvent]
@@ -102,4 +102,5 @@ const handleInput = (event: Event) => {
   const target = event.target as HTMLInputElement
   emit('update:modelValue', target.value)
   emit('input', event)
-}</script>
+}
+</script>

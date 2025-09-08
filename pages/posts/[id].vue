@@ -11,7 +11,7 @@
       <div class="glass-card p-8">
         <h1 class="text-2xl font-bold text-red-600 mb-4">加载失败</h1>
         <p class="text-gray-600 mb-4">{{ error }}</p>
-        <GlassButton @click="refresh" class="glass-button-secondary">
+        <GlassButton @click="refresh" variant="secondary">
           重新加载
         </GlassButton>
       </div>
@@ -135,7 +135,8 @@
                     v-if="auth.hasPerm('PIN_POST')"
                     @click="togglePin"
                     :loading="actionLoading"
-                    class="glass-button-secondary text-sm px-3 py-1"
+                    variant="secondary"
+                    class="text-sm px-3 py-1"
                   >
                     {{ post.is_pinned ? '取消置顶' : '置顶' }}
                   </GlassButton>
@@ -144,7 +145,8 @@
                     v-if="auth.hasPerm('FEATURE_POST')"
                     @click="toggleFeature"
                     :loading="actionLoading"
-                    class="glass-button-secondary text-sm px-3 py-1"
+                    variant="secondary"
+                    class="text-sm px-3 py-1"
                   >
                     {{ post.is_featured ? '取消精华' : '精华' }}
                   </GlassButton>
@@ -154,7 +156,8 @@
                   v-if="auth.hasPerm('HIDE_POST') && post.status !== 2"
                   @click="toggleHide"
                   :loading="actionLoading"
-                  class="glass-button-secondary text-sm px-3 py-1"
+                  variant="secondary"
+                  class="text-sm px-3 py-1"
                 >
                   {{ post.status === 1 ? '恢复' : '隐藏' }}
                 </GlassButton>
@@ -163,7 +166,8 @@
                   v-if="auth.hasPerm('DELETE_POST')"
                   @click="confirmDelete"
                   :loading="actionLoading"
-                  class="glass-button-secondary text-sm px-3 py-1 !text-red-600"
+                  variant="secondary"
+                  class="text-sm px-3 py-1 !text-red-600"
                 >
                   删除
                 </GlassButton>
@@ -193,7 +197,7 @@
                 <GlassTextarea
                   v-model="commentForm.content"
                   placeholder="写下你的看法..."
-                  rows="5"
+                  :rows="5"
                   :error="commentErrors.content"
                   :input-class="'pr-28 min-h-[140px]'"
                   required
@@ -279,13 +283,15 @@
                       <GlassButton
                         v-if="comment.user_id === auth.currentUser?.id && canEditComment(comment)"
                         @click="startEditComment(comment)"
-                        class="glass-button-secondary !px-2 !py-1 text-xs"
+                        variant="secondary"
+                        class="!px-2 !py-1 text-xs"
                       >
                         编辑
                       </GlassButton>
                       <GlassButton
                         @click="hideComment(comment)"
-                        class="glass-button-secondary !px-2 !py-1 text-xs"
+                        variant="secondary"
+                        class="!px-2 !py-1 text-xs"
                       >
                         {{ comment.status === 0 ? '隐藏' : '恢复' }}
                       </GlassButton>
@@ -295,11 +301,11 @@
               </div>
 
               <!-- Load more comments -->
-              <div v-if="commentsData && commentsData.page * commentsData.page_size < commentsData.total" class="text-center pt-4">
+                <div v-if="commentsData && commentsData.page * commentsData.page_size < commentsData.total" class="text-center pt-4">
                 <GlassButton
                   @click="loadMoreComments"
                   :loading="commentsLoading"
-                  class="glass-button-secondary"
+                  variant="secondary"
                 >
                   加载更多评论
                 </GlassButton>
@@ -338,7 +344,7 @@
         <div class="flex gap-3 justify-end">
           <GlassButton
             @click="showDeleteModal = false"
-            class="glass-button-secondary"
+            variant="secondary"
           >
             取消
           </GlassButton>
@@ -388,6 +394,8 @@ const error = ref<string | null>(null)
 const showImageModal = ref(false)
 const showDeleteModal = ref(false)
 const authorAvatar = ref<string | null>(null)
+// Current user's active tag preview (only if enabled)
+const myActiveTagPreview = ref<{ name: string; title: string; background_color: string; text_color: string } | null>(null)
 
 // Comment form
 const commentForm = reactive<CommentForm>({
@@ -484,6 +492,18 @@ const submitComment = async () => {
       ...newComment,
       user_display_name: (newComment as any).user_display_name || auth.userDisplayName
     } as any
+
+    // Attach current user's avatar for immediate preview
+    if (!enriched.user_avatar_url && auth.currentUser?.avatar_url) {
+      (enriched as any).user_avatar_url = auth.currentUser.avatar_url
+    }
+    if (!enriched.user_username && auth.currentUser?.username) {
+      (enriched as any).user_username = auth.currentUser.username
+    }
+    // Attach active tag (only when enabled)
+    if (myActiveTagPreview.value) {
+      (enriched as any).user_tag = { ...myActiveTagPreview.value }
+    }
     comments.value.unshift(enriched as any)
     if (commentsData.value) {
       commentsData.value.total += 1
@@ -646,12 +666,33 @@ const refresh = async () => {
   loading.value = false
 }
 
+// Fetch current user's active tag preview (only if enabled)
+const fetchMyActiveTagPreview = async () => {
+  if (!auth.isAuthenticated || !auth.currentUser) return
+  try {
+    const api = useApi()
+    const [status, tag] = await Promise.all([
+      api.getMyActiveTagStatus(),
+      api.getUserActiveTag(auth.currentUser.id)
+    ])
+    if (status.has_active && status.current_tag_enabled && tag) {
+      myActiveTagPreview.value = tag
+    } else {
+      myActiveTagPreview.value = null
+    }
+  } catch {
+    myActiveTagPreview.value = null
+  }
+}
+
 // Initialize
 onMounted(async () => {
   await loadPost()
   if (post.value) {
     await loadComments()
   }
+  // Prepare current user's active tag preview for comment UI
+  await fetchMyActiveTagPreview()
   loading.value = false
 })
 

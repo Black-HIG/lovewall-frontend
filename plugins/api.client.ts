@@ -25,7 +25,11 @@ import type {
   AdminChangePasswordForm,
   AdminUpdateUserForm,
   LogEntry,
-  LogFilters
+  LogFilters,
+  MyActiveTagStatusResponse,
+  MyTagStatusResponse,
+  DeleteRedemptionCodesRequest,
+  DeleteRedemptionCodesResponse
 } from '~/types'
 
 export default defineNuxtPlugin(() => {
@@ -108,32 +112,39 @@ export default defineNuxtPlugin(() => {
     }
   )
 
+  const unwrap = <T>(res: AxiosResponse<ApiResp<T>>): T => {
+    const body = res.data as ApiResp<T>
+    if ((body as any)?.success) return (body as any).data as T
+    const msg = (body as any)?.error?.message || '请求失败'
+    throw new Error(msg)
+  }
+
   // API methods
   const api = {
     // Authentication
     async register(data: RegisterForm): Promise<AuthResponse> {
       const response = await instance.post<ApiResp<AuthResponse>>('/register', data)
-      return response.data.data
+      return unwrap(response)
     },
 
     async login(data: LoginForm): Promise<AuthResponse> {
       const response = await instance.post<ApiResp<AuthResponse>>('/login', data)
-      return response.data.data
+      return unwrap(response)
     },
 
     async logout(): Promise<{ ok: boolean }> {
       const response = await instance.post<ApiResp<{ ok: boolean }>>('/logout')
-      return response.data.data
+      return unwrap(response)
     },
 
     async getProfile(): Promise<UserProfile> {
       const response = await instance.get<ApiResp<UserProfile>>('/profile')
-      return response.data.data
+      return unwrap(response)
     },
 
     async getOnlineStatus(): Promise<{ online: boolean; expires_at?: string }> {
       const response = await instance.get<ApiResp<{ online: boolean; expires_at?: string }>>('/users/me/online')
-      return response.data.data
+      return unwrap(response)
     },
 
     async updateProfile(data: any): Promise<User> {
@@ -163,7 +174,7 @@ export default defineNuxtPlugin(() => {
       }
       
       const response = await instance.patch<ApiResp<User>>('/profile', requestData)
-      return response.data.data
+      return unwrap(response)
     },
 
     async changePassword(data: ChangePasswordForm): Promise<void> {
@@ -171,24 +182,24 @@ export default defineNuxtPlugin(() => {
         old_password: data.old_password,
         new_password: data.new_password
       })
-      return response.data.data
+      return unwrap(response)
     },
 
     async getUser(id: string): Promise<User> {
       const response = await instance.get<ApiResp<User>>(`/users/${id}`)
-      return response.data.data
+      return unwrap(response)
     },
 
     async getUserByUsername(username: string): Promise<User> {
       const response = await instance.get<ApiResp<User>>(`/users/by-username/${username}`)
-      return response.data.data
+      return unwrap(response)
     },
 
     async getUserPosts(userId: string, params: { page?: number; page_size?: number } = {}): Promise<Pagination<PostDto>> {
       // TODO: 后端应该实现 GET /api/users/{userId}/posts
       // 暂时使用普通帖子列表并前端过滤
       const response = await instance.get<ApiResp<Pagination<PostDto>>>('/posts', { params })
-      const data = response.data.data
+      const data = unwrap(response)
       const filteredPosts = data.items.filter(post => post.author_id === userId)
       return {
         ...data,
@@ -204,24 +215,24 @@ export default defineNuxtPlugin(() => {
       pinned?: boolean
     } = {}): Promise<Pagination<PostDto>> {
       const response = await instance.get<ApiResp<Pagination<PostDto>>>('/posts', { params })
-      return response.data.data
+      return unwrap(response)
     },
 
     async getPost(id: string): Promise<PostDto> {
       const response = await instance.get<ApiResp<PostDto>>(`/posts/${id}`)
-      return response.data.data
+      return unwrap(response)
     },
 
     async createPost(formData: FormData): Promise<PostDto> {
       const response = await instance.post<ApiResp<PostDto>>('/posts', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       })
-      return response.data.data
+      return unwrap(response)
     },
 
     async updatePost(id: string, data: Partial<PostDto>): Promise<PostDto> {
       const response = await instance.put<ApiResp<PostDto>>(`/posts/${id}`, data)
-      return response.data.data
+      return unwrap(response)
     },
 
     async deletePost(id: string): Promise<void> {
@@ -238,28 +249,28 @@ export default defineNuxtPlugin(() => {
       page_size?: number
     } = {}): Promise<Pagination<PostDto>> {
       const response = await instance.get<ApiResp<Pagination<PostDto>>>('/posts/moderation', { params })
-      return response.data.data
+      return unwrap(response)
     },
     
     // Moderation: restore post from deleted -> public
     async restorePost(id: string): Promise<{ id: string; status: number }> {
       const response = await instance.post<ApiResp<{ id: string; status: number }>>(`/posts/${id}/restore`)
-      return response.data.data
+      return unwrap(response)
     },
 
     async pinPost(id: string, pin: boolean): Promise<{ id: string; is_pinned: boolean }> {
       const response = await instance.post<ApiResp<{ id: string; is_pinned: boolean }>>(`/posts/${id}/pin`, { pin })
-      return response.data.data
+      return unwrap(response)
     },
 
     async featurePost(id: string, feature: boolean): Promise<{ id: string; is_featured: boolean }> {
       const response = await instance.post<ApiResp<{ id: string; is_featured: boolean }>>(`/posts/${id}/feature`, { feature })
-      return response.data.data
+      return unwrap(response)
     },
 
     async hidePost(id: string, hide: boolean): Promise<{ id: string; status: number }> {
       const response = await instance.post<ApiResp<{ id: string; status: number }>>(`/posts/${id}/hide`, { hide })
-      return response.data.data
+      return unwrap(response)
     },
 
     // Comments
@@ -268,17 +279,17 @@ export default defineNuxtPlugin(() => {
       page_size?: number
     } = {}): Promise<Pagination<CommentDto>> {
       const response = await instance.get<ApiResp<Pagination<CommentDto>>>(`/posts/${postId}/comments`, { params })
-      return response.data.data
+      return unwrap(response)
     },
 
     async createComment(postId: string, data: CommentForm): Promise<CommentDto> {
       const response = await instance.post<ApiResp<CommentDto>>(`/posts/${postId}/comments`, data)
-      return response.data.data
+      return unwrap(response)
     },
 
     async updateComment(id: string, data: CommentForm): Promise<CommentDto> {
       const response = await instance.put<ApiResp<CommentDto>>(`/comments/${id}`, data)
-      return response.data.data
+      return unwrap(response)
     },
 
     async deleteComment(id: string): Promise<void> {
@@ -287,7 +298,7 @@ export default defineNuxtPlugin(() => {
 
     async hideComment(id: string, hide: boolean): Promise<{ id: string; status: number }> {
       const response = await instance.post<ApiResp<{ id: string; status: number }>>(`/comments/${id}/hide`, { hide })
-      return response.data.data
+      return unwrap(response)
     },
 
     async getMyComments(params: {
@@ -295,7 +306,7 @@ export default defineNuxtPlugin(() => {
       page_size?: number
     } = {}): Promise<Pagination<CommentDto>> {
       const response = await instance.get<ApiResp<Pagination<CommentDto>>>('/my/comments', { params })
-      return response.data.data
+      return unwrap(response)
     },
 
     async adminComments(params: {
@@ -306,23 +317,23 @@ export default defineNuxtPlugin(() => {
       page_size?: number
     } = {}): Promise<Pagination<CommentDto>> {
       const response = await instance.get<ApiResp<Pagination<CommentDto>>>('/comments', { params })
-      return response.data.data
+      return unwrap(response)
     },
 
     // Announcements
     async listAnnouncements(): Promise<AnnouncementDto[]> {
       const response = await instance.get<ApiResp<AnnouncementDto[]>>('/announcements')
-      return response.data.data
+      return unwrap(response)
     },
 
     async createAnnouncement(data: AnnouncementForm): Promise<AnnouncementDto> {
       const response = await instance.post<ApiResp<AnnouncementDto>>('/announcements', data)
-      return response.data.data
+      return unwrap(response)
     },
 
     async updateAnnouncement(id: string, data: Partial<AnnouncementForm>): Promise<AnnouncementDto> {
       const response = await instance.put<ApiResp<AnnouncementDto>>(`/announcements/${id}`, data)
-      return response.data.data
+      return unwrap(response)
     },
 
     async deleteAnnouncement(id: string): Promise<void> {
@@ -337,7 +348,7 @@ export default defineNuxtPlugin(() => {
       page_size?: number
     } = {}): Promise<Pagination<User>> {
       const response = await instance.get<ApiResp<Pagination<User>>>('/users', { params })
-      return response.data.data
+      return unwrap(response)
     },
 
     async setUserPerms(id: string, data: { permissions: string[] }): Promise<void> {
@@ -358,25 +369,25 @@ export default defineNuxtPlugin(() => {
       if (data.old_password !== undefined) requestData.old_password = data.old_password
       
       const response = await instance.put<ApiResp<User>>(`/users/${id}`, requestData)
-      return response.data.data
+      return unwrap(response)
     },
 
     async adminChangePassword(userId: string, data: AdminChangePasswordForm): Promise<void> {
       const response = await instance.post<ApiResp<void>>(`/users/${userId}/change-password`, {
         new_password: data.new_password
       })
-      return response.data.data
+      return unwrap(response)
     },
 
     // User ban/unban methods
     async banUser(userId: string, data: { reason: string }): Promise<{ id: string; is_banned: boolean; ban_reason: string }> {
       const response = await instance.post<ApiResp<{ id: string; is_banned: boolean; ban_reason: string }>>(`/admin/users/${userId}/ban`, data)
-      return response.data.data
+      return unwrap(response)
     },
 
     async unbanUser(userId: string): Promise<{ id: string; is_banned: boolean }> {
       const response = await instance.post<ApiResp<{ id: string; is_banned: boolean }>>(`/admin/users/${userId}/unban`)
-      return response.data.data
+      return unwrap(response)
     },
 
     // Tags
@@ -386,22 +397,22 @@ export default defineNuxtPlugin(() => {
       page_size?: number
     } = {}): Promise<Pagination<TagDto>> {
       const response = await instance.get<ApiResp<Pagination<TagDto>>>('/tags', { params })
-      return response.data.data
+      return unwrap(response)
     },
 
     async getTag(id: string): Promise<TagDto> {
       const response = await instance.get<ApiResp<TagDto>>(`/tags/${id}`)
-      return response.data.data
+      return unwrap(response)
     },
 
     async createTag(data: TagForm): Promise<TagDto> {
       const response = await instance.post<ApiResp<TagDto>>('/tags', data)
-      return response.data.data
+      return unwrap(response)
     },
 
     async updateTag(id: string, data: Partial<TagForm>): Promise<TagDto> {
       const response = await instance.put<ApiResp<TagDto>>(`/tags/${id}`, data)
-      return response.data.data
+      return unwrap(response)
     },
 
     async deleteTag(id: string): Promise<void> {
@@ -421,7 +432,7 @@ export default defineNuxtPlugin(() => {
         count: number
         codes: RedemptionCodeDto[]
       }>>('/tags/generate-codes', data)
-      return response.data.data
+      return unwrap(response)
     },
 
     async listCodes(params: {
@@ -432,19 +443,29 @@ export default defineNuxtPlugin(() => {
       page_size?: number
     } = {}): Promise<Pagination<RedemptionCodeDto>> {
       const response = await instance.get<ApiResp<Pagination<RedemptionCodeDto>>>('/redemption-codes', { params })
-      return response.data.data
+      return unwrap(response)
     },
 
     async redeem(data: RedeemForm): Promise<RedeemResponse> {
       const response = await instance.post<ApiResp<RedeemResponse>>('/redeem', data)
-      return response.data.data
+      return unwrap(response)
     },
 
     // User Tags
     async getMyTags(all?: boolean): Promise<Pagination<UserTagDto>> {
       const params = all ? { all: true } : {}
       const response = await instance.get<ApiResp<Pagination<UserTagDto>>>('/my/tags', { params })
-      return response.data.data
+      return unwrap(response)
+    },
+
+    async getMyActiveTagStatus(): Promise<MyActiveTagStatusResponse> {
+      const response = await instance.get<ApiResp<MyActiveTagStatusResponse>>('/my/tags/current-status')
+      return unwrap(response)
+    },
+
+    async getMyTagStatus(tagId: string): Promise<MyTagStatusResponse> {
+      const response = await instance.get<ApiResp<MyTagStatusResponse>>(`/my/tags/${tagId}/status`)
+      return unwrap(response)
     },
 
     async activateTag(tagId: string): Promise<void> {
@@ -459,7 +480,7 @@ export default defineNuxtPlugin(() => {
     async getUserActiveTag(userId: string): Promise<{ name: string; title: string; background_color: string; text_color: string } | null> {
       try {
         const response = await instance.get<ApiResp<{ name: string; title: string; background_color: string; text_color: string }>>(`/users/${userId}/active-tag`)
-        return response.data.data
+        return unwrap(response)
       } catch (error: any) {
         if (error.response?.status === 404) {
           return null
@@ -471,7 +492,7 @@ export default defineNuxtPlugin(() => {
     async getUserActiveTagByUsername(username: string): Promise<{ name: string; title: string; background_color: string; text_color: string } | null> {
       try {
         const response = await instance.get<ApiResp<{ name: string; title: string; background_color: string; text_color: string }>>(`/users/by-username/${username}/active-tag`)
-        return response.data.data
+        return unwrap(response)
       } catch (error: any) {
         if (error.response?.status === 404) {
           return null
@@ -491,30 +512,36 @@ export default defineNuxtPlugin(() => {
 
     async adminGetUserTags(userId: string): Promise<Pagination<UserTagDto>> {
       const response = await instance.get<ApiResp<Pagination<UserTagDto>>>(`/admin/users/${userId}/tags`)
-      return response.data.data
+      return unwrap(response)
     },
 
     // Redemption codes - get by code
     async getCodeByCode(code: string): Promise<RedemptionCodeDto> {
       const response = await instance.get<ApiResp<RedemptionCodeDto>>(`/redemption-codes/by-code/${code}`)
-      return response.data.data
+      return unwrap(response)
     },
 
     // Admin metrics
     async getAdminMetrics(): Promise<{ total_comments: number; today_comments: number; today_new_users: number; since: string }> {
       const response = await instance.get<ApiResp<{ total_comments: number; today_comments: number; today_new_users: number; since: string }>>('/admin/metrics/overview')
-      return response.data.data
+      return unwrap(response)
     },
 
     // Admin logs (only for superadmin)
     async getSubmissionLogs(filters: LogFilters = {}): Promise<Pagination<LogEntry>> {
       const response = await instance.get<ApiResp<Pagination<LogEntry>>>('/admin/logs/submissions', { params: filters })
-      return response.data.data
+      return unwrap(response)
     },
 
     async getOperationLogs(filters: LogFilters = {}): Promise<Pagination<LogEntry>> {
       const response = await instance.get<ApiResp<Pagination<LogEntry>>>('/admin/logs/operations', { params: filters })
-      return response.data.data
+      return unwrap(response)
+    },
+
+    // Admin: delete redemption codes (only unused)
+    async deleteRedemptionCodes(payload: DeleteRedemptionCodesRequest): Promise<DeleteRedemptionCodesResponse> {
+      const response = await instance.delete<ApiResp<DeleteRedemptionCodesResponse>>('/redemption-codes', { data: payload })
+      return unwrap(response)
     },
   }
 

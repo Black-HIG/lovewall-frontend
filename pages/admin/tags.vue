@@ -141,7 +141,8 @@
               <div class="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                 <GlassButton
                   @click="openCodesModal(tag)"
-                  class="!p-2 glass-button-secondary"
+                  variant="secondary"
+                  class="!p-2"
                   title="生成兑换码"
                 >
                   <TicketIcon class="w-4 h-4" />
@@ -149,7 +150,8 @@
                 
                 <GlassButton
                   @click="editTag(tag)"
-                  class="!p-2 glass-button-secondary"
+                  variant="secondary"
+                  class="!p-2"
                   title="编辑标签"
                 >
                   <EditIcon class="w-4 h-4" />
@@ -157,7 +159,8 @@
                 
                 <GlassButton
                   @click="toggleStatus(tag)"
-                  class="!p-2 glass-button-secondary"
+                  variant="secondary"
+                  class="!p-2"
                   :title="tag.is_active ? '停用标签' : '启用标签'"
                 >
                   <component :is="tag.is_active ? PauseIcon : PlayIcon" class="w-4 h-4" />
@@ -165,7 +168,8 @@
                 
                 <GlassButton
                   @click="confirmDelete(tag)"
-                  class="!p-2 glass-button-secondary !text-red-600 hover:!bg-red-50"
+                  variant="secondary"
+                  class="!p-2 !text-red-600 hover:!bg-red-50"
                   title="删除标签"
                 >
                   <TrashIcon class="w-4 h-4" />
@@ -390,7 +394,8 @@
         </p>
         <GlassButton
           @click="downloadCodes"
-          class="glass-button-secondary text-sm"
+          variant="secondary"
+          class="text-sm"
         >
           <DownloadIcon class="w-4 h-4 mr-1" />
           下载
@@ -454,7 +459,7 @@
       @close="closeCodesListModal"
     >
       <!-- Filters -->
-      <div class="mb-4 flex flex-col sm:flex-row gap-3">
+      <div class="mb-4 flex flex-col sm:flex-row sm:flex-nowrap gap-3 items-center">
         <GlassInput
           v-model="codesFilter.code"
           placeholder="搜索兑换码..."
@@ -484,9 +489,36 @@
           @click="loadCodes(1)"
           :loading="loadingCodes"
           variant="secondary"
+          class="toolbar-button"
         >
           搜索
         </GlassButton>
+
+        <GlassButton
+          @click="bulkDeleteSelected"
+          :disabled="!selectedIds.length"
+          variant="secondary"
+          class="toolbar-button !text-red-600 hover:!bg-red-50"
+          title="批量删除未使用的兑换码（仅删除未使用，已使用会跳过）"
+        >
+          批量删除
+        </GlassButton>
+
+        <!-- Page size selector -->
+        <div class="ml-auto flex items-center gap-2 text-sm text-gray-600">
+          <span>每页显示:</span>
+          <select
+            v-model.number="codesPageSize"
+            @change="changeCodesPageSize"
+            class="glass-input px-2 py-1 text-sm"
+          >
+            <option :value="20">20</option>
+            <option :value="50">50</option>
+            <option :value="100">100</option>
+            <option :value="500">500</option>
+          </select>
+          <span>条</span>
+        </div>
       </div>
 
       <!-- Loading State -->
@@ -508,17 +540,27 @@
         <table class="w-full">
           <thead class="bg-gray-50">
             <tr>
-              <th class="px-4 py-3 text-left text-sm font-medium text-gray-700">兑换码</th>
-              <th class="px-4 py-3 text-left text-sm font-medium text-gray-700">标签</th>
-              <th class="px-4 py-3 text-left text-sm font-medium text-gray-700">状态</th>
-              <th class="px-4 py-3 text-left text-sm font-medium text-gray-700">使用者</th>
-              <th class="px-4 py-3 text-left text-sm font-medium text-gray-700">过期时间</th>
-              <th class="px-4 py-3 text-left text-sm font-medium text-gray-700">创建时间</th>
-              <th class="px-4 py-3 text-left text-sm font-medium text-gray-700">操作</th>
+              <th class="px-4 py-3 text-left w-10">
+                <input
+                  type="checkbox"
+                  :checked="allSelectableSelected"
+                  @change="toggleSelectAll($event)"
+                >
+              </th>
+              <th class="px-4 py-3 text-left text-sm font-medium text-gray-700 whitespace-nowrap">兑换码</th>
+              <th class="px-4 py-3 text-left text-sm font-medium text-gray-700 whitespace-nowrap">标签</th>
+              <th class="px-4 py-3 text-left text-sm font-medium text-gray-700 whitespace-nowrap">状态</th>
+              <th class="px-4 py-3 text-left text-sm font-medium text-gray-700 whitespace-nowrap">使用者</th>
+              <th class="px-4 py-3 text-left text-sm font-medium text-gray-700 whitespace-nowrap">过期时间</th>
+              <th class="px-4 py-3 text-left text-sm font-medium text-gray-700 whitespace-nowrap">创建时间</th>
+              <th class="px-4 py-3 text-left text-sm font-medium text-gray-700 whitespace-nowrap">操作</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-gray-200">
             <tr v-for="code in codes" :key="code.id" class="hover:bg-gray-50">
+              <td class="px-4 py-3">
+                <input type="checkbox" :value="code.id" v-model="selectedIds" :disabled="code.is_used">
+              </td>
               <td class="px-4 py-3">
                 <code class="text-xs bg-gray-100 px-2 py-1 rounded font-mono">{{ code.code }}</code>
               </td>
@@ -530,7 +572,7 @@
                   :text="code.tag.text_color"
                 />
               </td>
-              <td class="px-4 py-3">
+              <td class="px-4 py-3 whitespace-nowrap">
                 <span
                   :class="{
                     'bg-green-100 text-green-800': !code.is_used,
@@ -542,12 +584,12 @@
                 </span>
               </td>
               <td class="px-4 py-3 text-sm text-gray-600">
-                {{ code.used_by ? `用户 ${code.used_by}` : '-' }}
+                <span class="block truncate max-w-[220px]">{{ codeUserLabel(code) }}</span>
               </td>
-              <td class="px-4 py-3 text-sm text-gray-600">
+              <td class="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">
                 {{ code.expires_at ? formatDate(code.expires_at) : '永不过期' }}
               </td>
-              <td class="px-4 py-3 text-sm text-gray-600">
+              <td class="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">
                 {{ formatDate(code.created_at) }}
               </td>
               <td class="px-4 py-3">
@@ -557,6 +599,14 @@
                   variant="secondary"
                 >
                   查看详情
+                </GlassButton>
+                <GlassButton
+                  v-if="!code.is_used"
+                  @click="confirmDeleteCode(code)"
+                  class="!p-1 text-xs !text-red-600 hover:!bg-red-50"
+                  variant="secondary"
+                >
+                  删除
                 </GlassButton>
               </td>
             </tr>
@@ -596,7 +646,7 @@
 
       <template #footer>
         <div class="flex justify-end">
-          <GlassButton @click="closeCodesListModal">
+          <GlassButton @click="closeCodesListModal" variant="secondary" class="toolbar-button">
             关闭
           </GlassButton>
         </div>
@@ -616,6 +666,21 @@
           <code class="block text-sm bg-gray-100 px-3 py-2 rounded font-mono">{{ codeDetailsModal.code.code }}</code>
         </div>
         
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">使用者</label>
+          <div class="text-sm text-gray-600">
+            <template v-if="codeDetailsModal.code.used_by">
+              <NuxtLink
+                :to="`/users/id/${codeDetailsModal.code.used_by}`"
+                class="text-brand-600 hover:text-brand-700 hover:underline"
+              >
+                {{ codeUserLabel(codeDetailsModal.code) }}
+              </NuxtLink>
+            </template>
+            <span v-else>-</span>
+          </div>
+        </div>
+
         <div v-if="codeDetailsModal.code.tag">
           <label class="block text-sm font-medium text-gray-700 mb-1">关联标签</label>
           <TagBadge
@@ -665,10 +730,22 @@
       </div>
 
       <template #footer>
-        <div class="flex justify-end">
-          <GlassButton @click="closeCodeDetailsModal">
-            关闭
-          </GlassButton>
+        <div class="flex justify-between items-center gap-3">
+          <div>
+            <GlassButton
+              v-if="codeDetailsModal.code && !codeDetailsModal.code.is_used"
+              @click="confirmDeleteCode(codeDetailsModal.code)"
+              class="!text-red-600 hover:!bg-red-50"
+              variant="secondary"
+            >
+              删除兑换码
+            </GlassButton>
+          </div>
+          <div>
+            <GlassButton @click="closeCodeDetailsModal" variant="secondary" class="toolbar-button">
+              关闭
+            </GlassButton>
+          </div>
         </div>
       </template>
     </GlassModal>
@@ -691,7 +768,8 @@ import {
 import GlassModal from '~/components/ui/GlassModal.vue'
 import GlassInput from '~/components/ui/GlassInput.vue'
 import GlassTextarea from '~/components/ui/GlassTextarea.vue'
-import type { TagDto, RedemptionCodeDto, Pagination } from '~/types'
+import TagBadge from '~/components/ui/TagBadge.vue'
+import type { TagDto, RedemptionCodeDto, Pagination, User } from '~/types'
 
 definePageMeta({
   middleware: ['admin', 'require-perms'],
@@ -748,6 +826,12 @@ const codeDetailsModal = reactive({
 const codes = ref<RedemptionCodeDto[]>([])
 const codesData = ref<Pagination<RedemptionCodeDto> | null>(null)
 const loadingCodes = ref(false)
+// Cache user info by id for display
+const userCache = ref<Record<string, User | null>>({})
+// Selection for bulk delete
+const selectedIds = ref<string[]>([])
+// Page size for codes list
+const codesPageSize = ref<number>(20)
 
 const codesFilter = reactive({
   code: '',
@@ -800,6 +884,19 @@ const loadTags = async (page = 1) => {
   } finally {
     loading.value = false
   }
+}
+
+// Refresh global codes stats (totals across all)
+const refreshCodesStats = async () => {
+  try {
+    const api = useApi()
+    const [allResp, usedResp] = await Promise.all([
+      api.listCodes({ page: 1, page_size: 1 }),
+      api.listCodes({ used: true as any, page: 1, page_size: 1 })
+    ])
+    totalCodes.value = allResp.total
+    usedCodes.value = usedResp.total
+  } catch {}
 }
 
 const refresh = () => {
@@ -1019,7 +1116,7 @@ const formatDate = (dateString: string) => {
 // Codes methods
 const openCodesListModal = async () => {
   codesListModal.show = true
-  await loadCodes(1)
+  await Promise.all([loadCodes(1), refreshCodesStats()])
 }
 
 const closeCodesListModal = () => {
@@ -1035,33 +1132,88 @@ const loadCodes = async (page = 1) => {
   loadingCodes.value = true
   try {
     const api = useApi()
-    const params: any = {
-      page,
-      page_size: 20
+    // 公共过滤参数
+    const base: any = {}
+    if (codesFilter.code) base.code = codesFilter.code
+    if (codesFilter.tag_id) base.tag_id = codesFilter.tag_id
+    if (codesFilter.used) base.used = codesFilter.used === 'true'
+
+    const desired = codesPageSize.value
+    const serverMax = 100 // 后端单页上限（经验值）。超过则前端拼接多页
+
+    let total = 0
+    let pageItems: RedemptionCodeDto[] = []
+
+    if (desired <= serverMax) {
+      const data = await api.listCodes({ ...base, page, page_size: desired })
+      total = data.total
+      pageItems = data.items
+      codesData.value = { ...data, page_size: desired }
+    } else {
+      // 聚合多页: 计算起始位置
+      // 0-based
+      const startIndex = (page - 1) * desired
+      const startServerPage = Math.floor(startIndex / serverMax) + 1
+      const offsetInFirst = startIndex % serverMax
+
+      // 先查起始页，拿到总数
+      const first = await api.listCodes({ ...base, page: startServerPage, page_size: serverMax })
+      total = first.total
+      let items = first.items.slice(offsetInFirst)
+
+      // 继续拉取后续页直到够 desired 或没有更多
+      let current = startServerPage + 1
+      while (items.length < desired && (current - 1) * serverMax < total) {
+        const next = await api.listCodes({ ...base, page: current, page_size: serverMax })
+        if (!next.items.length) break
+        items = items.concat(next.items)
+        current++
+      }
+      pageItems = items.slice(0, desired)
+      codesData.value = {
+        total,
+        items: pageItems,
+        page,
+        page_size: desired,
+      }
     }
-    
-    if (codesFilter.code) {
-      params.code = codesFilter.code
-    }
-    if (codesFilter.tag_id) {
-      params.tag_id = codesFilter.tag_id
-    }
-    if (codesFilter.used) {
-      params.used = codesFilter.used === 'true'
-    }
-    
-    const data = await api.listCodes(params)
-    codes.value = data.items
-    codesData.value = data
-    
-    // 更新统计数据
-    totalCodes.value = data.total
-    usedCodes.value = data.items.filter(code => code.is_used).length
+
+    // 合并标签并预加载用户
+    const tagMap = new Map(tags.value.map((t: TagDto) => [t.id, t]))
+    codes.value = pageItems.map((c: RedemptionCodeDto) => ({ ...c, tag: c.tag || tagMap.get(c.tag_id) }))
+    await preloadUsersForCodes(codes.value)
+
+    // 更新全局统计
+    await refreshCodesStats()
   } catch (error: any) {
     toast.error('加载兑换码列表失败')
   } finally {
     loadingCodes.value = false
   }
+}
+
+// 预加载 codes 列表中出现的使用者用户名
+const preloadUsersForCodes = async (list: RedemptionCodeDto[]) => {
+  const ids = Array.from(new Set(list.map(c => c.used_by).filter(Boolean))) as string[]
+  const remain = ids.filter(id => !(id in userCache.value))
+  if (!remain.length) return
+  const api = useApi()
+  await Promise.all(remain.map(async (id) => {
+    try {
+      const u = await api.getUser(id)
+      userCache.value[id] = u
+    } catch {
+      userCache.value[id] = null
+    }
+  }))
+}
+
+const codeUserLabel = (code: RedemptionCodeDto) => {
+  if (!code.used_by) return '-'
+  const u = userCache.value[code.used_by]
+  if (u === undefined) return '加载中...'
+  if (!u) return `用户 ${code.used_by.slice(0, 8)}`
+  return u.display_name || u.username || `用户 ${u.id.slice(0, 8)}`
 }
 
 const prevCodesPage = () => {
@@ -1076,12 +1228,61 @@ const nextCodesPage = () => {
   }
 }
 
+const changeCodesPageSize = () => {
+  selectedIds.value = []
+  loadCodes(1)
+}
+
+const allSelectableSelected = computed(() => {
+  const selectable = codes.value.filter(c => !c.is_used).map(c => c.id)
+  return selectable.length > 0 && selectable.every(id => selectedIds.value.includes(id))
+})
+
+const toggleSelectAll = (e: Event) => {
+  const target = e.target as HTMLInputElement
+  if (target.checked) {
+    const selectable = codes.value.filter(c => !c.is_used).map(c => c.id)
+    // 合并去重，仅当前页
+    const set = new Set(selectedIds.value)
+    selectable.forEach(id => set.add(id))
+    selectedIds.value = Array.from(set)
+  } else {
+    // 移除当前页的可选项
+    const current = new Set(codes.value.filter(c => !c.is_used).map(c => c.id))
+    selectedIds.value = selectedIds.value.filter(id => !current.has(id))
+  }
+}
+
+const bulkDeleteSelected = async () => {
+  if (!selectedIds.value.length) return
+  if (!confirm(`确定删除选中的 ${selectedIds.value.length} 个兑换码？仅未使用的会被删除。`)) return
+  try {
+    const api = useApi()
+    const res = await api.deleteRedemptionCodes({ ids: selectedIds.value })
+    if (res.deleted > 0) {
+      toast.success(`已删除 ${res.deleted} 个兑换码`)
+    } else {
+      toast.info('没有可删除的兑换码（可能均已使用）')
+    }
+    selectedIds.value = []
+    await Promise.all([loadCodes(codesData.value?.page || 1), refreshCodesStats()])
+  } catch (e) {
+    toast.error('批量删除失败')
+  }
+}
+
 const viewCodeDetails = async (code: RedemptionCodeDto) => {
   try {
     const api = useApi()
     // 获取完整的兑换码详情
     const detailCode = await api.getCodeByCode(code.code)
-    codeDetailsModal.code = detailCode
+    // 合并本地标签信息，启用 TagBadge 预览
+    const tag = tags.value.find(t => t.id === detailCode.tag_id)
+    codeDetailsModal.code = { ...detailCode, tag }
+    // 预加载详情使用者
+    if (detailCode.used_by && !(detailCode.used_by in userCache.value)) {
+      try { userCache.value[detailCode.used_by] = await api.getUser(detailCode.used_by) } catch { userCache.value[detailCode.used_by] = null }
+    }
     codeDetailsModal.show = true
   } catch (error: any) {
     toast.error('获取兑换码详情失败')
@@ -1093,9 +1294,28 @@ const closeCodeDetailsModal = () => {
   codeDetailsModal.code = null
 }
 
+// Delete a single redemption code (unused only)
+const confirmDeleteCode = async (code: RedemptionCodeDto) => {
+  if (code.is_used) return
+  if (!confirm('确定要删除该兑换码吗？仅未使用的兑换码可删除')) return
+  try {
+    const api = useApi()
+    const res = await api.deleteRedemptionCodes({ ids: [code.id] })
+    if (res.deleted > 0) {
+      toast.success('兑换码已删除')
+      await loadCodes(codesData.value?.page || 1)
+    } else {
+      toast.info('兑换码未删除（可能已被使用）')
+    }
+  } catch (e) {
+    toast.error('删除兑换码失败')
+  }
+}
+
 // Initialize
 onMounted(() => {
   loadTags()
+  refreshCodesStats()
 })
 
 // SEO

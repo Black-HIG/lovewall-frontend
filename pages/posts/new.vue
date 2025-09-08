@@ -148,7 +148,7 @@
                   拖拽图片到此处，或
                   <button
                     type="button"
-                    @click="$refs.fileInput.click()"
+                    @click="fileInput?.click()"
                     class="text-brand-600 hover:text-brand-700 hover:underline font-medium ml-1"
                   >
                     点击选择
@@ -179,7 +179,8 @@
         <div class="flex gap-4 pt-4">
           <GlassButton
             type="button"
-            class="glass-button-secondary flex-1"
+            variant="secondary"
+            class="flex-1 h-11 text-base rounded-full inline-flex items-center justify-center gap-2 glass-button-secondary"
             @click="$router.back()"
           >
             取消
@@ -187,11 +188,12 @@
           
           <GlassButton
             type="submit"
-            variant="primary"
-            class="flex-1 glass-button-secondary"
+            variant="secondary"
+            class="flex-1 h-11 text-base font-semibold rounded-full inline-flex items-center justify-center gap-2 glass-button-secondary"
             :disabled="!isFormValid || loading"
             @click="handleSubmit"
           >
+            <PlusIcon class="w-5 h-5" />
             {{ loading ? '发布中...' : '发布表白' }}
           </GlassButton>
         </div>
@@ -224,11 +226,13 @@
 </template>
 
 <script setup lang="ts">
-import { ImageIcon, XIcon, LightbulbIcon } from 'lucide-vue-next'
+import { ImageIcon, XIcon, LightbulbIcon, PlusIcon } from 'lucide-vue-next'
 import { z } from 'zod'
 import GlassInput from '~/components/ui/GlassInput.vue'
 import GlassTextarea from '~/components/ui/GlassTextarea.vue'
 import type { PostForm } from '~/types'
+// DOM refs
+const fileInput = ref<HTMLInputElement | null>(null)
 
 // Form schema
 const postSchema = z.object({
@@ -269,7 +273,6 @@ const errors = reactive<Partial<Record<keyof PostForm, string>>>({})
 const loading = ref(false)
 const dragover = ref(false)
 const imagePreview = ref<string>('')
-const fileInput = ref<HTMLInputElement>()
 
 // Stores
 const auth = useAuthStore()
@@ -415,4 +418,5 @@ definePageMeta({
   title: '发布表白 - Love Wall',
   description: '发布您的表白内容',
   middleware: ['auth'],
-})</script>
+})
+</script>

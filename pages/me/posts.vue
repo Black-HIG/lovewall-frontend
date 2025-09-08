@@ -32,15 +32,6 @@
             <PlusIcon class="w-4 h-4 mr-2" />
             发布新表白
           </NuxtLink>
-          
-          <GlassButton
-            @click="refresh"
-            :loading="loading"
-            class="glass-button-secondary"
-          >
-            <RefreshCwIcon class="w-4 h-4 mr-2" />
-            刷新
-          </GlassButton>
         </div>
 
         <!-- Filters -->
@@ -81,9 +72,7 @@
         </div>
         <h3 class="text-lg font-semibold text-gray-800 mb-2">还没有发布表白</h3>
         <p class="text-gray-600 mb-6">分享你的第一个爱意表达吧！</p>
-        <NuxtLink to="/posts/new" class="glass-button">
-          立即发布
-        </NuxtLink>
+        <!-- 移除底部发布按钮，保留顶部入口 -->
       </GlassCard>
     </div>
 
@@ -152,7 +141,8 @@
                   <GlassButton
                     v-if="canEdit(post)"
                     @click.stop="editPost(post)"
-                    class="glass-button-secondary !p-2"
+                    variant="secondary"
+                    class="!p-2"
                     title="编辑"
                   >
                     <EditIcon class="w-4 h-4" />
@@ -160,7 +150,8 @@
                   
                   <GlassButton
                     @click.stop="confirmDelete(post)"
-                    class="glass-button-secondary !p-2 !text-red-600 hover:!bg-red-50"
+                    variant="secondary"
+                    class="!p-2 !text-red-600 hover:!bg-red-50"
                     title="删除"
                   >
                     <Trash2Icon class="w-4 h-4" />
@@ -208,7 +199,7 @@
         <GlassButton
           @click="loadMore"
           :loading="loadingMore"
-          class="glass-button-secondary"
+          variant="secondary"
         >
           加载更多
         </GlassButton>
@@ -229,7 +220,7 @@
         <div class="flex gap-3 justify-end">
           <GlassButton
             @click="deleteModal.show = false"
-            class="glass-button-secondary"
+            variant="secondary"
           >
             取消
           </GlassButton>
@@ -327,7 +318,7 @@ const loadPosts = async (page = 1, reset = false) => {
     const data = await api.listPosts(params)
     
     // Filter posts by current user (this should be done on backend)
-    const myPosts = data.items.filter(post => post.author_id === auth.currentUser?.id)
+    const myPosts = data.items.filter((post: PostDto) => post.author_id === auth.currentUser?.id)
     
     if (reset || page === 1) {
       posts.value = myPosts

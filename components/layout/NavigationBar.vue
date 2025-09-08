@@ -66,7 +66,7 @@
               >
                 <img
                   v-if="auth.currentUser?.avatar_url"
-                  :src="auth.currentUser.avatar_url"
+                  :src="assetUrl(auth.currentUser.avatar_url)"
                   :alt="auth.userDisplayName"
                   class="w-6 h-6 rounded-full"
                 >
@@ -208,6 +208,7 @@ import {
 import { onClickOutside } from '@vueuse/core'
 
 const auth = useAuthStore()
+const assetUrl = useAssetUrl()
 const showUserMenu = ref(false)
 const showMobileMenu = ref(false)
 const userMenuRef = ref<HTMLElement>()
@@ -220,4 +221,5 @@ onClickOutside(userMenuRef, () => {
 const handleLogout = async () => {
   showUserMenu.value = false
   await auth.logout()
-}</script>
+}
+</script>

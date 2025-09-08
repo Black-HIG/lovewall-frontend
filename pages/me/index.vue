@@ -19,7 +19,7 @@
           <div class="w-24 h-24 rounded-full bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center text-white text-2xl font-bold">
             <img
               v-if="auth.currentUser?.avatar_url"
-              :src="auth.currentUser.avatar_url"
+              :src="assetUrl(auth.currentUser.avatar_url)"
               :alt="auth.userDisplayName"
               class="w-24 h-24 rounded-full object-cover"
             >
@@ -70,7 +70,7 @@
         <!-- Actions -->
         <div class="flex-shrink-0 flex gap-2">
           <GlassButton 
-            class="glass-button-secondary"
+            variant="secondary"
             @click="showEditModal = true"
           >
             编辑资料
@@ -256,6 +256,7 @@ definePageMeta({
 
 // Stores
 const auth = useAuthStore()
+const assetUrl = useAssetUrl()
 
 // State
 const loading = ref(true)
@@ -294,9 +295,10 @@ const loadUserData = async () => {
     const api = useApi()
     
     // Load user tags and find active one
-    const userTags = await api.getMyTags()
-    activeTag.value = userTags.find(tag => tag.is_active) || null
-    stats.tags = userTags.length
+    const userTagsResp = await api.getMyTags()
+    const items = userTagsResp.items
+    activeTag.value = items.find((tag: UserTagDto) => tag.is_active) || null
+    stats.tags = items.length
     
     // Load recent posts (first few)
     try {
@@ -329,8 +331,9 @@ const handleProfileUpdated = async (updatedUser: User) => {
   // Refresh user tags in case they changed
   try {
     const api = useApi()
-    const userTags = await api.getMyTags()
-    activeTag.value = userTags.find(tag => tag.is_active) || null
+    const userTagsResp = await api.getMyTags()
+    const items = userTagsResp.items
+    activeTag.value = items.find((tag: UserTagDto) => tag.is_active) || null
   } catch (error) {
     console.warn('Failed to refresh user tags:', error)
   }
