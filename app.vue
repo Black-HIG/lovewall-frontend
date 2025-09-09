@@ -18,14 +18,13 @@
     </div>
 
     <!-- Blur Overlay -->
-    <div class="fixed inset-0 z-10 pointer-events-none bg-white/20 backdrop-blur-sm" />
+    <div class="fixed inset-0 z-10 pointer-events-none bg-white/20 backdrop-blur-strong" />
 
     <!-- Main Content Wrapper -->
     <div class="relative z-20 h-screen flex flex-col overflow-hidden">
       <!-- Status Bar -->
       <header class="fixed top-0 left-0 right-0 z-50">
-        <div class="content-container pt-2">
-          <div class="glass-bar h-14 px-3 sm:px-4 flex items-center justify-between">
+          <div class="glass-bar rounded-none h-14 px-3 sm:px-4 flex items-center justify-between">
             <!-- Site name / logo -->
             <NuxtLink to="/" class="flex items-center gap-2 text-brand-600 hover:text-brand-700">
               <HeartIcon class="w-5 h-5" />
@@ -72,7 +71,7 @@
                 <!-- Dropdown menu -->
                 <div
                   v-if="showUserMenu"
-                  class="absolute right-0 top-full mt-2 w-48 glass-card py-2 shadow-lg z-50"
+                  class="absolute right-0 top-full mt-2 w-48 glass-card backdrop-blur-ultra py-2 shadow-lg z-50"
                 >
                   <NuxtLink
                     to="/me"
@@ -113,11 +112,10 @@
               </template>
             </div>
           </div>
-        </div>
       </header>
 
       <!-- 固定头部占位 -->
-      <div class="pt-16" />
+      <div class="pt-14" />
 
       <!-- Announcements -->
       <div>
@@ -135,9 +133,9 @@
       </main>
 
       <!-- Footer divider and sticky block -->
-      <div class="content-container shrink-0">
+      <div class="shrink-0">
         <hr class="border-t border-white/40 mb-4" />
-        <footer class="glass-card py-6 text-center text-sm text-gray-600">
+        <footer class="glass-card rounded-none py-6 text-center text-sm text-gray-600">
           <div class="space-y-2">
             <p>© 2024 Love Wall. Made with ❤️</p>
             <div class="flex justify-center gap-4">

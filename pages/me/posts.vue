@@ -128,15 +128,7 @@
 
                 <!-- Actions -->
                 <div class="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <NuxtLink
-                    v-if="post.status === 0"
-                    :to="`/posts/${post.id}`"
-                    class="glass-button-secondary !p-2"
-                    @click.stop
-                    title="查看详情"
-                  >
-                    <EyeIcon class="w-4 h-4" />
-                  </NuxtLink>
+
                   
                   <GlassButton
                     v-if="canEdit(post)"
@@ -177,12 +169,11 @@
                 <div class="flex items-center gap-3">
                   <span class="flex items-center gap-1">
                     <MessageSquareIcon class="w-4 h-4" />
-                    评论 <!-- TODO: Add comment count when available -->
+                    {{ post.comment_count ?? '—' }}
                   </span>
-                  
                   <span class="flex items-center gap-1">
                     <EyeIcon class="w-4 h-4" />
-                    查看 <!-- TODO: Add view count when available -->
+                    {{ post.view_count ?? '—' }}
                   </span>
                 </div>
               </div>
@@ -312,26 +303,14 @@ const loadPosts = async (page = 1, reset = false) => {
       params.featured = filters.featured === 'true'
     }
 
-    // Since there's no specific "my posts" endpoint in the API docs,
-    // we'll use the regular posts endpoint and filter on frontend
-    // This is not ideal but works for demonstration
-    const data = await api.listPosts(params)
-    
-    // Filter posts by current user (this should be done on backend)
-    const myPosts = data.items.filter((post: PostDto) => post.author_id === auth.currentUser?.id)
-    
+    // Fetch my posts via backend endpoint
+    const data = await api.getUserPosts(auth.currentUser!.id, params)
     if (reset || page === 1) {
-      posts.value = myPosts
+      posts.value = data.items
     } else {
-      posts.value.push(...myPosts)
+      posts.value.push(...data.items)
     }
-    
-    // Adjust pagination data
-    postsData.value = {
-      ...data,
-      items: myPosts,
-      total: myPosts.length // This is not accurate, but we don't have better data
-    }
+    postsData.value = data
   } catch (error: any) {
     toast.error('加载表白列表失败')
   } finally {
@@ -354,6 +333,8 @@ const refresh = () => {
   loadPosts(1, true)
 }
 
+// Counts are returned inline per item; no extra stats fetch
+
 const canEdit = (post: PostDto) => {
   if (!post.created_at) return false
   const createdAt = new Date(post.created_at)
@@ -363,8 +344,8 @@ const canEdit = (post: PostDto) => {
 }
 
 const editPost = (post: PostDto) => {
-  // Navigate to edit page (we'll create this later)
-  router.push(`/posts/${post.id}/edit`)
+  // Open detail with edit modal via query flag
+  router.push(`/posts/${post.id}?edit=1`)
 }
 
 const goDetail = (post: PostDto) => {

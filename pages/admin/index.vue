@@ -272,15 +272,17 @@ const loadDashboardData = async () => {
     const api = useApi()
     
     // Load platform metrics (if has permission)
+    let gotMetrics = false
     if (auth.hasPerm('MANAGE_USERS') || auth.isSuperadmin) {
       try {
-        const metricsData = await api.getAdminMetrics()
-        todayStats.comments = metricsData.today_comments
-        todayStats.users = metricsData.today_new_users
-        stats.comments = metricsData.total_comments
-        
-        // Update the "since" time display could be added to template if needed
-        console.log('Metrics since:', metricsData.since)
+        const m = await api.getAdminMetrics()
+        stats.users = m.total_users
+        stats.posts = m.total_posts
+        stats.comments = m.total_comments
+        todayStats.users = m.today_new_users
+        todayStats.posts = m.today_new_posts
+        todayStats.comments = m.today_comments
+        gotMetrics = true
       } catch (error) {
         console.warn('Failed to load admin metrics:', error)
       }
@@ -290,7 +292,7 @@ const loadDashboardData = async () => {
     try {
       const postsData = await api.listPosts({ page: 1, page_size: 5 })
       recentPosts.value = postsData.items
-      stats.posts = postsData.total
+      if (!gotMetrics) stats.posts = postsData.total
       
       // Calculate today's posts from recent posts if metrics API doesn't provide it
       if (!auth.hasPerm('MANAGE_USERS') && !auth.isSuperadmin) {
@@ -319,7 +321,7 @@ const loadDashboardData = async () => {
     }
 
     // Load users count (if has permission)
-    if (auth.hasPerm('MANAGE_USERS') || auth.isSuperadmin) {
+    if ((auth.hasPerm('MANAGE_USERS') || auth.isSuperadmin) && !gotMetrics) {
       try {
         const usersData = await api.listUsers({ page: 1, page_size: 1 })
         stats.users = usersData.total

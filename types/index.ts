@@ -23,6 +23,7 @@ export interface User {
   permissions?: string[] // 仅在用户列表接口返回
   created_at: string
   updated_at: string
+  isdeleted?: boolean
 }
 
 export interface UserProfile {
@@ -72,6 +73,16 @@ export interface PostDto {
   created_at: string
   updated_at: string
   author_tag?: Pick<TagDto, 'name' | 'title' | 'background_color' | 'text_color'>
+  // Optional stats fields when available from certain endpoints
+  view_count?: number
+  comment_count?: number
+}
+
+// Post stats (public)
+export interface PostStats {
+  id: string
+  view_count: number
+  comment_count: number
 }
 
 // Comment Types
@@ -319,3 +330,5 @@ export interface LogFilters {
   page?: number
   page_size?: number
 }
+
+

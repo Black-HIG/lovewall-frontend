@@ -47,6 +47,28 @@
       </div>
     </GlassCard>
 
+    <!-- Delete User Confirmation Modal -->
+    <GlassModal
+      :is-open="deleteUserModal.show"
+      title="确认删除用户"
+      max-width="max-w-md"
+      @close="closeDeleteUser()"
+    >
+      <div class="space-y-3">
+        <p class="text-gray-700">此操作将软删除该用户并立即注销其所有会话，且不可恢复。用户的帖子与评论会保留。</p>
+        <p class="text-sm text-gray-500">请谨慎操作，仅超级管理员可执行。</p>
+        <div v-if="deleteUserModal.user" class="text-sm text-gray-600">
+          目标用户：<strong>@{{ deleteUserModal.user.username }}</strong>
+        </div>
+      </div>
+      <template #footer>
+        <div class="flex gap-3 justify-end">
+          <GlassButton @click="closeDeleteUser" variant="secondary">取消</GlassButton>
+          <GlassButton @click="deleteUser" :loading="deletingUser" class="!bg-red-600 hover:!bg-red-700">确认删除</GlassButton>
+        </div>
+      </template>
+    </GlassModal>
+
     <!-- Users Table -->
     <GlassCard class="overflow-hidden">
       <!-- Loading State -->
@@ -229,18 +251,16 @@
                     <KeyIcon class="w-4 h-4" />
                   </GlassButton>
                   
+                  
+                  <!-- Delete User (superadmin only) -->
                   <GlassButton
-                    v-if="user.id !== auth.currentUser?.id"
-                    @click="toggleUserStatus(user)"
+                    v-if="auth.isSuperadmin && user.id !== auth.currentUser?.id && !user.is_superadmin"
+                    @click="openDeleteUser(user)"
                     variant="secondary"
-                    :class="{
-                      '!text-red-600 hover:!bg-red-50': user.status === 0,
-                      '!text-green-600 hover:!bg-green-50': user.status === 1
-                    }"
-                    class="!p-2"
-                    :title="user.status === 0 ? '禁用用户' : '启用用户'"
+                    class="!p-2 !text-red-600 hover:!bg-red-50"
+                    title="删除用户"
                   >
-                    <component :is="user.status === 0 ? UserXIcon : UserCheckIcon" class="w-4 h-4" />
+                    <UserXIcon class="w-4 h-4" />
                   </GlassButton>
                   
                   <!-- Ban/Unban Button -->
@@ -1237,9 +1257,43 @@ const savePermissions = async () => {
   }
 }
 
-const toggleUserStatus = async (user: User) => {
-  // This functionality would need to be implemented in the API
-  toast.info('用户状态切换功能正在开发中')
+// Delete user (superadmin only)
+const deleteUserModal = reactive<{ show: boolean; user: User | null }>({ show: false, user: null })
+const deletingUser = ref(false)
+
+const openDeleteUser = (user: User) => {
+  deleteUserModal.user = user
+  deleteUserModal.show = true
+}
+
+const closeDeleteUser = () => {
+  deleteUserModal.show = false
+  deleteUserModal.user = null
+}
+
+const deleteUser = async () => {
+  if (!deleteUserModal.user) return
+  if (!auth.isSuperadmin) {
+    toast.error('仅超级管理员可删除用户')
+    return
+  }
+  deletingUser.value = true
+  try {
+    const api = useApi()
+    await api.adminDeleteUser(deleteUserModal.user.id)
+    // Remove from local list
+    users.value = users.value.filter(u => u.id !== deleteUserModal.user!.id)
+    if (usersData.value) {
+      usersData.value.total = Math.max(0, usersData.value.total - 1)
+    }
+    toast.success('用户已删除')
+    closeDeleteUser()
+  } catch (error: any) {
+    const msg = error?.message || '删除用户失败'
+    toast.error(msg)
+  } finally {
+    deletingUser.value = false
+  }
 }
 
 // Initialize

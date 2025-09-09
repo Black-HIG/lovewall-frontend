@@ -272,13 +272,14 @@
   .post-card:hover {
     /* keep subtle — avoid jump to very high contrast */
     @apply bg-white/40;
-    transform: scale(1.02);
+    /* Use slight lift instead of scale to avoid edge clipping */
+    transform: translateY(-2px);
     box-shadow: 0 20px 60px -15px rgba(255,92,163,0.35);
   }
   
   .post-card-list:hover {
     @apply bg-white/40;
-    transform: scale(1.01);
+    transform: translateY(-2px);
     box-shadow: 0 20px 60px -15px rgba(255,92,163,0.30);
   }
   
@@ -306,6 +307,23 @@
   .backdrop-blur-strong {
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
+  }
+
+  /* Slightly stronger blur for focus overlays (e.g., header menu) */
+  .backdrop-blur-stronger {
+    backdrop-filter: blur(28px);
+    -webkit-backdrop-filter: blur(28px);
+  }
+
+  /* Ultra blur for popup menus */
+  .backdrop-blur-ultra {
+    backdrop-filter: blur(40px);
+    -webkit-backdrop-filter: blur(40px);
+  }
+
+  /* Grid with first column sized to widest label */
+  .grid-cols-label {
+    grid-template-columns: max-content 1fr;
   }
 }
 

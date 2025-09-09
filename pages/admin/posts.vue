@@ -286,34 +286,34 @@
       </div>
     </div>
 
-    <!-- Delete Confirmation Modal -->
-    <div
-      v-if="deleteModal.show"
-      class="fixed inset-0 z-[9000] flex items-center justify-center bg-black/50 backdrop-blur-sm"
+    <!-- Delete Confirmation Modal (GlassModal style) -->
+    <GlassModal
+      :is-open="deleteModal.show"
+      title="确认删除"
+      max-width="max-w-md"
+      @close="deleteModal.show = false"
     >
-      <GlassCard class="p-6 max-w-md mx-4">
-        <h3 class="text-lg font-semibold mb-4">确认删除</h3>
-        <p class="text-gray-600 mb-6">
-          确定要删除表白"{{ deleteModal.post?.author_name }} → {{ deleteModal.post?.target_name }}"吗？
-          删除后无法恢复。
-        </p>
+      <p class="text-gray-700 mb-6">
+        确定要删除表白“{{ deleteModal.post?.author_name }} → {{ deleteModal.post?.target_name }}”吗？删除后不可恢复。
+      </p>
+
+      <template #footer>
         <div class="flex gap-3 justify-end">
-          <GlassButton
-            @click="deleteModal.show = false"
-            variant="secondary"
-          >
+          <button type="button" class="glass-button-secondary" @click="deleteModal.show = false">
             取消
-          </GlassButton>
-          <GlassButton
+          </button>
+          <button
+            type="button"
+            class="glass-button !bg-red-600 hover:!bg-red-700"
+            :disabled="actionLoading === deleteModal.post?.id"
             @click="deletePost"
-            :loading="actionLoading === deleteModal.post?.id"
-            class="!bg-red-600 hover:!bg-red-700"
           >
+            <LoadingSpinner v-if="actionLoading === deleteModal.post?.id" size="sm" class="mr-2" />
             确认删除
-          </GlassButton>
+          </button>
         </div>
-      </GlassCard>
-    </div>
+      </template>
+    </GlassModal>
   </div>
 </template>
 
@@ -325,6 +325,7 @@ import {
   CalendarIcon
 } from 'lucide-vue-next'
 import type { PostDto, Pagination } from '~/types'
+import GlassModal from '~/components/ui/GlassModal.vue'
 
 definePageMeta({
   middleware: 'admin'

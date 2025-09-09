@@ -437,13 +437,15 @@
           <GlassButton
             @click="deleteModal.show = false"
             variant="secondary"
+            class="glass-button-secondary"
           >
             取消
           </GlassButton>
           <GlassButton
             @click="deleteTag"
+            class="glass-button !bg-red-600 hover:!bg-red-700"
             :loading="deleting"
-            class="!bg-red-600 hover:!bg-red-700"
+
           >
             确认删除
           </GlassButton>

@@ -10,7 +10,7 @@
       </div>
 
       <!-- Form -->
-      <form @submit.prevent="handleSubmit" class="space-y-6">
+      <form @submit.prevent="handleSubmit" class="space-y-6" novalidate>
         <!-- Current Password -->
         <div>
           <label for="oldPassword" class="block text-sm font-medium text-gray-700 mb-2">
@@ -64,7 +64,7 @@
           <GlassButton
             type="button"
             variant="secondary"
-            class="flex-1"
+            class="flex-1 glass-button"
             @click="$router.back()"
           >
             取消
@@ -72,9 +72,10 @@
           
           <GlassButton
             type="submit"
-            class="flex-1"
+            class="flex-1 glass-button"
             :disabled="!isFormValid || loading"
             :loading="loading"
+            @click="handleSubmit"
           >
             {{ loading ? '修改中...' : '修改密码' }}
           </GlassButton>

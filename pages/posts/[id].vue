@@ -98,8 +98,16 @@
                   <CalendarIcon class="w-4 h-4" />
                   <span>{{ formatDate(post.created_at) }}</span>
                   
-                  <!-- Admin badges -->
-                  <div class="flex gap-2 ml-auto">
+                  <!-- Actions: Edit (if allowed) + Admin badges -->
+                  <div class="flex items-center gap-2 ml-auto">
+                    <GlassButton
+                      v-if="canEditPost"
+                      variant="secondary"
+                      class="!text-xs !py-1 !px-3"
+                      @click="openEditModal"
+                    >
+                      编辑
+                    </GlassButton>
                     <span
                     v-if="post.is_featured"
                     class="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-full"
@@ -271,31 +279,33 @@
                         :background="comment.user_tag.background_color"
                         :text="comment.user_tag.text_color"
                       />
-                      <span class="text-xs text-gray-500 ml-auto">
-                        {{ formatDate(comment.created_at) }}
-                      </span>
+                      <div class="ml-auto flex items-center gap-2">
+                        <span class="text-xs text-gray-500">
+                          {{ formatDate(comment.created_at) }}
+                        </span>
+                        <div v-if="canManageComment(comment)" class="flex items-center gap-1">
+                          <GlassButton
+                            v-if="comment.user_id === auth.currentUser?.id && canEditComment(comment)"
+                            @click="startEditComment(comment)"
+                            variant="secondary"
+                            class="!px-2 !py-1 text-xs"
+                          >
+                            编辑
+                          </GlassButton>
+                          <GlassButton
+                            @click="hideComment(comment)"
+                            variant="secondary"
+                            class="!px-2 !py-1 text-xs"
+                          >
+                            {{ comment.status === 0 ? '隐藏' : '恢复' }}
+                          </GlassButton>
+                        </div>
+                      </div>
                     </div>
                     
                     <p class="text-gray-700 leading-relaxed whitespace-pre-wrap">{{ comment.content }}</p>
                     
-                    <!-- Comment actions -->
-                    <div v-if="canManageComment(comment)" class="mt-2 flex gap-2">
-                      <GlassButton
-                        v-if="comment.user_id === auth.currentUser?.id && canEditComment(comment)"
-                        @click="startEditComment(comment)"
-                        variant="secondary"
-                        class="!px-2 !py-1 text-xs"
-                      >
-                        编辑
-                      </GlassButton>
-                      <GlassButton
-                        @click="hideComment(comment)"
-                        variant="secondary"
-                        class="!px-2 !py-1 text-xs"
-                      >
-                        {{ comment.status === 0 ? '隐藏' : '恢复' }}
-                      </GlassButton>
-                    </div>
+                    
                   </div>
                 </div>
               </div>
@@ -330,6 +340,27 @@
         >
       </div>
     </div>
+
+    <!-- Edit Post Modal -->
+    <GlassModal
+      :is-open="showEditModal"
+      title="编辑帖子"
+      max-width="max-w-xl"
+      @close="showEditModal = false"
+    >
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">帖子内容</label>
+          <GlassTextarea v-model="editForm.content" :rows="8" placeholder="请输入帖子内容" />
+        </div>
+      </div>
+      <template #footer>
+        <div class="flex gap-3 justify-end">
+          <GlassButton @click="showEditModal = false" variant="secondary">取消</GlassButton>
+          <GlassButton @click="submitEdit" :loading="editSubmitting">保存</GlassButton>
+        </div>
+      </template>
+    </GlassModal>
 
     <!-- Delete Confirmation Modal -->
     <GlassModal
@@ -393,6 +424,7 @@ const actionLoading = ref(false)
 const error = ref<string | null>(null)
 const showImageModal = ref(false)
 const showDeleteModal = ref(false)
+const showEditModal = ref(false)
 const authorAvatar = ref<string | null>(null)
 // Current user's active tag preview (only if enabled)
 const myActiveTagPreview = ref<{ name: string; title: string; background_color: string; text_color: string } | null>(null)
@@ -403,12 +435,25 @@ const commentForm = reactive<CommentForm>({
 })
 const commentErrors = ref<Partial<CommentForm>>({})
 
+// Edit form state (only content)
+const editForm = reactive<{ content: string }>({
+  content: '',
+})
+const editSubmitting = ref(false)
+
 // Computed
 const showAdminActions = computed(() => {
   return auth.isAuthenticated && (
     auth.isSuperadmin ||
     auth.hasAnyPerm(['PIN_POST', 'FEATURE_POST', 'HIDE_POST', 'DELETE_POST'])
   )
+})
+
+// Show Edit entry if author or has permission; server enforces time window
+const canEditPost = computed(() => {
+  if (!post.value || !auth.isAuthenticated) return false
+  if (auth.isSuperadmin || auth.hasPerm('EDIT_POST')) return true
+  return post.value.author_id === auth.currentUser?.id
 })
 
 // Fetch author avatar
@@ -627,6 +672,42 @@ const deletePost = async () => {
   }
 }
 
+// Open edit modal prefilled with current post
+const openEditModal = () => {
+  if (!post.value) return
+  editForm.content = post.value.content || ''
+  showEditModal.value = true
+}
+
+// Submit edits
+const submitEdit = async () => {
+  if (!post.value || editSubmitting.value) return
+  const payload: Partial<PostDto> = {}
+  if (editForm.content !== post.value.content) payload.content = editForm.content
+
+  if (Object.keys(payload).length === 0) {
+    toast.info('没有需要保存的更改')
+    showEditModal.value = false
+    return
+  }
+
+  editSubmitting.value = true
+  try {
+    const api = useApi()
+    const updated = await api.updatePost(post.value.id, payload)
+    // Update local state from server response
+    post.value.author_name = updated.author_name
+    post.value.target_name = updated.target_name
+    post.value.content = updated.content
+    toast.success('更新成功')
+    showEditModal.value = false
+  } catch (err) {
+    // Error toasts handled globally; keep modal open for retry
+  } finally {
+    editSubmitting.value = false
+  }
+}
+
 const formatDate = (dateString: string) => {
   return new Date(dateString).toLocaleString('zh-CN')
 }
@@ -694,6 +775,12 @@ onMounted(async () => {
   // Prepare current user's active tag preview for comment UI
   await fetchMyActiveTagPreview()
   loading.value = false
+  // Open edit modal if requested via query and allowed
+  try {
+    if ((route.query as any)?.edit && canEditPost.value) {
+      openEditModal()
+    }
+  } catch {}
 })
 
 // SEO

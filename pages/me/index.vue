@@ -69,8 +69,10 @@
 
         <!-- Actions -->
         <div class="flex-shrink-0 flex gap-2">
-          <GlassButton 
+          <GlassButton
             variant="secondary"
+            type="button"
+            class="glass-button"
             @click="showEditModal = true"
           >
             编辑资料
@@ -320,7 +322,8 @@ const loadUserData = async () => {
     }
     
   } catch (error: any) {
-    useToast().error('加载用户数据失败')
+    // 降级为控制台提示，避免在部分子请求失败但页面仍可正常显示时打扰用户
+    console.warn('加载用户数据出现非致命错误：', error)
   } finally {
     loading.value = false
     activityLoading.value = false

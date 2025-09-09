@@ -111,8 +111,19 @@
               <!-- User -->
               <td class="px-6 py-4">
                 <div class="flex items-center gap-2">
-                  <div class="w-8 h-8 rounded-full bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center text-white text-xs font-medium">
-                    {{ commentDisplayName(comment).slice(0, 2) }}
+                  <div class="w-8 h-8 rounded-full overflow-hidden flex-shrink-0">
+                    <img
+                      v-if="comment.user_avatar_url"
+                      :src="assetUrl(comment.user_avatar_url)"
+                      :alt="commentDisplayName(comment)"
+                      class="w-8 h-8 object-cover"
+                    >
+                    <div
+                      v-else
+                      class="w-8 h-8 rounded-full bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center text-white text-xs font-medium"
+                    >
+                      {{ commentDisplayName(comment).slice(0, 2) }}
+                    </div>
                   </div>
                   <div>
                     <div class="text-sm font-medium text-gray-800">{{ commentDisplayName(comment) }}</div>
@@ -222,33 +233,32 @@
       </div>
     </GlassCard>
 
-    <!-- Delete Confirmation Modal -->
-    <div
-      v-if="deleteModal.show"
-      class="fixed inset-0 z-[9000] flex items-center justify-center bg-black/50 backdrop-blur-sm"
+    <!-- Delete Confirmation Modal: unified GlassModal -->
+    <GlassModal
+      :is-open="deleteModal.show"
+      title="确认删除"
+      max-width="max-w-md"
+      @close="deleteModal.show = false"
     >
-      <GlassCard class="p-6 max-w-md mx-4">
-        <h3 class="text-lg font-semibold mb-4">确认删除</h3>
-        <p class="text-gray-600 mb-6">
-          确定要删除这条评论吗？删除后无法恢复。
-        </p>
+      <p class="text-gray-700 mb-6">确定要删除这条评论吗？删除后无法恢复。</p>
+
+      <template #footer>
         <div class="flex gap-3 justify-end">
-          <GlassButton
-            @click="deleteModal.show = false"
-            variant="secondary"
-          >
+          <button type="button" class="glass-button-secondary" @click="deleteModal.show = false">
             取消
-          </GlassButton>
-          <GlassButton
+          </button>
+          <button
+            type="button"
+            class="glass-button !bg-red-600 hover:!bg-red-700"
+            :disabled="actionLoading === deleteModal.comment?.id"
             @click="deleteComment"
-            :loading="actionLoading === deleteModal.comment?.id"
-            class="!bg-red-600 hover:!bg-red-700"
           >
+            <LoadingSpinner v-if="actionLoading === deleteModal.comment?.id" size="sm" class="mr-2" />
             确认删除
-          </GlassButton>
+          </button>
         </div>
-      </GlassCard>
-    </div>
+      </template>
+    </GlassModal>
   </div>
 </template>
 
@@ -260,7 +270,9 @@ import {
   EyeOffIcon,
   TrashIcon
 } from 'lucide-vue-next'
+import GlassModal from '~/components/ui/GlassModal.vue'
 import type { CommentDto, Pagination } from '~/types'
+const assetUrl = useAssetUrl()
 
 definePageMeta({
   middleware: ['admin', 'require-perms'],
@@ -311,7 +323,7 @@ const loadComments = async (page = 1) => {
     if (filters.post_id) params.post_id = filters.post_id
     if (filters.user_id) params.user_id = filters.user_id
     
-    const data = await api.adminComments(params)
+    const data = await api.getAdminComments(params)
     comments.value = data.items
     commentsData.value = data
   } catch (error: any) {

@@ -2,7 +2,7 @@
   <GlassCard 
     :class="[
       variant === 'list' ? 'post-card-list' : 'post-card',
-      'overflow-hidden cursor-pointer group'
+      'cursor-pointer group'
     ]" 
     @click="goDetail"
   >
@@ -84,7 +84,7 @@
 
         <div
           v-if="showDropdown"
-          class="absolute right-0 mt-1 w-48 glass-card py-2 shadow-lg z-10"
+          class="absolute right-0 mt-1 w-48 glass-card py-2 shadow-lg z-50"
         >
           <NuxtLink
             :to="`/posts/${post.id}`"

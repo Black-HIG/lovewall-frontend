@@ -104,15 +104,9 @@
         >
           <GlassCard class="p-6 hover:shadow-glow-lg transition-all">
             <div class="flex items-center justify-between">
-              <!-- Tag Info -->
-              <div class="flex items-center gap-4">
-                <TagBadge
-                  :title="userTag.tag?.title || ''"
-                  :background="userTag.tag?.background_color || '#6b7280'"
-                  :text="userTag.tag?.text_color || '#ffffff'"
-                />
-                
-                <div>
+              <!-- Tag details first, preview on the right; avoid wrapping buttons -->
+              <div class="flex items-center gap-4 flex-1 min-w-0">
+                <div class="min-w-0">
                   <h3 class="font-semibold text-gray-800">
                     {{ userTag.tag?.title || `标签-${userTag.tag?.id?.slice(0, 8)}` }}
                   </h3>
@@ -129,10 +123,17 @@
                     </div>
                   </div>
                 </div>
+                <div class="shrink-0">
+                  <TagBadge
+                    :title="userTag.tag?.title || ''"
+                    :background="userTag.tag?.background_color || '#6b7280'"
+                    :text="userTag.tag?.text_color || '#ffffff'"
+                  />
+                </div>
               </div>
 
               <!-- Actions -->
-              <div class="flex gap-2">
+              <div class="flex gap-2 shrink-0 whitespace-nowrap items-center">
                 <GlassButton
                   v-if="!userTag.is_active"
                   @click="activateTag(userTag)"
@@ -305,6 +306,8 @@ const redeemSuccess = reactive({
 
 // Active tag status from new API
 const activeStatus = ref<MyActiveTagStatusResponse | null>(null)
+
+// Grid-based alignment handles longest label automatically; no JS measuring needed
 
 // Computed
 const activeTag = computed(() => {
@@ -545,4 +548,5 @@ useHead({
     { name: 'description', content: '管理你拥有的标签和当前显示标签' }
   ]
 })
+
 </script>

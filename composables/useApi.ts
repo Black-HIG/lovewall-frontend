@@ -173,11 +173,11 @@ export const useApi = () => {
       return unwrap(res)
     },
     async changePassword(data: ChangePasswordForm): Promise<void> {
-      const res = await instance.post<ApiResp<void>>('/change-password', {
+      // 204 No Content on success
+      await instance.put('/me/password', {
         old_password: data.old_password,
-        new_password: data.new_password
+        new_password: data.new_password,
       })
-      return unwrap(res)
     },
 
     // 获取用户信息
@@ -209,6 +209,10 @@ export const useApi = () => {
     },
     async getPost(id: string): Promise<PostDto> {
       const res = await instance.get<ApiResp<PostDto>>(`/posts/${id}`)
+      return unwrap(res)
+    },
+    async getPostStats(id: string): Promise<{ id: string; view_count: number; comment_count: number }> {
+      const res = await instance.get<ApiResp<{ id: string; view_count: number; comment_count: number }>>(`/posts/${id}/stats`)
       return unwrap(res)
     },
     async createPost(formData: FormData): Promise<PostDto> {
@@ -290,6 +294,9 @@ export const useApi = () => {
       const res = await instance.get<ApiResp<Pagination<User>>>('/users', { params })
       return unwrap(res)
     },
+    async adminDeleteUser(userId: string): Promise<void> {
+      await instance.delete(`/admin/users/${userId}`)
+    },
     async updateUser(id: string, data: AdminUpdateUserForm): Promise<User> {
       const requestData: any = {}
       
@@ -310,10 +317,10 @@ export const useApi = () => {
       await instance.post(`/users/${id}/permissions`, data)
     },
     async adminChangePassword(userId: string, data: AdminChangePasswordForm): Promise<void> {
-      const res = await instance.post<ApiResp<void>>(`/users/${userId}/change-password`, {
-        new_password: data.new_password
+      // 204 No Content on success
+      await instance.put(`/admin/users/${userId}/password`, {
+        new_password: data.new_password,
       })
-      return unwrap(res)
     },
 
     // Tags
@@ -409,8 +416,8 @@ export const useApi = () => {
     },
 
     // Admin metrics
-    async getAdminMetrics(): Promise<{ total_comments: number; today_comments: number; today_new_users: number; since: string }> {
-      const res = await instance.get<ApiResp<{ total_comments: number; today_comments: number; today_new_users: number; since: string }>>('/admin/metrics/overview')
+    async getAdminMetrics(): Promise<{ since: string; total_users: number; total_posts: number; total_comments: number; today_new_users: number; today_new_posts: number; today_comments: number }> {
+      const res = await instance.get<ApiResp<{ since: string; total_users: number; total_posts: number; total_comments: number; today_new_users: number; today_new_posts: number; today_comments: number }>>('/admin/metrics/overview')
       return unwrap(res)
     },
 

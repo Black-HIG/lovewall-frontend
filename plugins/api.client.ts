@@ -59,14 +59,17 @@ export default defineNuxtPlugin(() => {
   })
 
   // Request interceptor
+  let redirecting401 = false
   instance.interceptors.request.use((config) => {
     // Add auth token if available
     const authStore = useAuthStore()
     const cookies = useSessionCookies()
     const token = authStore.accessToken || cookies.token.value
+    config.headers = config.headers || {}
     if (token) {
-      config.headers.Authorization = `Bearer ${token}`
+      ;(config.headers as any).Authorization = `Bearer ${token}`
     }
+    // Do not add custom headers here to avoid triggering CORS preflight on some deployments
     // Ensure endpoint doesn't start with '/'
     if (typeof config.url === 'string') {
       config.url = config.url.replace(/^\/+/, '')
@@ -83,6 +86,7 @@ export default defineNuxtPlugin(() => {
       const trace = error?.response?.data?.trace_id
       const code = error?.response?.data?.error?.code
       let message = error?.response?.data?.error?.message || 'Request failed'
+      const status = error?.response?.status
       
       // Handle network errors
       if (!error.response) {
@@ -96,6 +100,11 @@ export default defineNuxtPlugin(() => {
       // Don't show toast for 404 errors on active tag endpoints - these are normal
       const isActiveTagNotFound = error.response?.status === 404 && 
         (error.config?.url?.includes('active-tag') || message === 'active tag not found')
+      
+      // Refine 429 rate-limit message
+      if (status === 429) {
+        message = '��������Ĳ�������ʱ�����Ժ�����'
+      }
       
       // Show toast notification for errors (except active tag not found)
       if (!isActiveTagNotFound) {
@@ -178,11 +187,11 @@ export default defineNuxtPlugin(() => {
     },
 
     async changePassword(data: ChangePasswordForm): Promise<void> {
-      const response = await instance.post<ApiResp<void>>('/change-password', {
+      // 204 No Content on success
+      await instance.put('/me/password', {
         old_password: data.old_password,
-        new_password: data.new_password
+        new_password: data.new_password,
       })
-      return unwrap(response)
     },
 
     async getUser(id: string): Promise<User> {
@@ -196,16 +205,9 @@ export default defineNuxtPlugin(() => {
     },
 
     async getUserPosts(userId: string, params: { page?: number; page_size?: number } = {}): Promise<Pagination<PostDto>> {
-      // TODO: 后端应该实现 GET /api/users/{userId}/posts
-      // 暂时使用普通帖子列表并前端过滤
-      const response = await instance.get<ApiResp<Pagination<PostDto>>>('/posts', { params })
-      const data = unwrap(response)
-      const filteredPosts = data.items.filter(post => post.author_id === userId)
-      return {
-        ...data,
-        items: filteredPosts
-      }
-    },
+  const response = await instance.get<ApiResp<Pagination<PostDto>>>(`/users/${userId}/posts`, { params })
+  return unwrap(response)
+},
 
     // Posts
     async listPosts(params: {
@@ -220,6 +222,10 @@ export default defineNuxtPlugin(() => {
 
     async getPost(id: string): Promise<PostDto> {
       const response = await instance.get<ApiResp<PostDto>>(`/posts/${id}`)
+      return unwrap(response)
+    },
+    async getPostStats(id: string): Promise<{ id: string; view_count: number; comment_count: number }> {
+      const response = await instance.get<ApiResp<{ id: string; view_count: number; comment_count: number }>>(`/posts/${id}/stats`)
       return unwrap(response)
     },
 
@@ -309,6 +315,18 @@ export default defineNuxtPlugin(() => {
       return unwrap(response)
     },
 
+    // Admin: list comments (alias used by pages)
+    async getAdminComments(params: {
+      post_id?: string
+      user_id?: string
+      status?: 0 | 1
+      page?: number
+      page_size?: number
+    } = {}): Promise<Pagination<CommentDto>> {
+      const response = await instance.get<ApiResp<Pagination<CommentDto>>>('/comments', { params })
+      return unwrap(response)
+    },
+
     async adminComments(params: {
       post_id?: string
       user_id?: string
@@ -350,6 +368,11 @@ export default defineNuxtPlugin(() => {
       const response = await instance.get<ApiResp<Pagination<User>>>('/users', { params })
       return unwrap(response)
     },
+    
+    // Admin: delete user (superadmin only)
+    async adminDeleteUser(userId: string): Promise<void> {
+      await instance.delete(`/admin/users/${userId}`)
+    },
 
     async setUserPerms(id: string, data: { permissions: string[] }): Promise<void> {
       await instance.post(`/users/${id}/permissions`, data)
@@ -373,10 +396,10 @@ export default defineNuxtPlugin(() => {
     },
 
     async adminChangePassword(userId: string, data: AdminChangePasswordForm): Promise<void> {
-      const response = await instance.post<ApiResp<void>>(`/users/${userId}/change-password`, {
-        new_password: data.new_password
+      // 204 No Content on success
+      await instance.put(`/admin/users/${userId}/password`, {
+        new_password: data.new_password,
       })
-      return unwrap(response)
     },
 
     // User ban/unban methods
@@ -522,8 +545,8 @@ export default defineNuxtPlugin(() => {
     },
 
     // Admin metrics
-    async getAdminMetrics(): Promise<{ total_comments: number; today_comments: number; today_new_users: number; since: string }> {
-      const response = await instance.get<ApiResp<{ total_comments: number; today_comments: number; today_new_users: number; since: string }>>('/admin/metrics/overview')
+    async getAdminMetrics(): Promise<{ since: string; total_users: number; total_posts: number; total_comments: number; today_new_users: number; today_new_posts: number; today_comments: number }> {
+      const response = await instance.get<ApiResp<{ since: string; total_users: number; total_posts: number; total_comments: number; today_new_users: number; today_new_posts: number; today_comments: number }>>('/admin/metrics/overview')
       return unwrap(response)
     },
 
@@ -551,3 +574,7 @@ export default defineNuxtPlugin(() => {
     }
   }
 })
+
+
+
+
