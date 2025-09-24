@@ -1,5 +1,5 @@
 // Lightweight helpers to persist small, non-sensitive session-related data in cookies
-// Cookies used: lw_uid, lw_nick, lw_admin ("1"/"0")
+// Cookies used: lw_uid, lw_nick, lw_device_id
 
 export const useSessionCookies = () => {
   const cookieOpts = {
@@ -19,6 +19,12 @@ export const useSessionCookies = () => {
     maxAge: 60 * 60 * 24 * 7, // 7 days default
   })
 
+  // Device ID for rate limiting (long expiry)
+  const deviceId = useCookie<string | null>('lw_device_id', {
+    ...cookieOpts,
+    maxAge: 60 * 60 * 24 * 365, // 1 year
+  })
+
   const setUser = (params: { id?: string | null; displayName?: string | null }) => {
     if (typeof params.id !== 'undefined') uid.value = params.id || null
     if (typeof params.displayName !== 'undefined') nick.value = params.displayName || null
@@ -33,6 +39,7 @@ export const useSessionCookies = () => {
     nick.value = null
     // no admin cookie
     token.value = null
+    // Don't clear device ID on logout - it should persist
   }
 
   return {
@@ -41,6 +48,7 @@ export const useSessionCookies = () => {
     setUser,
     token,
     setToken,
+    deviceId,
     clear,
   }
 }

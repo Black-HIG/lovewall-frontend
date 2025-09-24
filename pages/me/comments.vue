@@ -366,6 +366,12 @@ const saveEdit = async () => {
   if (!editingComment.value) return
   
   editErrors.value = {}
+  // 长度限制：500 个字符
+  if (editForm.content && editForm.content.length > 500) {
+    editErrors.value.content = '评论内容不能超过 500 个字符'
+    toast.error('评论内容不能超过 500 个字符')
+    return
+  }
   
   if (!editForm.content.trim()) {
     editErrors.value.content = '评论内容不能为空'

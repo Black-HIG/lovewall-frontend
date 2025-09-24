@@ -31,10 +31,44 @@ import type {
   DeleteRedemptionCodesRequest,
   DeleteRedemptionCodesResponse
 } from '~/types'
+import type { NotificationDto, UserStatusDto } from '~/types/extra'
 
 export default defineNuxtPlugin(() => {
   const config = useRuntimeConfig()
   const baseURL = config.public.apiBase as string
+  
+  // 生成设备指纹ID的简单函数
+  const generateDeviceId = (): string => {
+    if (typeof window === 'undefined') return ''
+    
+    // 基于浏览器特征生成简单的设备指纹
+    const canvas = document.createElement('canvas')
+    const ctx = canvas.getContext('2d')
+    if (ctx) {
+      ctx.textBaseline = 'top'
+      ctx.font = '14px Arial'
+      ctx.fillText('Device fingerprint', 2, 2)
+    }
+    
+    const fingerprint = [
+      navigator.userAgent,
+      navigator.language,
+      screen.width,
+      screen.height,
+      new Date().getTimezoneOffset(),
+      canvas.toDataURL()
+    ].join('|')
+    
+    // 简单哈希生成设备ID
+    let hash = 0
+    for (let i = 0; i < fingerprint.length; i++) {
+      const char = fingerprint.charCodeAt(i)
+      hash = ((hash << 5) - hash) + char
+      hash = hash & hash // 转换为32位整数
+    }
+    
+    return Math.abs(hash).toString(16).padStart(8, '0')
+  }
   
   // Decide whether to send credentials based on same-origin
   let withCreds = true
@@ -69,7 +103,20 @@ export default defineNuxtPlugin(() => {
     if (token) {
       ;(config.headers as any).Authorization = `Bearer ${token}`
     }
-    // Do not add custom headers here to avoid triggering CORS preflight on some deployments
+    
+    // 添加设备指纹识别头
+    if (typeof window !== 'undefined') {
+      // 尝试获取设备指纹ID
+      const deviceId = cookies.deviceId?.value || generateDeviceId()
+      if (deviceId) {
+        ;(config.headers as any)['X-Device-ID'] = deviceId
+        // 保存到cookie以便下次使用
+        if (!cookies.deviceId?.value) {
+          cookies.deviceId.value = deviceId
+        }
+      }
+    }
+    
     // Ensure endpoint doesn't start with '/'
     if (typeof config.url === 'string') {
       config.url = config.url.replace(/^\/+/, '')
@@ -103,7 +150,7 @@ export default defineNuxtPlugin(() => {
       
       // Refine 429 rate-limit message
       if (status === 429) {
-        message = '��������Ĳ�������ʱ�����Ժ�����'
+        message = '请求过于频繁，请稍后重试'
       }
       
       // Show toast notification for errors (except active tag not found)
@@ -204,6 +251,16 @@ export default defineNuxtPlugin(() => {
       return unwrap(response)
     },
 
+    // User existence status (never 404)
+    async getUserStatus(userId: string): Promise<UserStatusDto> {
+      const response = await instance.get<ApiResp<UserStatusDto>>(`/users/${userId}/status`)
+      return unwrap(response)
+    },
+    async getUserStatusByUsername(username: string): Promise<UserStatusDto> {
+      const response = await instance.get<ApiResp<UserStatusDto>>(`/users/by-username/${username}/status`)
+      return unwrap(response)
+    },
+
     async getUserPosts(userId: string, params: { page?: number; page_size?: number } = {}): Promise<Pagination<PostDto>> {
   const response = await instance.get<ApiResp<Pagination<PostDto>>>(`/users/${userId}/posts`, { params })
   return unwrap(response)
@@ -224,6 +281,14 @@ export default defineNuxtPlugin(() => {
       const response = await instance.get<ApiResp<PostDto>>(`/posts/${id}`)
       return unwrap(response)
     },
+    
+    // 管理员获取帖子详情（包含审核信息）
+    async getPostForAdmin(id: string): Promise<PostDto> {
+      const response = await instance.get<ApiResp<PostDto>>(`/posts/${id}`, {
+        headers: { 'X-Admin-View': 'true' }
+      })
+      return unwrap(response)
+    },
     async getPostStats(id: string): Promise<{ id: string; view_count: number; comment_count: number }> {
       const response = await instance.get<ApiResp<{ id: string; view_count: number; comment_count: number }>>(`/posts/${id}/stats`)
       return unwrap(response)
@@ -234,6 +299,14 @@ export default defineNuxtPlugin(() => {
         headers: { 'Content-Type': 'multipart/form-data' }
       })
       return unwrap(response)
+    },
+    
+    async requestPostReview(id: string): Promise<void> {
+      await instance.post(`/posts/${id}/request-review`)
+    },
+
+    async requestCommentReview(commentId: string): Promise<void> {
+      await instance.post(`/comments/${commentId}/request-review`)
     },
 
     async updatePost(id: string, data: Partial<PostDto>): Promise<PostDto> {
@@ -566,6 +639,25 @@ export default defineNuxtPlugin(() => {
       const response = await instance.delete<ApiResp<DeleteRedemptionCodesResponse>>('/redemption-codes', { data: payload })
       return unwrap(response)
     },
+
+    // Notifications
+    async listNotifications(params: { page?: number; page_size?: number } = {}): Promise<Pagination<NotificationDto>> {
+      const response = await instance.get<ApiResp<Pagination<NotificationDto>>>('/notifications', { params })
+      return unwrap(response)
+    },
+    async markNotificationRead(id: string): Promise<void> {
+      await instance.post(`/notifications/${id}/read`)
+    },
+
+    // Admin moderation for posts
+    async adminApprovePost(id: string): Promise<{ id: string; approved: boolean }> {
+      const response = await instance.post<ApiResp<{ id: string; approved: boolean }>>(`/admin/posts/${id}/approve`)
+      return unwrap(response)
+    },
+    async adminRejectPost(id: string, reason?: string): Promise<{ id: string; rejected: boolean }> {
+      const response = await instance.post<ApiResp<{ id: string; rejected: boolean }>>(`/admin/posts/${id}/reject`, { reason })
+      return unwrap(response)
+    },
   }
 
   return {
@@ -574,7 +666,5 @@ export default defineNuxtPlugin(() => {
     }
   }
 })
-
-
 
 

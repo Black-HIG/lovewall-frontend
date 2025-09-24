@@ -74,6 +74,34 @@
         </div>
       </div>
 
+      <!-- API Connection Test -->
+      <div class="glass-card p-6">
+        <h2 class="text-xl font-bold mb-4">API连接测试</h2>
+        
+        <div class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">API地址:</label>
+            <code class="bg-gray-100 px-2 py-1 rounded text-sm">{{ config.public.apiBase }}</code>
+          </div>
+          
+          <div class="flex gap-3">
+            <GlassButton @click="testApiConnection" :loading="apiTesting">
+              测试连接
+            </GlassButton>
+            <GlassButton @click="testAnnouncements" :loading="announcementsTesting" variant="secondary">
+              测试公告接口
+            </GlassButton>
+          </div>
+          
+          <div v-if="apiResult" class="mt-4 p-3 rounded-lg" 
+               :class="apiResult.success ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'">
+            <p :class="apiResult.success ? 'text-green-800' : 'text-red-800'">
+              {{ apiResult.message }}
+            </p>
+            <pre v-if="apiResult.details" class="mt-2 text-xs overflow-auto">{{ apiResult.details }}</pre>
+          </div>
+        </div>
+      </div>
       <!-- Actions -->
       <div class="glass-card p-6">
         <h2 class="text-xl font-bold mb-4">操作</h2>

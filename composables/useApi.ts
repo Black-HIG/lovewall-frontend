@@ -31,6 +31,7 @@ import type {
   DeleteRedemptionCodesRequest,
   DeleteRedemptionCodesResponse,
 } from '~/types'
+import type { NotificationDto, UserStatusDto } from '~/types/extra'
 
 let fallbackApi: any | null = null
 
@@ -42,6 +43,39 @@ const fileToBase64 = (file: File): Promise<string> => {
     reader.onerror = reject
     reader.readAsDataURL(file)
   })
+}
+
+// 生成设备指纹ID的简单函数
+const generateDeviceId = (): string => {
+  if (typeof window === 'undefined') return ''
+  
+  // 基于浏览器特征生成简单的设备指纹
+  const canvas = document.createElement('canvas')
+  const ctx = canvas.getContext('2d')
+  if (ctx) {
+    ctx.textBaseline = 'top'
+    ctx.font = '14px Arial'
+    ctx.fillText('Device fingerprint', 2, 2)
+  }
+  
+  const fingerprint = [
+    navigator.userAgent,
+    navigator.language,
+    screen.width,
+    screen.height,
+    new Date().getTimezoneOffset(),
+    canvas.toDataURL()
+  ].join('|')
+  
+  // 简单哈希生成设备ID
+  let hash = 0
+  for (let i = 0; i < fingerprint.length; i++) {
+    const char = fingerprint.charCodeAt(i)
+    hash = ((hash << 5) - hash) + char
+    hash = hash & hash // 转换为32位整数
+  }
+  
+  return Math.abs(hash).toString(16).padStart(8, '0')
 }
 
 export const useApi = () => {
@@ -86,6 +120,19 @@ export const useApi = () => {
       if (typeof config.url === 'string') {
         config.url = config.url.replace(/^\/+/, '')
       }
+      
+      // 添加设备指纹识别头
+      if (typeof window !== 'undefined') {
+        // 尝试获取设备指纹ID
+        const deviceId = cookies.deviceId?.value || generateDeviceId()
+        if (deviceId) {
+          ;(config.headers as any)['X-Device-ID'] = deviceId
+          // 保存到cookie以便下次使用
+          if (!cookies.deviceId?.value) {
+            cookies.deviceId.value = deviceId
+          }
+        }
+      }
     } catch {}
     return config
   })
@@ -104,6 +151,10 @@ export const useApi = () => {
           message = '服务器内部错误，请稍后重试'
         } else if (error.response.status === 503) {
           message = '服务暂时不可用，请稍后重试'
+        } else if (error.response.status === 429) {
+          // 处理速率限制错误
+          const rateLimitMessage = error?.response?.data?.error?.message || '请求过于频繁，请稍后重试'
+          message = rateLimitMessage
         }
         
         // Don't show toast for 404 errors on active tag endpoints - these are normal
@@ -189,17 +240,18 @@ export const useApi = () => {
       const res = await instance.get<ApiResp<User>>(`/users/by-username/${username}`)
       return unwrap(res)
     },
+    // User status (never 404)
+    async getUserStatus(userId: string): Promise<UserStatusDto> {
+      const res = await instance.get<ApiResp<UserStatusDto>>(`/users/${userId}/status`)
+      return unwrap(res)
+    },
+    async getUserStatusByUsername(username: string): Promise<UserStatusDto> {
+      const res = await instance.get<ApiResp<UserStatusDto>>(`/users/by-username/${username}/status`)
+      return unwrap(res)
+    },
     async getUserPosts(userId: string, params: { page?: number; page_size?: number } = {}): Promise<Pagination<PostDto>> {
-      // TODO: 这个接口需要后端实现，暂时使用普通帖子列表并过滤
-      // 实际应该是：GET /api/users/{userId}/posts
-      const res = await instance.get<ApiResp<Pagination<PostDto>>>('/posts', { params })
-      const data = unwrap(res)
-      // 前端临时过滤（实际应该由后端处理）
-      const filteredPosts = data.items.filter((post: PostDto) => post.author_id === userId)
-      return {
-        ...data,
-        items: filteredPosts
-      }
+      const res = await instance.get<ApiResp<Pagination<PostDto>>>(`/users/${userId}/posts`, { params })
+      return unwrap(res)
     },
 
     // Posts
@@ -211,6 +263,13 @@ export const useApi = () => {
       const res = await instance.get<ApiResp<PostDto>>(`/posts/${id}`)
       return unwrap(res)
     },
+    // 管理员获取帖子详情（包含审核信息）
+    async getPostForAdmin(id: string): Promise<PostDto> {
+      const res = await instance.get<ApiResp<PostDto>>(`/posts/${id}`, {
+        headers: { 'X-Admin-View': 'true' }
+      })
+      return unwrap(res)
+    },
     async getPostStats(id: string): Promise<{ id: string; view_count: number; comment_count: number }> {
       const res = await instance.get<ApiResp<{ id: string; view_count: number; comment_count: number }>>(`/posts/${id}/stats`)
       return unwrap(res)
@@ -218,6 +277,9 @@ export const useApi = () => {
     async createPost(formData: FormData): Promise<PostDto> {
       const res = await instance.post<ApiResp<PostDto>>('/posts', formData, { headers: { 'Content-Type': 'multipart/form-data' } })
       return unwrap(res)
+    },
+    async requestPostReview(postId: string): Promise<void> {
+      await instance.post(`/posts/${postId}/request-review`)
     },
     async updatePost(id: string, data: Partial<PostDto>): Promise<PostDto> {
       const res = await instance.put<ApiResp<PostDto>>(`/posts/${id}`, data)
@@ -254,6 +316,13 @@ export const useApi = () => {
     },
     async createComment(postId: string, data: CommentForm): Promise<CommentDto> {
       const res = await instance.post<ApiResp<CommentDto>>(`/posts/${postId}/comments`, data)
+      return unwrap(res)
+    },
+    async requestCommentReview(commentId: string): Promise<void> {
+      await instance.post(`/comments/${commentId}/request-review`)
+    },
+    async updateComment(id: string, data: CommentForm): Promise<CommentDto> {
+      const res = await instance.put<ApiResp<CommentDto>>(`/comments/${id}`, data)
       return unwrap(res)
     },
     async deleteComment(id: string): Promise<void> {
@@ -321,6 +390,16 @@ export const useApi = () => {
       await instance.put(`/admin/users/${userId}/password`, {
         new_password: data.new_password,
       })
+    },
+
+    // User ban/unban methods
+    async banUser(userId: string, data: { reason: string }): Promise<{ id: string; is_banned: boolean; ban_reason: string }> {
+      const res = await instance.post<ApiResp<{ id: string; is_banned: boolean; ban_reason: string }>>(`/admin/users/${userId}/ban`, data)
+      return unwrap(res)
+    },
+    async unbanUser(userId: string): Promise<{ id: string; is_banned: boolean }> {
+      const res = await instance.post<ApiResp<{ id: string; is_banned: boolean }>>(`/admin/users/${userId}/unban`)
+      return unwrap(res)
     },
 
     // Tags
@@ -414,6 +493,10 @@ export const useApi = () => {
     async adminRemoveUserTag(userId: string, tagId: string): Promise<void> {
       await instance.delete(`/admin/users/${userId}/tags/${tagId}`)
     },
+    async adminGetUserTags(userId: string): Promise<Pagination<UserTagDto>> {
+      const res = await instance.get<ApiResp<Pagination<UserTagDto>>>(`/admin/users/${userId}/tags`)
+      return unwrap(res)
+    },
 
     // Admin metrics
     async getAdminMetrics(): Promise<{ since: string; total_users: number; total_posts: number; total_comments: number; today_new_users: number; today_new_posts: number; today_comments: number }> {
@@ -434,6 +517,25 @@ export const useApi = () => {
     // Admin: delete redemption codes (unused only)
     async deleteRedemptionCodes(payload: DeleteRedemptionCodesRequest): Promise<DeleteRedemptionCodesResponse> {
       const res = await instance.delete<ApiResp<DeleteRedemptionCodesResponse>>('/redemption-codes', { data: payload })
+      return unwrap(res)
+    },
+
+    // Notifications
+    async listNotifications(params: { page?: number; page_size?: number } = {}): Promise<Pagination<NotificationDto>> {
+      const res = await instance.get<ApiResp<Pagination<NotificationDto>>>('/notifications', { params })
+      return unwrap(res)
+    },
+    async markNotificationRead(id: string): Promise<void> {
+      await instance.post(`/notifications/${id}/read`)
+    },
+
+    // Admin moderation for posts
+    async adminApprovePost(id: string): Promise<{ id: string; approved: boolean }> {
+      const res = await instance.post<ApiResp<{ id: string; approved: boolean }>>(`/admin/posts/${id}/approve`)
+      return unwrap(res)
+    },
+    async adminRejectPost(id: string, reason?: string): Promise<{ id: string; rejected: boolean }> {
+      const res = await instance.post<ApiResp<{ id: string; rejected: boolean }>>(`/admin/posts/${id}/reject`, { reason })
       return unwrap(res)
     },
   }

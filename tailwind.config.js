@@ -25,6 +25,20 @@ export default {
           950: '#531029',
         }
       },
+      fontFamily: {
+        'sans': [
+          '-apple-system', 
+          'BlinkMacSystemFont', 
+          '"Segoe UI"', 
+          '"PingFang SC"', 
+          '"Hiragino Sans GB"', 
+          '"Microsoft YaHei"', 
+          '"Helvetica Neue"', 
+          'Helvetica', 
+          'Arial', 
+          'sans-serif'
+        ],
+      },
       boxShadow: {
         'glow': '0 10px 30px -10px rgba(255,92,163,0.45)',
         'glow-lg': '0 20px 60px -15px rgba(255,92,163,0.35)',

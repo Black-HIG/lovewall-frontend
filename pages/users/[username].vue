@@ -171,6 +171,7 @@ const username = route.params.username as string
 // State
 const user = ref<User | null>(null)
 const activeTag = ref<{ name: string; title: string; background_color: string; text_color: string } | null>(null)
+const userStatus = ref<{ exists: boolean; isdeleted: boolean; is_banned: boolean; id?: string } | null>(null)
 const userPosts = ref<PostDto[]>([])
 const postsData = ref<Pagination<PostDto> | null>(null)
 const loading = ref(true)
@@ -191,11 +192,16 @@ const userDisplayName = computed(() => {
 const loadUser = async () => {
   try {
     const api = useApi()
+    const status = await api.getUserStatusByUsername(username)
+    userStatus.value = { exists: status.exists, isdeleted: !!status.isdeleted, is_banned: !!status.is_banned, id: status.id }
+    if (!status.exists) {
+      error.value = '用户不存在或已注销'
+      return
+    }
     user.value = await api.getUserByUsername(username)
-    // Load active tag via new endpoint
     activeTag.value = await api.getUserActiveTagByUsername(username)
   } catch (err: any) {
-    error.value = err.message || '用户不存在'
+    error.value = err.message || '用户信息加载失败'
   }
 }
 

@@ -144,7 +144,7 @@
                     </div>
 
                     <!-- Status badges -->
-                    <div class="flex gap-2">
+                    <div class="flex gap-2 flex-wrap">
                       <span
                         :class="{
                           'bg-green-100 text-green-800': post.status === 0,
@@ -156,6 +156,23 @@
                         {{ getStatusText(post.status) }}
                       </span>
                       
+                      <!-- 审核状态 -->
+                      <span
+                        v-if="post.audit_status === 2"
+                        class="px-2 py-0.5 text-xs bg-red-100 text-red-800 rounded-full"
+                        :title="post.audit_msg || 'AI审核未通过'"
+                      >
+                        AI拒绝
+                      </span>
+                      
+                      <span
+                        v-if="post.manual_review_requested"
+                        class="px-2 py-0.5 text-xs bg-orange-100 text-orange-800 rounded-full"
+                        title="用户已申请人工复核"
+                      >
+                        申请复核
+                      </span>
+                      
                       <span
                         v-if="post.status === 0 && post.is_featured"
                         class="px-2 py-0.5 text-xs bg-blue-100 text-blue-800 rounded-full"
@@ -165,10 +182,17 @@
                       
                       <span
                         v-if="post.status === 0 && post.is_pinned"
-                        class="px-2 py-0.5 text-xs bg-red-100 text-red-800 rounded-full"
+                        class="px-2 py-0.5 text-xs bg-purple-100 text-purple-800 rounded-full"
                       >
                         置顶
                       </span>
+                    </div>
+                    
+                    <!-- AI拒绝原因 -->
+                    <div v-if="post.audit_status === 2 && post.audit_msg" class="mt-2 p-2 bg-red-50 border border-red-200 rounded-lg">
+                      <p class="text-xs text-red-700">
+                        <strong>AI审核意见：</strong>{{ post.audit_msg }}
+                      </p>
                     </div>
                   </div>
 
@@ -189,6 +213,26 @@
                 
                 <!-- Admin Actions -->
                 <div class="flex flex-wrap gap-2 pt-3 border-t border-white/10">
+                  <!-- Moderation: approve/reject -->
+                  <GlassButton
+                    v-if="permissions.hasPostModerationPermission && post.status !== 0"
+                    @click.stop="approvePost(post)"
+                    :loading="actionLoading === post.id"
+                    class="text-sm px-3 py-1 !text-green-600"
+                    variant="secondary"
+                  >
+                    通过审核
+                  </GlassButton>
+                  <GlassButton
+                    v-if="permissions.hasPostModerationPermission && post.status !== 0"
+                    @click.stop="openReject(post)"
+                    :loading="actionLoading === post.id"
+                    class="text-sm px-3 py-1 !text-red-600"
+                    variant="secondary"
+                  >
+                    拒绝审核
+                  </GlassButton>
+
                   <GlassButton
                     v-if="auth.hasPerm('PIN_POST')"
                     @click.stop="togglePin(post)"
@@ -314,6 +358,25 @@
         </div>
       </template>
     </GlassModal>
+    
+    <!-- Reject Reason Modal -->
+    <GlassModal
+      :is-open="rejectModal.show"
+      title="拒绝审核"
+      max-width="max-w-md"
+      @close="rejectModal.show = false"
+    >
+      <div class="space-y-3">
+        <label class="text-sm text-gray-700">原因（可选）</label>
+        <GlassTextarea v-model="rejectModal.reason" :rows="4" placeholder="填写本次拒绝的原因..." />
+      </div>
+      <template #footer>
+        <div class="flex gap-3 justify-end">
+          <GlassButton @click="rejectModal.show = false" variant="secondary">取消</GlassButton>
+          <GlassButton :loading="actionLoading === rejectModal.post?.id" @click="rejectPost">确认拒绝</GlassButton>
+        </div>
+      </template>
+    </GlassModal>
   </div>
 </template>
 
@@ -333,6 +396,7 @@ definePageMeta({
 
 // Stores
 const auth = useAuthStore()
+const permissions = usePermissions()
 const toast = useToast()
 const assetUrl = useAssetUrl()
 const router = useRouter()
@@ -352,6 +416,12 @@ const filters = reactive({
 const deleteModal = reactive({
   show: false,
   post: null as PostDto | null
+})
+
+const rejectModal = reactive<{ show: boolean; post: PostDto | null; reason: string }>({
+  show: false,
+  post: null,
+  reason: ''
 })
 
 // Computed
@@ -513,6 +583,45 @@ const showPost = async (post: PostDto) => {
   }
 }
 
+const approvePost = async (post: PostDto) => {
+  actionLoading.value = post.id
+  try {
+    const api = useApi()
+    await api.adminApprovePost(post.id)
+    post.status = 0
+    ;(post as any).audit_status = 0
+    ;(post as any).audit_msg = null
+    toast.success('审核通过')
+  } catch (error) {
+    toast.error('操作失败')
+  } finally {
+    actionLoading.value = null
+  }
+}
+
+const openReject = (post: PostDto) => {
+  rejectModal.post = post
+  rejectModal.reason = ''
+  rejectModal.show = true
+}
+
+const rejectPost = async () => {
+  if (!rejectModal.post) return
+  actionLoading.value = rejectModal.post.id
+  try {
+    const api = useApi()
+    await api.adminRejectPost(rejectModal.post.id, rejectModal.reason || undefined)
+    ;(rejectModal.post as any).audit_status = 2
+    ;(rejectModal.post as any).audit_msg = rejectModal.reason || (rejectModal.post as any).audit_msg
+    toast.success('已拒绝')
+    rejectModal.show = false
+  } catch (error) {
+    toast.error('操作失败')
+  } finally {
+    actionLoading.value = null
+  }
+}
+
 const confirmDelete = (post: PostDto) => {
   deleteModal.post = post
   deleteModal.show = true
@@ -559,3 +668,4 @@ useHead({
   ]
 })
 </script>
+

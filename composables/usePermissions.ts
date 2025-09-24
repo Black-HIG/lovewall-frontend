@@ -51,6 +51,18 @@ export const usePermissions = () => {
         'MANAGE_COMMENTS'
       ]
       return auth.isSuperadmin || auth.hasAnyPerm(contentPerms)
+    }),
+
+    // 帖子审核权限统一检查 - 拥有任意帖子管理权限即可审核
+    hasPostModerationPermission: computed(() => {
+      const postModerationPerms: PermissionType[] = [
+        'HIDE_POST',
+        'DELETE_POST', 
+        'EDIT_POST',
+        'PIN_POST',
+        'FEATURE_POST'
+      ]
+      return auth.isSuperadmin || auth.hasAnyPerm(postModerationPerms)
     })
   }
 }

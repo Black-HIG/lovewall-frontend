@@ -101,7 +101,7 @@
             id="content"
             v-model="form.content"
             :rows="8"
-            :max-length="1000"
+            :max-length="2000"
             placeholder="写下你想对TA说的话..."
             :error="errors.content"
             required
@@ -237,15 +237,15 @@ const fileInput = ref<HTMLInputElement | null>(null)
 // Form schema
 const postSchema = z.object({
   author_name: z.string().optional(),
-  target_name: z.string().min(1, '请输入表白对象').max(50, '昵称不能超过50个字符'),
-  content: z.string().min(1, '请输入表白内容').max(1000, '表白内容不能超过1000个字符'),
+  target_name: z.string().min(1, '目标昵称不能为空').max(50, '昵称不能超过50个字符'),
+  content: z.string().min(1, '内容不能为空').max(2000, '内容不能超过2000个字符'),
   confessor_mode: z.enum(['self', 'custom']).default('custom'),
 }).superRefine((data, ctx) => {
   // 当模式为 custom 时，author_name 是必需的
   if (data.confessor_mode === 'custom' && (!data.author_name || data.author_name.trim().length === 0)) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
-      message: '请输入表白者昵称',
+      message: '请输入发布者昵称',
       path: ['author_name']
     })
   }
@@ -253,7 +253,7 @@ const postSchema = z.object({
   if (data.confessor_mode === 'custom' && data.author_name && data.author_name.length > 50) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
-      message: '昵称不能超过50个字符',
+      message: '请输入发布者昵称',
       path: ['author_name']
     })
   }
@@ -394,7 +394,7 @@ const handleSubmit = async () => {
     // Submit post
     const newPost = await api.createPost(formData)
     
-    toast.success('表白发布成功！')
+    toast.success('已提交，等待审核')
     
     // Redirect to post detail or home
     await router.push(`/posts/${newPost.id}`)
@@ -420,3 +420,7 @@ definePageMeta({
   middleware: ['auth'],
 })
 </script>
+
+
+
+

@@ -20,8 +20,28 @@ if (isDev && rawApiBase) {
       const pathNoSlash = apiPath.replace(/\/$/, '') || '/'
       publicApiBase = pathNoSlash
       devProxy = {
-        [apiPath]: { target: apiOrigin, changeOrigin: true, secure: false },
-        [pathNoSlash]: { target: apiOrigin, changeOrigin: true, secure: false },
+        [apiPath]: { 
+          target: apiOrigin, 
+          changeOrigin: true, 
+          secure: false,
+          cookieDomainRewrite: '',
+          headers: {
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'GET,HEAD,PUT,PATCH,POST,DELETE',
+            'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Device-ID, X-Admin-View'
+          }
+        },
+        [pathNoSlash]: { 
+          target: apiOrigin, 
+          changeOrigin: true, 
+          secure: false,
+          cookieDomainRewrite: '',
+          headers: {
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'GET,HEAD,PUT,PATCH,POST,DELETE',
+            'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Device-ID, X-Admin-View'
+          }
+        },
       }
     }
   } catch {
@@ -56,9 +76,15 @@ export default defineNuxtConfig({
   app: {
     head: {
       title: 'Love Wall - 表白墙',
+      htmlAttrs: {
+        lang: 'zh-CN'
+      },
       meta: [
+        { charset: 'utf-8' },
         { name: 'description', content: '一个温暖的表白墙，记录美好的告白时刻' },
-        { name: 'viewport', content: 'width=device-width, initial-scale=1' }
+        { name: 'viewport', content: 'width=device-width, initial-scale=1' },
+        { 'http-equiv': 'X-UA-Compatible', content: 'IE=edge' },
+        { 'http-equiv': 'Content-Type', content: 'text/html; charset=UTF-8' }
       ],
       link: [
         { rel: 'icon', type: 'image/x-icon', href: '/favicon.ico' }
@@ -69,14 +95,24 @@ export default defineNuxtConfig({
   tailwindcss: {
     configPath: '~/tailwind.config.js'
   },
-  nitro: {
-    devProxy: isDev ? devProxy : undefined,
+  
+  // 强制UTF-8编码
+  build: {
+    transpile: []
   },
+  
   vite: {
+    define: {
+      __VUE_PROD_HYDRATION_MISMATCH_DETAILS__: 'false'
+    },
     server: {
       proxy: isDev && devProxy
         ? Object.fromEntries(Object.entries(devProxy).map(([path, cfg]: any) => [path, { target: cfg.target, changeOrigin: true, secure: false }]))
         : undefined,
     },
+  },
+  
+  nitro: {
+    devProxy: isDev ? devProxy : undefined,
   }
 })

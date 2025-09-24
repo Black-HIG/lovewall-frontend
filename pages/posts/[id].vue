@@ -99,7 +99,7 @@
                   <span>{{ formatDate(post.created_at) }}</span>
                   
                   <!-- Actions: Edit (if allowed) + Admin badges -->
-                  <div class="flex items-center gap-2 ml-auto">
+                  <div class="flex items-center gap-2 ml-auto flex-wrap">
                     <GlassButton
                       v-if="canEditPost"
                       variant="secondary"
@@ -108,6 +108,24 @@
                     >
                       编辑
                     </GlassButton>
+                    
+                    <!-- 审核状态 -->
+                    <span
+                      v-if="(auth.isSuperadmin || auth.hasAnyPerm(['HIDE_POST','DELETE_POST','EDIT_POST'])) && post.audit_status === 2"
+                      class="px-2 py-1 text-xs bg-red-100 text-red-800 rounded-full"
+                      :title="post.audit_msg || 'AI审核未通过'"
+                    >
+                      AI拒绝
+                    </span>
+                    
+                    <span
+                      v-if="(auth.isSuperadmin || auth.hasAnyPerm(['HIDE_POST','DELETE_POST','EDIT_POST'])) && post.manual_review_requested"
+                      class="px-2 py-1 text-xs bg-orange-100 text-orange-800 rounded-full"
+                      title="用户已申请人工复核"
+                    >
+                      申请复核
+                    </span>
+                    
                     <span
                     v-if="post.is_featured"
                     class="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-full"
@@ -116,7 +134,7 @@
                   </span>
                   <span
                     v-if="post.is_pinned"
-                    class="px-2 py-1 text-xs bg-red-100 text-red-800 rounded-full"
+                    class="px-2 py-1 text-xs bg-purple-100 text-purple-800 rounded-full"
                   >
                     置顶
                   </span>
@@ -133,6 +151,25 @@
             <!-- Post content -->
             <div class="prose prose-lg max-w-none">
               <p class="text-gray-700 leading-relaxed whitespace-pre-wrap">{{ post.content }}</p>
+            </div>
+
+            <!-- AI审核信息（仅管理员可见） -->
+            <div 
+              v-if="(auth.isSuperadmin || auth.hasAnyPerm(['HIDE_POST','DELETE_POST','EDIT_POST'])) && post.audit_status === 2 && post.audit_msg" 
+              class="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg"
+            >
+              <div class="flex items-start gap-2">
+                <div class="w-5 h-5 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <span class="text-red-600 text-xs font-bold">!</span>
+                </div>
+                <div>
+                  <p class="text-sm font-medium text-red-800 mb-1">AI审核意见</p>
+                  <p class="text-sm text-red-700">{{ post.audit_msg }}</p>
+                  <p v-if="post.manual_review_requested" class="text-xs text-orange-600 mt-1">
+                    用户已申请人工复核，请管理员审查。
+                  </p>
+                </div>
+              </div>
             </div>
 
             <!-- Admin actions -->
@@ -389,6 +426,52 @@
         </div>
       </template>
     </GlassModal>
+
+    <!-- AI Rejection Modal -->
+    <GlassModal
+      :is-open="showAIRejectionModal"
+      title="内容审核未通过"
+      max-width="max-w-lg"
+      @close="showAIRejectionModal = false"
+    >
+      <div class="space-y-4">
+        <div class="flex items-start gap-3">
+          <div class="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
+            <span class="text-red-600 text-sm font-bold">!</span>
+          </div>
+          <div class="flex-1">
+            <p class="text-gray-700">{{ aiRejectionInfo.message }}</p>
+            <div class="mt-3 p-3 bg-gray-50 rounded-lg">
+              <p class="text-sm text-gray-600 mb-1">您的内容：</p>
+              <p class="text-sm font-medium text-gray-800 whitespace-pre-wrap">{{ aiRejectionInfo.content }}</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-blue-50 border border-blue-200 rounded-lg p-3">
+          <p class="text-sm text-blue-800">
+            <strong>申请人工复核：</strong>如果您认为这是误判，可以申请管理员进行人工复核。
+          </p>
+        </div>
+      </div>
+      
+      <template #footer>
+        <div class="flex gap-3 justify-end">
+          <GlassButton
+            @click="showAIRejectionModal = false"
+            variant="secondary"
+          >
+            知道了
+          </GlassButton>
+          <GlassButton
+            @click="requestReview"
+            :loading="reviewRequesting"
+          >
+            申请复核
+          </GlassButton>
+        </div>
+      </template>
+    </GlassModal>
     </div>
   </div>
 </template>
@@ -425,6 +508,19 @@ const error = ref<string | null>(null)
 const showImageModal = ref(false)
 const showDeleteModal = ref(false)
 const showEditModal = ref(false)
+const showAIRejectionModal = ref(false)
+const aiRejectionInfo = ref<{
+  message: string
+  reason?: string
+  type: 'comment' | 'post'
+  content: string
+}>({
+  message: '',
+  reason: '',
+  type: 'comment',
+  content: ''
+})
+const reviewRequesting = ref(false)
 const authorAvatar = ref<string | null>(null)
 // Current user's active tag preview (only if enabled)
 const myActiveTagPreview = ref<{ name: string; title: string; background_color: string; text_color: string } | null>(null)
@@ -476,7 +572,12 @@ const fetchAuthorAvatar = async () => {
 const loadPost = async () => {
   try {
     const api = useApi()
-    post.value = await api.getPost(postId)
+    // 根据用户权限决定使用哪个接口
+    if (auth.isAuthenticated && (auth.isSuperadmin || auth.hasAnyPerm(['HIDE_POST', 'DELETE_POST', 'EDIT_POST']))) {
+      post.value = await api.getPostForAdmin(postId)
+    } else {
+      post.value = await api.getPost(postId)
+    }
     // Fetch author avatar after loading post
     await fetchAuthorAvatar()
   } catch (err: any) {
@@ -523,6 +624,13 @@ const loadMoreComments = () => {
 
 const submitComment = async () => {
   if (!commentForm.content.trim()) return
+  // Length limit: 500 characters
+  if (commentForm.content.length > 500) {
+    commentErrors.value = { content: '评论内容不能超过 500 个字符' } as any
+    const toast = useToast()
+    toast.error('评论内容不能超过 500 个字符')
+    return
+  }
   
   commentSubmitting.value = true
   commentErrors.value = {}
@@ -551,14 +659,29 @@ const submitComment = async () => {
     }
     comments.value.unshift(enriched as any)
     if (commentsData.value) {
-      commentsData.value.total += 1
+      // total will increase after approval server-side
     }
     
     // Reset form
     commentForm.content = ''
     toast.success('评论发表成功')
   } catch (err: any) {
-    toast.error('评论发表失败')
+    // 处理AI审核失败的情况
+    if (err?.response?.status === 422 && err?.response?.data?.error?.code === 'AI_REJECTED') {
+      const reason = err?.response?.data?.error?.extras?.reason
+      const message = reason ? `评论未通过审核：${reason}` : '评论未通过审核'
+      
+      // 显示审核失败的详细信息和申请复核选项
+      showAIRejectionModal.value = true
+      aiRejectionInfo.value = {
+        message,
+        reason,
+        type: 'comment',
+        content: commentForm.content
+      }
+    } else {
+      toast.error('评论发表失败')
+    }
   } finally {
     commentSubmitting.value = false
   }
@@ -684,6 +807,12 @@ const submitEdit = async () => {
   if (!post.value || editSubmitting.value) return
   const payload: Partial<PostDto> = {}
   if (editForm.content !== post.value.content) payload.content = editForm.content
+  // Length limit: 2000 characters
+  if (payload.content && payload.content.length > 2000) {
+    toast.error('已提交内容不能超过 2000 个字符')
+    return
+  }
+
 
   if (Object.keys(payload).length === 0) {
     toast.info('没有需要保存的更改')
@@ -766,6 +895,35 @@ const fetchMyActiveTagPreview = async () => {
   }
 }
 
+// 申请人工复核
+const requestReview = async () => {
+  if (!aiRejectionInfo.value.content) return
+  
+  reviewRequesting.value = true
+  try {
+    const api = useApi()
+    if (aiRejectionInfo.value.type === 'comment') {
+      // 对于评论，我们需要存储被拒绝的评论ID（如果有的话）
+      // 由于评论创建失败，我们无法获得评论ID，所以需要后端支持基于内容的申请
+      // 这里假设后端支持基于内容的申请复核API
+      // await api.requestCommentReview(commentId)
+      toast.info('评论复核申请功能正在开发中')
+    } else {
+      await api.requestPostReview(postId)
+      toast.success('已提交人工复核申请')
+      // 更新帖子状态
+      if (post.value) {
+        post.value.manual_review_requested = true
+      }
+    }
+    showAIRejectionModal.value = false
+  } catch (err) {
+    toast.error('申请复核失败，请稍后重试')
+  } finally {
+    reviewRequesting.value = false
+  }
+}
+
 // Initialize
 onMounted(async () => {
   await loadPost()
@@ -797,3 +955,4 @@ useHead(() => {
   }
 })
 </script>
+

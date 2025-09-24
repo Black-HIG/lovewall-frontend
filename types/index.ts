@@ -1,7 +1,13 @@
 // API Response Types
 export type ApiResp<T> = 
   | { success: true; data: T; trace_id: string }
-  | { success: false; error: { code: string; message: string }; trace_id: string }
+  | { success: false; error: ApiError; trace_id: string }
+
+export interface ApiError {
+  code: string
+  message: string
+  extras?: Record<string, any>
+}
 
 // User Types
 export interface User {
@@ -76,6 +82,10 @@ export interface PostDto {
   // Optional stats fields when available from certain endpoints
   view_count?: number
   comment_count?: number
+  // 新增：审核相关字段（仅管理员接口返回）
+  audit_status?: 0 | 2 // 0=通过, 2=AI拒绝
+  audit_msg?: string | null // AI拒绝原因
+  manual_review_requested?: boolean // 是否已申请人工复核
 }
 
 // Post stats (public)

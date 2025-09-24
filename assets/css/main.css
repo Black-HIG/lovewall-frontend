@@ -11,8 +11,9 @@
   body {
     @apply bg-gradient-to-br from-pink-100 via-purple-50 to-indigo-100;
     @apply text-gray-800;
-    @apply font-sans;
     @apply leading-relaxed;
+    /* 修复Mac端字体问题，确保中文显示正常 */
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Helvetica Neue", Helvetica, Arial, sans-serif;
     height: 100%;
     overflow: hidden; /* 禁止全页滚动，使用块内滚动 */
   }
