@@ -404,18 +404,21 @@
       :is-open="showDeleteModal"
       title="确认删除"
       max-width="max-w-md"
-      @close="showDeleteModal = false"
+      @close="closeDeleteModal"
     >
       <p class="text-gray-600 mb-6">确定要删除这条表白吗？删除后无法恢复。</p>
+      <div class="space-y-3">
+        <label class="text-sm text-gray-700">处理原因（可选）</label>
+        <GlassTextarea
+          v-model="deleteReason"
+          :rows="3"
+          placeholder="填写本次删除的原因"
+        />
+      </div>
       
       <template #footer>
         <div class="flex gap-3 justify-end">
-          <GlassButton
-            @click="showDeleteModal = false"
-            variant="secondary"
-          >
-            取消
-          </GlassButton>
+          <GlassButton @click="closeDeleteModal" variant="secondary">取消</GlassButton>
           <GlassButton
             @click="deletePost"
             :loading="actionLoading"
@@ -507,6 +510,7 @@ const actionLoading = ref(false)
 const error = ref<string | null>(null)
 const showImageModal = ref(false)
 const showDeleteModal = ref(false)
+const deleteReason = ref('')
 const showEditModal = ref(false)
 const showAIRejectionModal = ref(false)
 const aiRejectionInfo = ref<{
@@ -721,14 +725,25 @@ const hideComment = async (comment: CommentDto) => {
   }
 }
 
+const promptModerationReason = (action: string): string | null => {
+  if (typeof window === 'undefined') return ''
+  const input = window.prompt(`${action}处理原因（可选，取消则中止操作）`, '')
+  if (input === null) return null
+  return input.trim()
+}
+
 const togglePin = async () => {
   if (!post.value) return
   
+  const nextState = !post.value.is_pinned
+  const reasonInput = promptModerationReason(nextState ? '置顶' : '取消置顶')
+  if (reasonInput === null) return
+
   actionLoading.value = true
   try {
     const api = useApi()
-    await api.pinPost(post.value.id, !post.value.is_pinned)
-    post.value.is_pinned = !post.value.is_pinned
+    const res = await api.pinPost(post.value.id, nextState, reasonInput || undefined)
+    post.value.is_pinned = res.is_pinned
     toast.success(post.value.is_pinned ? '已置顶' : '已取消置顶')
   } catch (err) {
     toast.error('操作失败')
@@ -740,11 +755,15 @@ const togglePin = async () => {
 const toggleFeature = async () => {
   if (!post.value) return
   
+  const nextState = !post.value.is_featured
+  const reasonInput = promptModerationReason(nextState ? '设为精华' : '取消精华')
+  if (reasonInput === null) return
+
   actionLoading.value = true
   try {
     const api = useApi()
-    await api.featurePost(post.value.id, !post.value.is_featured)
-    post.value.is_featured = !post.value.is_featured
+    const res = await api.featurePost(post.value.id, nextState, reasonInput || undefined)
+    post.value.is_featured = res.is_featured
     toast.success(post.value.is_featured ? '已设为精华' : '已取消精华')
   } catch (err) {
     toast.error('操作失败')
@@ -755,16 +774,25 @@ const toggleFeature = async () => {
 
 const toggleHide = async () => {
   if (!post.value) return
+  const shouldHide = post.value.status === 0
+  if (shouldHide) {
+    const confirmed = window.confirm('确定要隐藏这个帖子吗？')
+    if (!confirmed) return
+  }
+
+  const reasonInput = promptModerationReason(shouldHide ? '隐藏' : '恢复')
+  if (reasonInput === null) return
+
   actionLoading.value = true
   try {
     const api = useApi()
     if (post.value.status === 1) {
-      await api.hidePost(post.value.id, false)
-      post.value.status = 0
+      const res = await api.hidePost(post.value.id, false, reasonInput || undefined)
+      post.value.status = res.status
       toast.success('帖子已恢复')
     } else if (post.value.status === 0) {
-      await api.hidePost(post.value.id, true)
-      post.value.status = 1
+      const res = await api.hidePost(post.value.id, true, reasonInput || undefined)
+      post.value.status = res.status
       toast.success('帖子已隐藏')
     }
   } catch (err) {
@@ -775,6 +803,7 @@ const toggleHide = async () => {
 }
 
 const confirmDelete = () => {
+  deleteReason.value = ''
   showDeleteModal.value = true
 }
 
@@ -784,15 +813,20 @@ const deletePost = async () => {
   actionLoading.value = true
   try {
     const api = useApi()
-    await api.deletePost(post.value.id)
+    await api.deletePost(post.value.id, deleteReason.value.trim() || undefined)
     toast.success('帖子已删除')
-    showDeleteModal.value = false
+    closeDeleteModal()
     router.push('/')
   } catch (err) {
     toast.error('删除失败')
   } finally {
     actionLoading.value = false
   }
+}
+
+const closeDeleteModal = () => {
+  showDeleteModal.value = false
+  deleteReason.value = ''
 }
 
 // Open edit modal prefilled with current post

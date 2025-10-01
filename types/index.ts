@@ -79,6 +79,7 @@ export interface PostDto {
   created_at: string
   updated_at: string
   author_tag?: Pick<TagDto, 'name' | 'title' | 'background_color' | 'text_color'>
+  moderation_reason?: string | null
   // Optional stats fields when available from certain endpoints
   view_count?: number
   comment_count?: number
@@ -256,7 +257,7 @@ export interface TagSimple {
 export interface MyActiveTagStatusResponse {
   has_active: boolean
   current_tag_enabled: boolean
-  tag?: TagSimple
+  tag?: TagSimple & { user_deleted?: boolean }
   status: 'active' | 'tag_disabled'
 }
 

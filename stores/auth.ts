@@ -44,6 +44,39 @@ export const useAuthStore = defineStore('auth', {
   },
 
   actions: {
+    async clearSession(options?: { toastMessage?: string; toastType?: 'success' | 'error' | 'warning' | 'info'; redirectTo?: string | null }) {
+      this.currentUser = null
+      this.permissions = []
+      this.accessToken = null
+      this.error = null
+
+      if (process.client) {
+        localStorage.removeItem('auth_token')
+      }
+
+      try {
+        const cookies = useSessionCookies()
+        cookies.clear()
+      } catch {}
+
+      const toastMessage = options?.toastMessage
+      if (toastMessage) {
+        const toast = useToast()
+        const type = options?.toastType ?? 'info'
+        const show = (toast as any)[type] || toast.info
+        show.call(toast, toastMessage)
+      }
+
+      if (process.client) {
+        const target = options?.redirectTo === null
+          ? null
+          : options?.redirectTo ?? '/auth/login'
+        if (target) {
+          await navigateTo(target)
+        }
+      }
+    },
+
     async register(form: RegisterForm): Promise<void> {
       this.isLoading = true
       this.error = null
@@ -124,27 +157,11 @@ export const useAuthStore = defineStore('auth', {
         // 即使API调用失败也要清理本地状态
         console.warn('Logout API call failed:', error)
       } finally {
-        // 无论API调用是否成功，都要清理本地状态
-        this.currentUser = null
-        this.permissions = []
-        this.accessToken = null
-        this.error = null
-        
-        // 清理localStorage
-        if (process.client) {
-          localStorage.removeItem('auth_token')
-        }
-        // 清理cookies
-        try {
-          const cookies = useSessionCookies()
-          cookies.clear()
-        } catch {}
-        
-        const toast = useToast()
-        toast.success('已退出登录')
-        
-        // 跳转到首页
-        await navigateTo('/')
+        await this.clearSession({
+          toastMessage: '已退出登录',
+          toastType: 'success',
+          redirectTo: '/'
+        })
       }
     },
 

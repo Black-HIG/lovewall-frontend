@@ -31,7 +31,7 @@ import type {
   DeleteRedemptionCodesRequest,
   DeleteRedemptionCodesResponse,
 } from '~/types'
-import type { NotificationDto, UserStatusDto } from '~/types/extra'
+import type { ActiveTagDto, NotificationDto, UserStatusDto } from '~/types/extra'
 
 let fallbackApi: any | null = null
 
@@ -141,28 +141,76 @@ export const useApi = () => {
     (response: AxiosResponse<ApiResp<any>>) => response,
     (error) => {
       try {
-        const trace = error?.response?.data?.trace_id
-        let message = error?.response?.data?.error?.message || 'Request failed'
+        const responseData = (error?.response?.data ?? {}) as Record<string, unknown>
+        const status = error?.response?.status
+        const trace = responseData?.trace_id as string | undefined
+        const errorCode = (responseData?.error as any)?.code as string | undefined
+        const rawExtras = responseData?.extras ?? (responseData?.error as any)?.extras
+        let extras: Record<string, unknown> | undefined
+        if (typeof rawExtras === 'string') {
+          try {
+            extras = JSON.parse(rawExtras)
+          } catch {
+            extras = undefined
+          }
+        } else if (rawExtras && typeof rawExtras === 'object') {
+          extras = rawExtras as Record<string, unknown>
+        }
+        let message = (responseData?.error as any)?.message || 'Request failed'
+        const messageLower = typeof message === 'string' ? message.toLowerCase() : ''
         
         // Handle network errors
         if (!error.response) {
           message = '网络连接失败，请检查您的网络连接'
-        } else if (error.response.status === 500) {
+        } else if (status === 500) {
           message = '服务器内部错误，请稍后重试'
-        } else if (error.response.status === 503) {
+        } else if (status === 503) {
           message = '服务暂时不可用，请稍后重试'
-        } else if (error.response.status === 429) {
+        } else if (status === 429) {
           // 处理速率限制错误
           const rateLimitMessage = error?.response?.data?.error?.message || '请求过于频繁，请稍后重试'
           message = rateLimitMessage
         }
         
         // Don't show toast for 404 errors on active tag endpoints - these are normal
-        const isActiveTagNotFound = error.response?.status === 404 && 
+        const isActiveTagNotFound = status === 404 && 
           (error.config?.url?.includes('active-tag') || message === 'active tag not found')
-        
+
+        // Skip toast when backend indicates the user is deleted/banned – homepage may request their data
+        const resolveFlag = (source: Record<string, unknown> | undefined, ...keys: string[]): boolean => {
+          if (!source) return false
+          for (const key of keys) {
+            if (Object.prototype.hasOwnProperty.call(source, key)) {
+              return Boolean((source as any)[key])
+            }
+          }
+          return false
+        }
+
+        const isDeletedFlag = resolveFlag(extras, 'isdeleted', 'isDeleted') || resolveFlag(responseData, 'isdeleted', 'isDeleted')
+        const isBannedFlag = resolveFlag(extras, 'banned', 'isBanned') || resolveFlag(responseData, 'banned', 'isBanned')
+        const banReason = (extras?.ban_reason as string) || (responseData?.ban_reason as string) || message
+
+        const toast = useToast()
+        const auth = useAuthStore()
+
+        if (status === 403) {
+          if (errorCode === 'ACCOUNT_DELETED' || isDeletedFlag || messageLower.includes('account has been deleted')) {
+            void auth.clearSession?.({
+              toastMessage: '账号已注销不可用，请联系管理员',
+              toastType: 'error',
+              redirectTo: '/auth/login'
+            })
+            return Promise.reject(error)
+          }
+
+          if (errorCode === 'BANNED' || isBannedFlag || messageLower.includes('account has been banned')) {
+            toast.error(banReason || '账号已被封禁')
+            return Promise.reject(error)
+          }
+        }
+
         if (!isActiveTagNotFound) {
-          const toast = useToast()
           toast.error(`${message}${trace ? ` · ${trace}` : ''}`)
         }
       } catch {}
@@ -285,8 +333,11 @@ export const useApi = () => {
       const res = await instance.put<ApiResp<PostDto>>(`/posts/${id}`, data)
       return unwrap(res)
     },
-    async deletePost(id: string): Promise<void> {
-      await instance.delete(`/posts/${id}`)
+    async deletePost(id: string, reason?: string): Promise<{ id: string; deleted: boolean }> {
+      const res = await instance.delete<ApiResp<{ id: string; deleted: boolean }>>(`/posts/${id}`, {
+        params: reason ? { reason } : undefined,
+      })
+      return unwrap(res)
     },
     async moderationPosts(params: { status?: 0 | 1 | 2; author_id?: string; featured?: boolean; pinned?: boolean; page?: number; page_size?: number } = {}): Promise<Pagination<PostDto>> {
       const res = await instance.get<ApiResp<Pagination<PostDto>>>('/posts/moderation', { params })
@@ -296,16 +347,19 @@ export const useApi = () => {
       const res = await instance.post<ApiResp<{ id: string; status: number }>>(`/posts/${id}/restore`)
       return unwrap(res)
     },
-    async pinPost(id: string, pin: boolean): Promise<{ id: string; is_pinned: boolean }> {
-      const res = await instance.post<ApiResp<{ id: string; is_pinned: boolean }>>(`/posts/${id}/pin`, { pin })
+    async pinPost(id: string, pin: boolean, reason?: string): Promise<{ id: string; is_pinned: boolean }> {
+      const payload = reason ? { pin, reason } : { pin }
+      const res = await instance.post<ApiResp<{ id: string; is_pinned: boolean }>>(`/posts/${id}/pin`, payload)
       return unwrap(res)
     },
-    async featurePost(id: string, feature: boolean): Promise<{ id: string; is_featured: boolean }> {
-      const res = await instance.post<ApiResp<{ id: string; is_featured: boolean }>>(`/posts/${id}/feature`, { feature })
+    async featurePost(id: string, feature: boolean, reason?: string): Promise<{ id: string; is_featured: boolean }> {
+      const payload = reason ? { feature, reason } : { feature }
+      const res = await instance.post<ApiResp<{ id: string; is_featured: boolean }>>(`/posts/${id}/feature`, payload)
       return unwrap(res)
     },
-    async hidePost(id: string, hide: boolean): Promise<{ id: string; status: number }> {
-      const res = await instance.post<ApiResp<{ id: string; status: number }>>(`/posts/${id}/hide`, { hide })
+    async hidePost(id: string, hide: boolean, reason?: string): Promise<{ id: string; status: number }> {
+      const payload = reason ? { hide, reason } : { hide }
+      const res = await instance.post<ApiResp<{ id: string; status: number }>>(`/posts/${id}/hide`, payload)
       return unwrap(res)
     },
 
@@ -463,9 +517,9 @@ export const useApi = () => {
     },
 
     // Get active tag by user ID or username
-    async getUserActiveTag(userId: string): Promise<{ name: string; title: string; background_color: string; text_color: string } | null> {
+    async getUserActiveTag(userId: string): Promise<ActiveTagDto | null> {
       try {
-        const res = await instance.get<ApiResp<{ name: string; title: string; background_color: string; text_color: string }>>(`/users/${userId}/active-tag`)
+        const res = await instance.get<ApiResp<ActiveTagDto>>(`/users/${userId}/active-tag`)
         return unwrap(res)
       } catch (error: any) {
         if (error.response?.status === 404) {
@@ -474,9 +528,9 @@ export const useApi = () => {
         throw error
       }
     },
-    async getUserActiveTagByUsername(username: string): Promise<{ name: string; title: string; background_color: string; text_color: string } | null> {
+    async getUserActiveTagByUsername(username: string): Promise<ActiveTagDto | null> {
       try {
-        const res = await instance.get<ApiResp<{ name: string; title: string; background_color: string; text_color: string }>>(`/users/by-username/${username}/active-tag`)
+        const res = await instance.get<ApiResp<ActiveTagDto>>(`/users/by-username/${username}/active-tag`)
         return unwrap(res)
       } catch (error: any) {
         if (error.response?.status === 404) {

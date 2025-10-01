@@ -265,7 +265,7 @@
                   
                   <GlassButton
                     v-if="auth.hasPerm('HIDE_POST') && post.status === 1"
-                    @click.stop="showPost(post)"
+                    @click.stop="restoreHiddenPost(post)"
                     :loading="actionLoading === post.id"
                     variant="secondary"
                     class="text-sm px-3 py-1 !text-green-600"
@@ -275,7 +275,7 @@
                   
                   <GlassButton
                     v-if="(auth.isSuperadmin || auth.hasPerm('DELETE_POST')) && post.status === 2"
-                    @click.stop="showPost(post)"
+                    @click.stop="restoreDeletedPost(post)"
                     :loading="actionLoading === post.id"
                     variant="secondary"
                     class="text-sm px-3 py-1 !text-green-600"
@@ -335,15 +335,23 @@
       :is-open="deleteModal.show"
       title="确认删除"
       max-width="max-w-md"
-      @close="deleteModal.show = false"
+      @close="closeDeleteModal"
     >
       <p class="text-gray-700 mb-6">
         确定要删除表白“{{ deleteModal.post?.author_name }} → {{ deleteModal.post?.target_name }}”吗？删除后不可恢复。
       </p>
+      <div class="space-y-3">
+        <label class="text-sm text-gray-700">处理原因（可选）</label>
+        <GlassTextarea
+          v-model="deleteModal.reason"
+          :rows="3"
+          placeholder="填写给用户的处理说明"
+        />
+      </div>
 
       <template #footer>
         <div class="flex gap-3 justify-end">
-          <button type="button" class="glass-button-secondary" @click="deleteModal.show = false">
+          <button type="button" class="glass-button-secondary" @click="closeDeleteModal">
             取消
           </button>
           <button
@@ -355,6 +363,31 @@
             <LoadingSpinner v-if="actionLoading === deleteModal.post?.id" size="sm" class="mr-2" />
             确认删除
           </button>
+        </div>
+      </template>
+    </GlassModal>
+
+    <!-- Moderation Reason Modal -->
+    <GlassModal
+      :is-open="actionReasonModal.show"
+      :title="actionReasonTitle"
+      max-width="max-w-md"
+      @close="closeActionReasonModal"
+    >
+      <div class="space-y-3">
+        <label class="text-sm text-gray-700">处理原因（可选）</label>
+        <GlassTextarea
+          v-model="actionReasonModal.reason"
+          :rows="3"
+          placeholder="这次操作的说明，将同步给相关用户"
+        />
+      </div>
+      <template #footer>
+        <div class="flex gap-3 justify-end">
+          <GlassButton @click="closeActionReasonModal" variant="secondary">取消</GlassButton>
+          <GlassButton :loading="actionLoading === actionReasonModal.post?.id" @click="confirmActionReason">
+            {{ actionReasonConfirmText }}
+          </GlassButton>
         </div>
       </template>
     </GlassModal>
@@ -415,7 +448,16 @@ const filters = reactive({
 
 const deleteModal = reactive({
   show: false,
-  post: null as PostDto | null
+  post: null as PostDto | null,
+  reason: ''
+})
+
+const actionReasonModal = reactive({
+  show: false,
+  post: null as PostDto | null,
+  action: 'pin' as 'pin' | 'feature' | 'hide',
+  enable: true,
+  reason: ''
 })
 
 const rejectModal = reactive<{ show: boolean; post: PostDto | null; reason: string }>({
@@ -522,64 +564,102 @@ const goDetail = (post: PostDto) => {
   router.push(`/posts/${post.id}`)
 }
 
-const togglePin = async (post: PostDto) => {
-  actionLoading.value = post.id
-  try {
-    const api = useApi()
-    await api.pinPost(post.id, !post.is_pinned)
-    post.is_pinned = !post.is_pinned
-    toast.success(post.is_pinned ? '已置顶' : '已取消置顶')
-  } catch (error) {
-    toast.error('操作失败')
-  } finally {
-    actionLoading.value = null
-  }
+const openActionReason = (post: PostDto, action: 'pin' | 'feature' | 'hide', enable: boolean) => {
+  actionReasonModal.post = post
+  actionReasonModal.action = action
+  actionReasonModal.enable = enable
+  actionReasonModal.reason = ''
+  actionReasonModal.show = true
 }
 
-const toggleFeature = async (post: PostDto) => {
-  actionLoading.value = post.id
-  try {
-    const api = useApi()
-    await api.featurePost(post.id, !post.is_featured)
-    post.is_featured = !post.is_featured
-    toast.success(post.is_featured ? '已设为精华' : '已取消精华')
-  } catch (error) {
-    toast.error('操作失败')
-  } finally {
-    actionLoading.value = null
-  }
+const closeActionReasonModal = () => {
+  actionReasonModal.show = false
+  actionReasonModal.reason = ''
 }
 
-const hidePost = async (post: PostDto) => {
-  actionLoading.value = post.id
-  try {
-    const api = useApi()
-    await api.hidePost(post.id, true)
-    post.status = 1
-    toast.success('表白已隐藏')
-  } catch (error) {
-    toast.error('操作失败')
-  } finally {
-    actionLoading.value = null
-  }
+const togglePin = (post: PostDto) => {
+  openActionReason(post, 'pin', !post.is_pinned)
 }
 
-const showPost = async (post: PostDto) => {
+const toggleFeature = (post: PostDto) => {
+  openActionReason(post, 'feature', !post.is_featured)
+}
+
+const hidePost = (post: PostDto) => {
+  openActionReason(post, 'hide', true)
+}
+
+const restoreHiddenPost = (post: PostDto) => {
+  openActionReason(post, 'hide', false)
+}
+
+const restoreDeletedPost = async (post: PostDto) => {
   actionLoading.value = post.id
   try {
     const api = useApi()
-    if (post.status === 2) {
-      await api.restorePost(post.id)
-      post.status = 0
-    } else {
-      await api.hidePost(post.id, false)
-      post.status = 0
-    }
+    await api.restorePost(post.id)
+    post.status = 0
     toast.success('表白已恢复')
   } catch (error) {
     toast.error('操作失败')
   } finally {
     actionLoading.value = null
+  }
+}
+
+const actionReasonTitle = computed(() => {
+  if (!actionReasonModal.post) return '处理原因'
+  const enable = actionReasonModal.enable
+  switch (actionReasonModal.action) {
+    case 'pin':
+      return enable ? '置顶处理' : '取消置顶处理'
+    case 'feature':
+      return enable ? '设为精华处理' : '取消精华处理'
+    case 'hide':
+      return enable ? '隐藏处理' : '恢复处理'
+    default:
+      return '处理原因'
+  }
+})
+
+const actionReasonConfirmText = computed(() => {
+  const enable = actionReasonModal.enable
+  switch (actionReasonModal.action) {
+    case 'pin':
+      return enable ? '确认置顶' : '确认取消置顶'
+    case 'feature':
+      return enable ? '确认设为精华' : '确认取消精华'
+    case 'hide':
+      return enable ? '确认隐藏' : '确认恢复'
+    default:
+      return '确认'
+  }
+})
+
+const confirmActionReason = async () => {
+  if (!actionReasonModal.post) return
+  actionLoading.value = actionReasonModal.post.id
+  const reason = actionReasonModal.reason.trim() || undefined
+  const api = useApi()
+  try {
+    if (actionReasonModal.action === 'pin') {
+      const res = await api.pinPost(actionReasonModal.post.id, actionReasonModal.enable, reason)
+      actionReasonModal.post.is_pinned = res.is_pinned
+      toast.success(actionReasonModal.enable ? '已置顶' : '已取消置顶')
+    } else if (actionReasonModal.action === 'feature') {
+      const res = await api.featurePost(actionReasonModal.post.id, actionReasonModal.enable, reason)
+      actionReasonModal.post.is_featured = res.is_featured
+      toast.success(actionReasonModal.enable ? '已设为精华' : '已取消精华')
+    } else if (actionReasonModal.action === 'hide') {
+      const res = await api.hidePost(actionReasonModal.post.id, actionReasonModal.enable, reason)
+      actionReasonModal.post.status = res.status
+      toast.success(actionReasonModal.enable ? '表白已隐藏' : '表白已恢复')
+    }
+  } catch (error) {
+    toast.error('操作失败')
+  } finally {
+    actionLoading.value = null
+    closeActionReasonModal()
   }
 }
 
@@ -624,6 +704,7 @@ const rejectPost = async () => {
 
 const confirmDelete = (post: PostDto) => {
   deleteModal.post = post
+  deleteModal.reason = ''
   deleteModal.show = true
 }
 
@@ -633,7 +714,7 @@ const deletePost = async () => {
   actionLoading.value = deleteModal.post.id
   try {
     const api = useApi()
-    await api.deletePost(deleteModal.post.id)
+    await api.deletePost(deleteModal.post.id, deleteModal.reason.trim() || undefined)
     
     // Remove from local list
     posts.value = posts.value.filter(p => p.id !== deleteModal.post!.id)
@@ -642,13 +723,18 @@ const deletePost = async () => {
     }
     
     toast.success('表白已删除')
-    deleteModal.show = false
-    deleteModal.post = null
+    closeDeleteModal()
   } catch (error) {
     toast.error('删除失败')
   } finally {
     actionLoading.value = null
   }
+}
+
+const closeDeleteModal = () => {
+  deleteModal.show = false
+  deleteModal.reason = ''
+  deleteModal.post = null
 }
 
 const formatDate = (dateString: string) => {

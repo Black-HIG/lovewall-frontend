@@ -37,41 +37,11 @@
               <span v-if="!n.is_read" class="px-2 py-0.5 text-xs bg-blue-100 text-blue-800 rounded-full">未读</span>
             </div>
 
-            <p class="text-gray-700 whitespace-pre-wrap">
-              <template v-for="(part, idx) in contentParts(n)" :key="idx">
-                <template v-if="part.type === 'text'">{{ part.value }}</template>
-                <template v-else>
-                  <!-- 管理员审核通知的接受/拒绝按钮 -->
-                  <template v-if="isAdminModerationNotification(n) && permissions.hasPostModerationPermission">
-                    <div class="flex gap-2 mt-2">
-                      <button
-                        v-if="part.action === 'accept'"
-                        class="px-3 py-1 text-sm bg-green-100 text-green-700 hover:bg-green-200 rounded transition-colors"
-                        @click="handleModerationAction(n, 'approve')"
-                      >
-                        接受
-                      </button>
-                      <button
-                        v-if="part.action === 'reject'"
-                        class="px-3 py-1 text-sm bg-red-100 text-red-700 hover:bg-red-200 rounded transition-colors"
-                        @click="handleModerationAction(n, 'reject')"
-                      >
-                        拒绝
-                      </button>
-                    </div>
-                  </template>
-                  <!-- 普通用户申请人工复核按钮 -->
-                  <template v-else>
-                    <button
-                      v-if="part.postId"
-                      class="text-brand-600 hover:underline"
-                      @click="requestReview(part.postId)"
-                    >申请人工复核</button>
-                    <NuxtLink v-else-if="part.linkTo" :to="part.linkTo" class="text-brand-600 hover:underline">申请人工复核</NuxtLink>
-                  </template>
-                </template>
-              </template>
-            </p>
+            <div
+              class="text-gray-700 leading-relaxed space-y-2 notification-html"
+              :ref="el => registerNotificationContainer(n.id, el)"
+              v-html="processedContent[n.id] || fallbackNotificationContent(n)"
+            />
 
             <div class="text-xs text-gray-500 mt-1">{{ formatDate(n.created_at) }}</div>
           </div>
@@ -89,6 +59,7 @@
 </template>
 
 <script setup lang="ts">
+import { nextTick } from 'vue'
 import GlassButton from '~/components/ui/GlassButton.vue'
 import GlassCard from '~/components/ui/GlassCard.vue'
 import LoadingSpinner from '~/components/ui/LoadingSpinner.vue'
@@ -98,7 +69,6 @@ import type { NotificationDto } from '~/types/extra'
 definePageMeta({ middleware: ['auth'] })
 
 const api = useApi()
-const router = useRouter()
 const toast = useToast()
 const permissions = usePermissions()
 
@@ -112,9 +82,14 @@ const load = async (page = 1) => {
   else loadingMore.value = true
   try {
     const res = await api.listNotifications({ page, page_size: 20 })
-    if (page === 1) items.value = res.items
-    else items.value.push(...res.items)
+    if (page === 1) {
+      items.value = res.items
+      notificationContainers.clear()
+    } else {
+      items.value.push(...res.items)
+    }
     data.value = res
+    await rebuildNotificationContent()
   } catch (e) {
     toast.error('加载通知失败')
   } finally {
@@ -135,63 +110,264 @@ const markRead = async (n: NotificationDto) => {
 
 const formatDate = (s: string) => new Date(s).toLocaleString('zh-CN')
 
-// 解析通知内容，处理占位符
-const contentParts = (n: NotificationDto) => {
-  const parts: Array<{ type: 'text' | 'link'; value?: string; linkTo?: string; postId?: string; action?: 'accept' | 'reject' }> = []
-  const raw = n.content || ''
-  const meta = parseMeta(n)
-  
-  // 处理管理员审核通知中的 {{acceptLink}} 和 {{rejectLink}}
-  if (isAdminModerationNotification(n)) {
-    let content = raw
-    const acceptPlaceholder = '___ACCEPT_PLACEHOLDER___'
-    const rejectPlaceholder = '___REJECT_PLACEHOLDER___'
-    
-    content = content.replace(/\{\{acceptLink\}\}/g, acceptPlaceholder)
-    content = content.replace(/\{\{rejectLink\}\}/g, rejectPlaceholder)
-    
-    const segments = content.split(new RegExp(`(${acceptPlaceholder}|${rejectPlaceholder})`))
-    for (let i = 0; i < segments.length; i++) {
-      const segment = segments[i]
-      if (segment === acceptPlaceholder) {
-        parts.push({ type: 'link', action: 'accept', postId: meta?.post_id })
-      } else if (segment === rejectPlaceholder) {
-        parts.push({ type: 'link', action: 'reject', postId: meta?.post_id })
-      } else if (segment) {
-        parts.push({ type: 'text', value: segment })
-      }
-    }
-  } else if (raw.includes('{{link}}')) {
-    // 处理普通的 {{link}} 占位符
-    const segs = raw.split('{{link}}')
-    for (let i = 0; i < segs.length; i++) {
-      if (segs[i]) {
-        parts.push({ type: 'text', value: segs[i] })
-      }
-      if (i < segs.length - 1) {
-        if (meta?.post_id) {
-          parts.push({ type: 'link', postId: meta.post_id })
-        } else {
-          parts.push({ type: 'link', linkTo: '/notifications' })
-        }
-      }
-    }
-  } else {
-    // 没有任何占位符的普通文本通知
-    parts.push({ type: 'text', value: raw })
-  }
-  
-  return parts
+const nuxtApp = useNuxtApp()
+const processedContent = ref<Record<string, string>>({})
+const notificationContainers = new Map<string, HTMLElement>()
+
+const DEFAULT_ACTION_LABELS: Record<string, string> = {
+  'view-post': '查看帖子',
+  appeal: '去申诉',
+  'request-review': '申请人工复核',
+  'admin-accept': '接受',
+  'admin-reject': '拒绝'
 }
 
-// 判断是否为管理员审核通知
-const isAdminModerationNotification = (n: NotificationDto): boolean => {
-  const content = n.content || ''
-  return content.includes('{{acceptLink}}') && content.includes('{{rejectLink}}')
+const registerNotificationContainer = (id: string, el: HTMLElement | null) => {
+  if (!process.client) return
+  if (el) {
+    notificationContainers.set(id, el)
+    const notification = items.value.find(item => item.id === id)
+    if (notification) {
+      attachHandlers(notification)
+    }
+  } else {
+    notificationContainers.delete(id)
+  }
+}
+
+const rebuildNotificationContent = async () => {
+  const dompurify = nuxtApp.$dompurify
+  const map: Record<string, string> = {}
+  if (process.client && dompurify) {
+    for (const notification of items.value) {
+      map[notification.id] = transformNotificationContent(notification, dompurify)
+    }
+  } else {
+    for (const notification of items.value) {
+      map[notification.id] = fallbackNotificationContent(notification)
+    }
+  }
+  processedContent.value = map
+
+  if (process.client) {
+    await nextTick()
+    items.value.forEach(attachHandlers)
+  }
+}
+
+const fallbackNotificationContent = (notification: NotificationDto) => {
+  const safe = escapeHtml(notification.content || '')
+  return safe.replace(/\n/g, '<br>')
+}
+
+const escapeHtml = (value: string) => {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
+const transformNotificationContent = (notification: NotificationDto, dompurify: any): string => {
+  if (!process.client) return fallbackNotificationContent(notification)
+
+  const parser = new DOMParser()
+  const doc = parser.parseFromString(notification.content || '', 'text/html')
+  const root = doc.body
+  const meta = parseMeta(notification)
+
+  const applyLinkPlaceholder = (token: string, url?: string) => {
+    const placeholder = `{{${token}}}`
+    const anchors = Array.from(root.querySelectorAll(`[href*="${placeholder}"]`))
+    anchors.forEach((anchor) => {
+      const el = anchor as HTMLAnchorElement
+      if (url) {
+        const safe = sanitizeUrl(url)
+        if (safe) {
+          el.setAttribute('href', safe)
+          if (/^https?:/i.test(safe) && !safe.startsWith(window.location.origin)) {
+            el.setAttribute('target', '_blank')
+            el.setAttribute('rel', 'noopener')
+          }
+        } else {
+          el.removeAttribute('href')
+        }
+      } else {
+        el.removeAttribute('href')
+      }
+    })
+
+    const elements = Array.from(root.querySelectorAll(`[data-url*="${placeholder}"]`))
+    elements.forEach((el) => {
+      if (url) {
+        const safe = sanitizeUrl(url)
+        if (safe) {
+          el.setAttribute('data-url', safe)
+        }
+      }
+    })
+
+    const walker = doc.createTreeWalker(root, NodeFilter.SHOW_TEXT)
+    while (walker.nextNode()) {
+      const current = walker.currentNode as Text
+      if (current.nodeValue && current.nodeValue.includes(placeholder)) {
+        current.nodeValue = current.nodeValue.replaceAll(placeholder, url || '')
+      }
+    }
+  }
+
+  applyLinkPlaceholder('acceptLink', resolveMetaLink(meta, ['acceptLink', 'accept_link']))
+  applyLinkPlaceholder('rejectLink', resolveMetaLink(meta, ['rejectLink', 'reject_link']))
+
+  const placeholders = Array.from(root.querySelectorAll('[data-role="replace-action"]'))
+  placeholders.forEach((placeholder) => {
+    const actionType = placeholder.getAttribute('data-action') || 'view-post'
+    const customLabel = placeholder.getAttribute('data-label')
+    const className = placeholder.getAttribute('data-class') || placeholder.getAttribute('class') || 'inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 hover:bg-white/20 text-sm text-brand-600 transition-colors'
+    const urlKey = placeholder.getAttribute('data-url-key') || ''
+    const explicitUrl = placeholder.getAttribute('data-url') || placeholder.getAttribute('href') || undefined
+    const postId = placeholder.getAttribute('data-post-id') || meta?.post_id
+
+    const label = (customLabel || placeholder.textContent || DEFAULT_ACTION_LABELS[actionType] || '查看详情').trim()
+
+    const replaceWithButton = (notificationAction: string) => {
+      const button = doc.createElement('button')
+      button.type = 'button'
+      button.textContent = label
+      button.className = className
+      button.setAttribute('data-notification-action', notificationAction)
+      button.setAttribute('data-notification-id', notification.id)
+      if (postId) {
+        button.setAttribute('data-post-id', String(postId))
+      }
+      placeholder.replaceWith(button)
+    }
+
+    if (actionType === 'request-review') {
+      replaceWithButton('REQUEST_REVIEW')
+      return
+    }
+
+    if (actionType === 'admin-accept') {
+      replaceWithButton('ADMIN_APPROVE')
+      return
+    }
+
+    if (actionType === 'admin-reject') {
+      replaceWithButton('ADMIN_REJECT')
+      return
+    }
+
+    let resolvedUrl = explicitUrl || resolveMetaLink(meta, [urlKey, actionType])
+    if (!resolvedUrl && actionType === 'view-post' && postId) {
+      resolvedUrl = `/posts/${postId}`
+    }
+    if (!resolvedUrl && actionType === 'appeal') {
+      resolvedUrl = resolveMetaLink(meta, ['appealLink', 'appeal_link'])
+    }
+
+    const safeUrl = sanitizeUrl(resolvedUrl)
+    const anchor = doc.createElement('a')
+    anchor.textContent = label
+    anchor.className = className
+    if (safeUrl) {
+      anchor.setAttribute('href', safeUrl)
+      if (/^https?:/i.test(safeUrl) && !safeUrl.startsWith(window.location.origin)) {
+        anchor.setAttribute('target', '_blank')
+        anchor.setAttribute('rel', 'noopener')
+      }
+    }
+    placeholder.replaceWith(anchor)
+  })
+
+  return dompurify.sanitize(root.innerHTML, {
+    ADD_ATTR: ['target', 'rel', 'data-notification-action', 'data-post-id', 'data-notification-id', 'type', 'role']
+  })
+}
+
+const attachHandlers = (notification: NotificationDto) => {
+  if (!process.client) return
+  const container = notificationContainers.get(notification.id)
+  if (!container) return
+
+  const actionable = container.querySelectorAll<HTMLElement>('[data-notification-action]')
+  actionable.forEach((el) => {
+    if (el.dataset.bound === 'true') return
+    const action = el.dataset.notificationAction
+    if (!action) return
+
+    if (action === 'REQUEST_REVIEW') {
+      const postId = el.dataset.postId || parseMeta(notification)?.post_id
+      if (!postId) return
+      el.addEventListener('click', (event) => {
+        event.preventDefault()
+        requestReview(postId)
+      })
+      el.dataset.bound = 'true'
+      return
+    }
+
+    if (action === 'ADMIN_APPROVE' || action === 'ADMIN_REJECT') {
+      if (!permissions.hasPostModerationPermission.value) {
+        el.setAttribute('disabled', 'true')
+        el.classList.add('opacity-60', 'cursor-not-allowed')
+        return
+      }
+      el.addEventListener('click', (event) => {
+        event.preventDefault()
+        handleModerationAction(notification, action === 'ADMIN_APPROVE' ? 'approve' : 'reject')
+      })
+      el.dataset.bound = 'true'
+    }
+  })
+}
+
+const resolveMetaLink = (meta: any, keys: string[]): string | undefined => {
+  if (!meta) return undefined
+  for (const key of keys) {
+    if (!key) continue
+    for (const variant of createKeyVariants(key)) {
+      const value = meta?.[variant] ?? meta?.links?.[variant] ?? meta?.actions?.[variant]
+      if (typeof value === 'string' && value.trim()) {
+        return value.trim()
+      }
+    }
+  }
+  return undefined
+}
+
+const createKeyVariants = (key: string): string[] => {
+  const variants = new Set<string>()
+  variants.add(key)
+  variants.add(key.replace(/[-_](\w)/g, (_, c: string) => c.toUpperCase()))
+  variants.add(key.replace(/[A-Z]/g, (letter: string) => `_${letter.toLowerCase()}`))
+  return Array.from(variants)
+}
+
+const sanitizeUrl = (value?: string | null): string | undefined => {
+  if (!value) return undefined
+  const trimmed = value.trim()
+  if (!trimmed) return undefined
+  try {
+    const url = new URL(trimmed, window.location.origin)
+    if (url.protocol === 'http:' || url.protocol === 'https:') {
+      return url.toString()
+    }
+  } catch {
+    if (trimmed.startsWith('/')) {
+      return trimmed
+    }
+  }
+  return undefined
 }
 
 // 处理管理员审核操作
 const handleModerationAction = async (notification: NotificationDto, action: 'approve' | 'reject') => {
+  if (!permissions.hasPostModerationPermission.value) {
+    toast.error('没有权限执行此操作')
+    return
+  }
   const meta = parseMeta(notification)
   const postId = meta?.post_id
   

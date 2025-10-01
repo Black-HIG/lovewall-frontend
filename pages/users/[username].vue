@@ -44,12 +44,24 @@
             <div class="mb-4">
               <div class="flex items-center justify-center md:justify-start gap-2 mb-2">
                 <h1 class="text-3xl font-bold text-gray-800">{{ userDisplayName }}</h1>
+                <span
+                  v-if="isDeleted"
+                  class="px-2 py-0.5 text-xs bg-gray-200 text-gray-700 rounded-full"
+                >
+                  已注销不可访问
+                </span>
                 <TagBadge
                   v-if="activeTag"
                   :title="activeTag.title"
                   :background="activeTag.background_color"
                   :text="activeTag.text_color"
                 />
+                <span
+                  v-if="activeTag?.user_deleted"
+                  class="px-2 py-0.5 text-xs bg-red-100 text-red-600 rounded-full"
+                >
+                  标签所属用户已注销
+                </span>
               </div>
               <p class="text-gray-600">@{{ user.username }}</p>
             </div>
@@ -62,7 +74,7 @@
             <!-- Stats -->
             <div class="flex justify-center md:justify-start gap-6 text-sm text-gray-600">
               <span>加入于 {{ formatDate(user.created_at) }}</span>
-              <span v-if="user.status === 0" class="text-green-600">● 活跃</span>
+              <span v-if="!isDeleted && user.status === 0" class="text-green-600">● 活跃</span>
             </div>
           </div>
         </div>
@@ -163,6 +175,7 @@
 <script setup lang="ts">
 import { HeartIcon } from 'lucide-vue-next'
 import type { User, PostDto, Pagination } from '~/types'
+import type { ActiveTagDto } from '~/types/extra'
 
 // Get route params
 const route = useRoute()
@@ -170,8 +183,8 @@ const username = route.params.username as string
 
 // State
 const user = ref<User | null>(null)
-const activeTag = ref<{ name: string; title: string; background_color: string; text_color: string } | null>(null)
-const userStatus = ref<{ exists: boolean; isdeleted: boolean; is_banned: boolean; id?: string } | null>(null)
+const activeTag = ref<ActiveTagDto | null>(null)
+const userStatus = ref<{ exists: boolean; isdeleted: boolean; is_banned: boolean; id?: string; ban_reason?: string | null } | null>(null)
 const userPosts = ref<PostDto[]>([])
 const postsData = ref<Pagination<PostDto> | null>(null)
 const loading = ref(true)
@@ -188,12 +201,22 @@ const userDisplayName = computed(() => {
   return user.value.display_name || user.value.username
 })
 
+const isDeleted = computed(() => {
+  return !!(user.value?.isdeleted || userStatus.value?.isdeleted)
+})
+
 // Methods
 const loadUser = async () => {
   try {
     const api = useApi()
     const status = await api.getUserStatusByUsername(username)
-    userStatus.value = { exists: status.exists, isdeleted: !!status.isdeleted, is_banned: !!status.is_banned, id: status.id }
+    userStatus.value = {
+      exists: status.exists,
+      isdeleted: !!status.isdeleted,
+      is_banned: !!status.is_banned,
+      id: status.id,
+      ban_reason: status.ban_reason ?? null
+    }
     if (!status.exists) {
       error.value = '用户不存在或已注销'
       return

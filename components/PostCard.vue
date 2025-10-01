@@ -33,6 +33,12 @@
             <h3 class="text-base font-semibold text-gray-900 cursor-pointer hover:text-brand-600 transition-colors" @click.stop="navigateToAuthor">
               {{ post.author_name }}
             </h3>
+            <span
+              v-if="authorDeleted"
+              class="px-1.5 py-0.5 text-[10px] font-medium bg-gray-200 text-gray-700 rounded-full"
+            >
+              已注销
+            </span>
             <!-- Author Active Tag -->
             <TagBadge
               v-if="activeTag && activeTag.title"
@@ -40,6 +46,12 @@
               :background="activeTag.background_color"
               :text="activeTag.text_color"
             />
+            <span
+              v-if="activeTag?.user_deleted"
+              class="px-1.5 py-0.5 text-[10px] bg-red-100 text-red-600 rounded-full"
+            >
+              标签所属用户已注销
+            </span>
           </div>
           
           <!-- Status badges -->
@@ -216,6 +228,7 @@ import { onClickOutside } from '@vueuse/core'
 import GlassCard from '~/components/ui/GlassCard.vue'
 import TagBadge from '~/components/ui/TagBadge.vue'
 import type { PostDto } from '~/types'
+import type { ActiveTagDto } from '~/types/extra'
 
 interface Props {
   post: PostDto
@@ -245,7 +258,8 @@ const showDropdown = ref(false)
 const showImageModal = ref(false)
 const dropdownRef = ref<HTMLElement>()
 const authorProfile = ref<any>(null)
-const activeTag = ref<any>(null)
+const authorDeleted = ref(false)
+const activeTag = ref<ActiveTagDto | null>(null)
 const authorAvatar = ref<string | null>(null)
 
 // Close dropdown when clicking outside
@@ -261,6 +275,7 @@ const fetchAuthorInfo = async () => {
       try {
         const userRes = await api.getUser(props.post.author_id)
         authorProfile.value = userRes
+        authorDeleted.value = !!userRes.isdeleted
         if (userRes.avatar_url) {
           authorAvatar.value = assetUrl(userRes.avatar_url)
         }
@@ -308,6 +323,10 @@ const goDetail = () => {
 
 // Navigate to author profile
 const navigateToAuthor = () => {
+  if (authorDeleted.value) {
+    toast.info('该用户已注销，无法访问主页')
+    return
+  }
   // 如果有author_id，使用ID路由，否则使用用户名（临时方案）
   if (props.post.author_id) {
     navigateTo(`/users/id/${props.post.author_id}`)
@@ -320,7 +339,9 @@ const navigateToAuthor = () => {
 // Actions
 const handlePin = async (pin: boolean) => {
   try {
-    await api.pinPost(props.post.id, pin)
+    const reason = promptModerationReason(pin ? '置顶' : '取消置顶')
+    if (reason === null) return
+    await api.pinPost(props.post.id, pin, reason || undefined)
     toast.success(pin ? '已置顶' : '已取消置顶')
     emit('refresh')
   } catch (error) {
@@ -331,7 +352,9 @@ const handlePin = async (pin: boolean) => {
 
 const handleFeature = async (feature: boolean) => {
   try {
-    await api.featurePost(props.post.id, feature)
+    const reason = promptModerationReason(feature ? '设为精华' : '取消精华')
+    if (reason === null) return
+    await api.featurePost(props.post.id, feature, reason || undefined)
     toast.success(feature ? '已设为精华' : '已取消精华')
     emit('refresh')
   } catch (error) {
@@ -344,7 +367,9 @@ const handleHide = async () => {
   const hide = props.post.status === 0
   if (hide && !confirm('确定要隐藏这个帖子吗？')) return
   try {
-    await api.hidePost(props.post.id, hide)
+    const reason = promptModerationReason(hide ? '隐藏' : '恢复')
+    if (reason === null) return
+    await api.hidePost(props.post.id, hide, reason || undefined)
     toast.success(hide ? '已隐藏帖子' : '已恢复帖子')
     emit('refresh')
   } catch (error) {
@@ -357,7 +382,9 @@ const handleDelete = async () => {
   if (!confirm('确定要删除这个帖子吗？此操作不可恢复！')) return
   
   try {
-    await api.deletePost(props.post.id)
+    const reason = promptModerationReason('删除')
+    if (reason === null) return
+    await api.deletePost(props.post.id, reason || undefined)
     toast.success('已删除帖子')
     emit('refresh')
   } catch (error) {
@@ -389,6 +416,13 @@ const sharePost = async () => {
       toast.error('分享失败')
     }
   }
+}
+
+const promptModerationReason = (action: string): string | null => {
+  if (typeof window === 'undefined') return ''
+  const input = window.prompt(`${action}处理原因（可选，取消则中止操作）`, '')
+  if (input === null) return null
+  return input.trim()
 }
 
 const formatDate = (dateString: string) => {
