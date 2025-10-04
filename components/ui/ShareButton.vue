@@ -4,10 +4,9 @@
     <button
       @click="handleMainShare"
       :disabled="loading"
-      class="flex items-center gap-2 glass-button"
+      class="inline-flex items-center gap-1.5 text-gray-600 hover:text-brand-600 transition-colors font-medium"
       :class="[
-        variant === 'secondary' ? 'glass-button-secondary' : '',
-        size === 'sm' ? 'text-sm px-3 py-1.5' : 'px-4 py-2'
+        size === 'sm' ? 'text-xs' : 'text-sm'
       ]"
     >
       <LoaderIcon 

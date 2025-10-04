@@ -161,7 +161,7 @@
         <GlassCard class="p-6">
           <div class="flex items-center justify-between mb-4">
             <h3 class="text-lg font-semibold text-gray-800">最新表白</h3>
-            <NuxtLink to="/admin/posts" class="glass-button-secondary text-sm px-3 py-1">
+            <NuxtLink to="/admin/posts" class="inline-flex items-center gap-1 text-sm text-brand-600 hover:text-brand-700 hover:underline font-medium transition-colors">
               查看全部 →
             </NuxtLink>
           </div>
@@ -194,7 +194,7 @@
           <GlassCard class="p-6">
             <div class="flex items-center justify-between mb-4">
               <h3 class="text-lg font-semibold text-gray-800">最新评论</h3>
-              <NuxtLink to="/admin/comments" class="glass-button-secondary text-sm px-3 py-1">
+              <NuxtLink to="/admin/comments" class="inline-flex items-center gap-1 text-sm text-brand-600 hover:text-brand-700 hover:underline font-medium transition-colors">
                 查看全部 →
               </NuxtLink>
             </div>

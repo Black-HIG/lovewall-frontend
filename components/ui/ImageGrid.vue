@@ -89,10 +89,8 @@ const gridWrapperClass = computed(() => {
 
 const imageClass = computed(() => {
   const base = 'w-full border border-white/20 cursor-pointer hover:opacity-90 transition-opacity rounded-lg md:rounded-xl'
-  if (images.value.length === 1) {
-    return `${base} max-h-64 object-cover`
-  }
-  return `${base} h-48 object-cover`
+  // 所有图片统一使用正方形宽高比 (aspect-square)
+  return `${base} aspect-square object-cover`
 })
 
 const currentImage = computed(() => images.value[currentIndex.value] ?? '')
