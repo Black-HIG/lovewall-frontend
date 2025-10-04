@@ -15,30 +15,52 @@
     ]">
       <div class="flex items-center gap-3 flex-1 min-w-0">
         <!-- Author Avatar -->
-        <div 
-          :class="[
-            'rounded-full flex-shrink-0 cursor-pointer avatar-ring transition-all hover:scale-110',
-            deviceType === 'mobile' ? 'w-8 h-8' : 'w-10 h-10'
-          ]"
-          @click.stop="navigateToAuthor"
-        >
-          <img
-            v-if="authorAvatar"
-            :src="authorAvatar"
-            :alt="post.author_name"
+        <div class="relative">
+          <!-- 管理员光圈效果 -->
+          <div
+            v-if="post.author_isadmin"
+            class="absolute -inset-0.5 rounded-full bg-blue-500/30 blur-[6px]"
+          ></div>
+
+          <!-- 头像容器 -->
+          <div
             :class="[
-              'rounded-full object-cover border-2 border-white/20',
+              'relative rounded-full flex-shrink-0 cursor-pointer transition-all hover:scale-110',
               deviceType === 'mobile' ? 'w-8 h-8' : 'w-10 h-10'
             ]"
+            @click.stop="navigateToAuthor"
           >
-          <div 
-            v-else
-            :class="[
-              'bg-gradient-to-br from-brand-400 to-brand-600 rounded-full flex items-center justify-center text-white font-medium border-2 border-white/20',
-              deviceType === 'mobile' ? 'w-8 h-8 text-xs' : 'w-10 h-10 text-sm'
-            ]"
-          >
-            {{ post.author_name.slice(0, 2) }}
+            <!-- Avatar image when confirmed exists -->
+            <img
+              v-if="authorHasAvatar === true && authorAvatar"
+              :src="authorAvatar"
+              :alt="post.author_name"
+              :class="[
+                'rounded-full object-cover border-2 border-white/20',
+                deviceType === 'mobile' ? 'w-8 h-8' : 'w-10 h-10'
+              ]"
+              @error="handleAuthorAvatarError"
+            >
+
+            <!-- Transparent placeholder while loading/unknown -->
+            <div
+              v-else-if="authorHasAvatar === null"
+              :class="[
+                'rounded-full',
+                deviceType === 'mobile' ? 'w-8 h-8' : 'w-10 h-10'
+              ]"
+            />
+
+            <!-- Default initials only when user has no avatar -->
+            <div
+              v-else
+              :class="[
+                'bg-gradient-to-br from-brand-400 to-brand-600 rounded-full flex items-center justify-center text-white font-medium border-2 border-white/20',
+                deviceType === 'mobile' ? 'w-8 h-8 text-xs' : 'w-10 h-10 text-sm'
+              ]"
+            >
+              {{ post.author_name.slice(0, 2) }}
+            </div>
           </div>
         </div>
         
@@ -203,6 +225,7 @@
         'pb-3',
         deviceType === 'mobile' ? 'px-3' : 'px-4'
       ]"
+      @click.stop
     >
       <ImageGrid
         :images="post.images"
@@ -272,6 +295,8 @@ const toast = useToast()
 const assetUrl = useAssetUrl()
 const router = useRouter()
 const { deviceType, isMobile } = useDevice()
+const { confirm: confirmDialog } = useConfirm()
+const { prompt: promptDialog } = usePrompt()
 
 // State
 const expanded = ref(false)
@@ -281,6 +306,8 @@ const authorProfile = ref<any>(null)
 const authorDeleted = ref(false)
 const activeTag = ref<ActiveTagDto | null>(null)
 const authorAvatar = ref<string | null>(null)
+// 三态：true(确认有头像)、false(没有头像)、null(未知/加载中)
+const authorHasAvatar = ref<boolean | null>(null)
 
 // Close dropdown when clicking outside
 onClickOutside(dropdownRef, () => {
@@ -298,11 +325,16 @@ const fetchAuthorInfo = async () => {
         authorDeleted.value = !!userRes.isdeleted
         if (userRes.avatar_url) {
           authorAvatar.value = assetUrl(userRes.avatar_url)
+          authorHasAvatar.value = true
+        } else {
+          authorHasAvatar.value = false
         }
       } catch (error) {
         console.warn('Failed to fetch user profile:', error)
+        // 拉取失败时保持未知态，避免误显示默认头像
+        authorHasAvatar.value = null
       }
-      
+
       // 获取用户活跃标签
       try {
         const tagRes = await api.getUserActiveTag(props.post.author_id)
@@ -321,6 +353,12 @@ const fetchAuthorInfo = async () => {
 onMounted(() => {
   fetchAuthorInfo()
 })
+
+// Avatar load error handler
+const handleAuthorAvatarError = () => {
+  authorHasAvatar.value = false
+  authorAvatar.value = null
+}
 
 // Computed
 const canManage = computed(() => {
@@ -372,7 +410,7 @@ const navigateToAuthor = () => {
 // Actions
 const handlePin = async (pin: boolean) => {
   try {
-    const reason = promptModerationReason(pin ? '置顶' : '取消置顶')
+    const reason = await promptModerationReason(pin ? '置顶' : '取消置顶')
     if (reason === null) return
     await api.pinPost(props.post.id, pin, reason || undefined)
     toast.success(pin ? '已置顶' : '已取消置顶')
@@ -385,7 +423,7 @@ const handlePin = async (pin: boolean) => {
 
 const handleFeature = async (feature: boolean) => {
   try {
-    const reason = promptModerationReason(feature ? '设为精华' : '取消精华')
+    const reason = await promptModerationReason(feature ? '设为精华' : '取消精华')
     if (reason === null) return
     await api.featurePost(props.post.id, feature, reason || undefined)
     toast.success(feature ? '已设为精华' : '已取消精华')
@@ -398,9 +436,12 @@ const handleFeature = async (feature: boolean) => {
 
 const handleHide = async () => {
   const hide = props.post.status === 0
-  if (hide && !confirm('确定要隐藏这个帖子吗？')) return
+  if (hide) {
+    const confirmed = await confirmDialog('确定要隐藏这个帖子吗？')
+    if (!confirmed) return
+  }
   try {
-    const reason = promptModerationReason(hide ? '隐藏' : '恢复')
+    const reason = await promptModerationReason(hide ? '隐藏' : '恢复')
     if (reason === null) return
     await api.hidePost(props.post.id, hide, reason || undefined)
     toast.success(hide ? '已隐藏帖子' : '已恢复帖子')
@@ -412,10 +453,16 @@ const handleHide = async () => {
 }
 
 const handleDelete = async () => {
-  if (!confirm('确定要删除这个帖子吗？此操作不可恢复！')) return
+  const confirmed = await confirmDialog({
+    title: '删除帖子',
+    message: '确定要删除这个帖子吗？此操作不可恢复！',
+    confirmText: '删除',
+    cancelText: '取消'
+  })
+  if (!confirmed) return
   
   try {
-    const reason = promptModerationReason('删除')
+    const reason = await promptModerationReason('删除')
     if (reason === null) return
     await api.deletePost(props.post.id, reason || undefined)
     toast.success('已删除帖子')
@@ -427,28 +474,18 @@ const handleDelete = async () => {
 }
 
 
-const promptModerationReason = (action: string): string | null => {
-  if (typeof window === 'undefined') return ''
-  const input = window.prompt(`${action}处理原因（可选，取消则中止操作）`, '')
+const promptModerationReason = async (action: string): Promise<string | null> => {
+  if (!process.client) return ''
+
+  const input = await promptDialog({
+    title: `${action}处理原因`,
+    message: '可选,取消则中止操作',
+    placeholder: '请输入处理原因(可选)',
+    defaultValue: ''
+  })
+
   if (input === null) return null
   return input.trim()
-}
-
-const formatDate = (dateString: string) => {
-  const date = new Date(dateString)
-  const now = new Date()
-  const diff = now.getTime() - date.getTime()
-  
-  const minutes = Math.floor(diff / (1000 * 60))
-  const hours = Math.floor(diff / (1000 * 60 * 60))
-  const days = Math.floor(diff / (1000 * 60 * 60 * 24))
-  
-  if (minutes < 1) return '刚刚'
-  if (minutes < 60) return `${minutes} 分钟前`
-  if (hours < 24) return `${hours} 小时前`
-  if (days < 30) return `${days} 天前`
-  
-  return date.toLocaleDateString('zh-CN')
 }
 
 const formatTimeAgo = (dateString: string) => {
@@ -468,5 +505,36 @@ const formatTimeAgo = (dateString: string) => {
   
   return date.toLocaleDateString('zh-CN', { month: 'numeric', day: 'numeric' })
 }
+
+// Added: absolute date formatter used in header
+const formatDate = (dateString: string) => {
+  try {
+    const d = new Date(dateString)
+    if (isNaN(d.getTime())) return String(dateString)
+    return d.toLocaleString('zh-CN', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    })
+  } catch {
+    return String(dateString)
+  }
+}
 </script>
+
+
+
+
+
+
+
+
+
+
+
+
+
 

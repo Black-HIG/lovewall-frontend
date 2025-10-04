@@ -290,9 +290,9 @@ onMounted(async () => {
   console.log('Index: forceRefresh completed')
 })
 
-onBeforeRouteUpdate((to, from, next) => {
+// Use Vue Router 4 composition guard signature (no next)
+onBeforeRouteUpdate((to, from) => {
   if (to.fullPath === from.fullPath) {
-    next()
     return
   }
 
@@ -300,7 +300,6 @@ onBeforeRouteUpdate((to, from, next) => {
   home.forceRefresh().catch((error) => {
     console.error('Index: onBeforeRouteUpdate refresh failed', error)
   })
-  next()
 })
 
 // When returning to this page via in-app navigation, refresh to ensure data is shown

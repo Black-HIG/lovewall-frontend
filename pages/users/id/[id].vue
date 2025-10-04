@@ -22,17 +22,24 @@
       <GlassCard class="p-8">
         <div class="flex flex-col md:flex-row items-center md:items-start gap-6">
           <!-- Avatar -->
-          <div class="flex-shrink-0">
-            <div class="w-32 h-32 rounded-full overflow-hidden shadow-lg">
+          <div class="flex-shrink-0 relative">
+            <!-- 管理员光圈效果 -->
+            <div
+              v-if="user.isadmin"
+              class="absolute -inset-1 rounded-full bg-blue-500/30 blur-[10px]"
+            ></div>
+
+            <!-- 头像容器 -->
+            <div class="relative w-32 h-32 rounded-full overflow-hidden shadow-lg">
               <img
                 v-if="user.avatar_url"
                 :src="assetUrl(user.avatar_url)"
                 :alt="userDisplayName"
-                class="w-32 h-32 object-cover"
+                class="w-32 h-32 object-cover border-2 border-white/20"
               >
-              <div 
+              <div
                 v-else
-                class="w-32 h-32 bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center text-white text-4xl font-bold"
+                class="w-32 h-32 bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center text-white text-4xl font-bold border-2 border-white/20"
               >
                 {{ userDisplayName.slice(0, 2) }}
               </div>

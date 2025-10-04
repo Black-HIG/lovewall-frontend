@@ -15,13 +15,20 @@
     <GlassCard v-else class="p-6">
       <div class="flex flex-col md:flex-row items-start gap-6">
         <!-- Avatar -->
-        <div class="flex-shrink-0">
-          <div class="w-24 h-24 rounded-full bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center text-white text-2xl font-bold">
+        <div class="flex-shrink-0 relative">
+          <!-- 管理员光圈效果 -->
+          <div
+            v-if="auth.currentUser?.isadmin"
+            class="absolute -inset-1 rounded-full bg-blue-500/30 blur-[8px]"
+          ></div>
+
+          <!-- 头像容器 -->
+          <div class="relative w-24 h-24 rounded-full bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center text-white text-2xl font-bold">
             <img
               v-if="auth.currentUser?.avatar_url"
               :src="assetUrl(auth.currentUser.avatar_url)"
               :alt="auth.userDisplayName"
-              class="w-24 h-24 rounded-full object-cover"
+              class="w-24 h-24 rounded-full object-cover border-2 border-white/20"
             >
             <span v-else>
               {{ auth.userDisplayName.slice(0, 2) }}

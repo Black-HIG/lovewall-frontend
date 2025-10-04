@@ -1,67 +1,30 @@
 <template>
   <div v-if="images?.length" class="space-y-3">
-    <div :class="gridWrapperClass">
-      <div
+    <div :class="gridWrapperClass" ref="galleryRef">
+      <a
         v-for="(image, index) in images"
         :key="`${image}-${index}`"
-        class="relative"
+        :href="resolveOriginalImage(image)"
+        :data-pswp-width="2400"
+        :data-pswp-height="2400"
+        target="_blank"
+        rel="noreferrer"
+        @click.prevent.stop="openGallery(index)"
       >
         <img
-          :src="resolveImage(image)"
+          :src="resolveThumbnail(image)"
           :alt="`${altPrefix} ${index + 1}`"
           :class="imageClass"
           loading="lazy"
-          @click.stop="openLightbox(index)"
         />
-      </div>
+      </a>
     </div>
-
-    <Teleport to="body">
-      <transition name="fade">
-        <div
-          v-if="isLightboxOpen"
-          class="fixed inset-0 z-[9000] flex items-center justify-center bg-black/80 backdrop-blur-sm"
-          @click="closeLightbox"
-        >
-          <div class="relative max-w-5xl max-h-[90vh] w-full px-4" @click.stop>
-            <img
-              :src="resolveImage(currentImage)"
-              :alt="`${altPrefix} ${currentIndex + 1}`"
-              class="max-w-full max-h-[90vh] mx-auto object-contain rounded-lg"
-            />
-            <button
-              type="button"
-              class="absolute top-4 right-4 p-2 text-white bg-black/60 rounded-full hover:bg-black/70 transition"
-              @click="closeLightbox"
-            >
-              <XIcon class="w-5 h-5" />
-            </button>
-
-            <button
-              v-if="images.length > 1"
-              type="button"
-              class="absolute left-4 top-1/2 -translate-y-1/2 p-2 text-white bg-black/60 rounded-full hover:bg-black/70 transition"
-              @click="prevImage"
-            >
-              <ChevronLeftIcon class="w-6 h-6" />
-            </button>
-            <button
-              v-if="images.length > 1"
-              type="button"
-              class="absolute right-4 top-1/2 -translate-y-1/2 p-2 text-white bg-black/60 rounded-full hover:bg-black/70 transition"
-              @click="nextImage"
-            >
-              <ChevronRightIcon class="w-6 h-6" />
-            </button>
-          </div>
-        </div>
-      </transition>
-    </Teleport>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ChevronLeftIcon, ChevronRightIcon, XIcon } from 'lucide-vue-next'
+import PhotoSwipeLightbox from 'photoswipe/lightbox'
+import 'photoswipe/style.css'
 
 interface Props {
   images: string[]
@@ -73,8 +36,8 @@ const props = withDefaults(defineProps<Props>(), {
 })
 
 const assetUrl = useAssetUrl()
-const isLightboxOpen = ref(false)
-const currentIndex = ref(0)
+const galleryRef = ref<HTMLElement>()
+let lightbox: PhotoSwipeLightbox | null = null
 
 const images = computed(() => props.images ?? [])
 
@@ -93,41 +56,173 @@ const imageClass = computed(() => {
   return `${base} aspect-square object-cover`
 })
 
-const currentImage = computed(() => images.value[currentIndex.value] ?? '')
-
+// 统一使用assetUrl处理图片
 const resolveImage = (image: string) => {
   if (!image) return ''
   return image.startsWith('http') ? image : assetUrl(image)
 }
 
-const openLightbox = (index: number) => {
-  currentIndex.value = index
-  isLightboxOpen.value = true
+// 缩略图和原图使用相同URL（后端应该已经优化过）
+const resolveThumbnail = resolveImage
+const resolveOriginalImage = resolveImage
+
+const openGallery = (index: number) => {
+  if (lightbox) {
+    lightbox.loadAndOpen(index)
+  }
 }
 
-const closeLightbox = () => {
-  isLightboxOpen.value = false
-}
+onMounted(() => {
+  if (!galleryRef.value) return
 
-const prevImage = () => {
-  if (!images.value.length) return
-  currentIndex.value = (currentIndex.value - 1 + images.value.length) % images.value.length
-}
+  lightbox = new PhotoSwipeLightbox({
+    gallery: galleryRef.value,
+    children: 'a',
+    pswpModule: () => import('photoswipe'),
 
-const nextImage = () => {
-  if (!images.value.length) return
-  currentIndex.value = (currentIndex.value + 1) % images.value.length
-}
+    // 图片加载和显示
+    preload: [1, 2], // 预加载前后各1-2张图片
+
+    // 缩放配置
+    zoom: true,
+    maxZoomLevel: 4, // 最大放大4倍
+    initialZoomLevel: 'fit', // 初始适应屏幕
+    secondaryZoomLevel: 2, // 双击放大到2倍
+
+    // 关闭手势
+    pinchToClose: true,
+    closeOnVerticalDrag: true,
+
+    // 视觉效果
+    bgOpacity: 0.98,
+    showHideAnimationType: 'zoom',
+
+    // 间距和布局
+    padding: {
+      top: 60,
+      bottom: 60,
+      left: 20,
+      right: 20
+    },
+
+    // 鼠标滚轮缩放
+    wheelToZoom: true,
+
+    // 图片适配
+    imageClickAction: 'zoom-or-close',
+    tapAction: 'toggle-controls',
+    doubleTapAction: 'zoom',
+
+    // 启用计数器和控制栏
+    counter: true,
+    arrowKeys: true,
+
+    // 历史记录和URL更新
+    history: false,
+  })
+
+  lightbox.init()
+})
+
+onUnmounted(() => {
+  if (lightbox) {
+    lightbox.destroy()
+    lightbox = null
+  }
+})
 </script>
 
-<style scoped>
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.2s ease;
+<style>
+/* PhotoSwipe 自定义样式 */
+.pswp {
+  --pswp-bg: rgba(0, 0, 0, 0.98);
+  --pswp-icon-color: #fff;
+  --pswp-icon-color-secondary: #4a90e2;
+  --pswp-placeholder-bg: rgba(79, 79, 79, 0.4);
+  z-index: 9999;
 }
 
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
+/* 按钮样式 */
+.pswp__button {
+  background-color: rgba(0, 0, 0, 0.6) !important;
+  border-radius: 50% !important;
+  transition: all 0.2s ease;
+  width: 44px !important;
+  height: 44px !important;
+}
+
+.pswp__button:hover {
+  background-color: rgba(0, 0, 0, 0.8) !important;
+  transform: scale(1.1);
+}
+
+/* 图片样式 */
+.pswp__img {
+  border-radius: 4px;
+  object-fit: contain;
+}
+
+/* 顶部工具栏 */
+.pswp__top-bar {
+  background: linear-gradient(to bottom, rgba(0,0,0,0.5) 0%, transparent 100%);
+  padding: 16px 20px !important;
+}
+
+/* 计数器 */
+.pswp__counter {
+  font-size: 14px;
+  font-weight: 500;
+  text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+/* 缩放指示器 */
+.pswp__zoom-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 加载动画 */
+.pswp__preloader {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.pswp__preloader__icn {
+  width: 40px;
+  height: 40px;
+  opacity: 0.6;
+}
+
+/* 移动端优化 */
+@media (max-width: 768px) {
+  .pswp__button {
+    width: 40px !important;
+    height: 40px !important;
+  }
+
+  .pswp__top-bar {
+    padding: 12px 16px !important;
+  }
+
+  .pswp {
+    --pswp-bg: rgba(0, 0, 0, 1); /* 移动端全黑背景 */
+  }
+}
+
+/* 平滑的淡入淡出 */
+.pswp--open {
+  animation: pswpFadeIn 0.3s ease-in-out;
+}
+
+@keyframes pswpFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 </style>

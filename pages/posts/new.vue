@@ -6,16 +6,64 @@
         <div class="mb-8">
           <h1 class="page-title">发布表白</h1>
           <p class="text-gray-600 text-center">
-            勇敢地说出你的心声，让爱传递出去 💕
+            {{ form.card_type === 'communication' ? '分享你的联系方式,找到志同道合的朋友 🤝' : '勇敢地说出你的心声,让爱传递出去 💕' }}
           </p>
         </div>
 
         <!-- Form -->
       <form @submit.prevent="handleSubmit" class="space-y-6">
+        <!-- Card Type Selection -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-3">
+            卡片类型 *
+          </label>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <label
+              :class="[
+                'flex items-center gap-3 p-4 border-2 rounded-xl cursor-pointer transition-all',
+                form.card_type === 'confession'
+                  ? 'border-brand-500 bg-brand-50/30'
+                  : 'border-white/20 hover:border-brand-300'
+              ]"
+            >
+              <input
+                type="radio"
+                v-model="form.card_type"
+                value="confession"
+                class="w-5 h-5 text-brand-600"
+              />
+              <div>
+                <div class="font-medium text-gray-900">表白卡</div>
+                <div class="text-sm text-gray-500">向TA表白你的心意</div>
+              </div>
+            </label>
+
+            <label
+              :class="[
+                'flex items-center gap-3 p-4 border-2 rounded-xl cursor-pointer transition-all',
+                form.card_type === 'communication'
+                  ? 'border-brand-500 bg-brand-50/30'
+                  : 'border-white/20 hover:border-brand-300'
+              ]"
+            >
+              <input
+                type="radio"
+                v-model="form.card_type"
+                value="communication"
+                class="w-5 h-5 text-brand-600"
+              />
+              <div>
+                <div class="font-medium text-gray-900">交流卡</div>
+                <div class="text-sm text-gray-500">分享联系方式,寻找同好</div>
+              </div>
+            </label>
+          </div>
+        </div>
+
         <!-- Confessor Mode Selection -->
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-3">
-            表白者身份选择 *
+            {{ form.card_type === 'communication' ? '交流者身份选择 *' : '表白者身份选择 *' }}
           </label>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <label
@@ -65,20 +113,20 @@
         <!-- Author Name (only show when custom mode) -->
         <div v-show="form.confessor_mode === 'custom'">
           <label for="authorName" class="block text-sm font-medium text-gray-700 mb-2">
-            表白者昵称 *
+            {{ form.card_type === 'communication' ? '交流者昵称 *' : '表白者昵称 *' }}
           </label>
           <GlassInput
             id="authorName"
             v-model="form.author_name"
             type="text"
-            placeholder="请输入您的昵称（可以是真名或匿名）"
+            :placeholder="form.card_type === 'communication' ? '请输入您的昵称（可以是真名或匿名）' : '请输入您的昵称（可以是真名或匿名）'"
             :error="errors.author_name"
             :required="form.confessor_mode === 'custom'"
           />
         </div>
 
-        <!-- Target Name -->
-        <div>
+        <!-- Target Name (only show for confession card) -->
+        <div v-show="form.card_type === 'confession'">
           <label for="targetName" class="block text-sm font-medium text-gray-700 mb-2">
             表白对象 *
           </label>
@@ -88,21 +136,21 @@
             type="text"
             placeholder="请输入TA的昵称"
             :error="errors.target_name"
-            required
+            :required="form.card_type === 'confession'"
           />
         </div>
 
         <!-- Content -->
         <div>
           <label for="content" class="block text-sm font-medium text-gray-700 mb-2">
-            表白内容 *
+            {{ form.card_type === 'communication' ? '交流内容 *' : '表白内容 *' }}
           </label>
           <GlassTextarea
             id="content"
             v-model="form.content"
             :rows="8"
             :max-length="2000"
-            placeholder="写下你想对TA说的话..."
+            :placeholder="form.card_type === 'communication' ? '分享你的兴趣爱好、联系方式等...' : '写下你想对TA说的话...'"
             :error="errors.content"
             required
           />
@@ -213,7 +261,7 @@
             @click="handleSubmit"
           >
             <PlusIcon class="w-5 h-5" />
-            {{ loading ? '发布中...' : '发布表白' }}
+            {{ loading ? '发布中...' : (form.card_type === 'communication' ? '发布交流' : '发布表白') }}
           </GlassButton>
         </div>
       </form>
@@ -256,8 +304,9 @@ const fileInput = ref<HTMLInputElement | null>(null)
 // Form schema
 const postSchema = z.object({
   author_name: z.string().optional(),
-  target_name: z.string().min(1, '目标昵称不能为空').max(50, '昵称不能超过50个字符'),
+  target_name: z.string().optional(),
   content: z.string().min(1, '内容不能为空').max(2000, '内容不能超过2000个字符'),
+  card_type: z.enum(['confession', 'communication']).optional(),
   confessor_mode: z.enum(['self', 'custom']).default('custom'),
 }).superRefine((data, ctx) => {
   // 当模式为 custom 时，author_name 是必需的
@@ -272,8 +321,24 @@ const postSchema = z.object({
   if (data.confessor_mode === 'custom' && data.author_name && data.author_name.length > 50) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
-      message: '请输入发布者昵称',
+      message: '昵称不能超过50个字符',
       path: ['author_name']
+    })
+  }
+  // 表白卡必须有表白对象
+  if (data.card_type === 'confession' && (!data.target_name || data.target_name.trim().length === 0)) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: '目标昵称不能为空',
+      path: ['target_name']
+    })
+  }
+  // 验证表白对象长度
+  if (data.card_type === 'confession' && data.target_name && data.target_name.length > 50) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: '昵称不能超过50个字符',
+      path: ['target_name']
     })
   }
 })
@@ -284,6 +349,7 @@ const form = reactive<PostForm & { confessor_mode: 'self' | 'custom' }>({
   author_name: '',
   target_name: '',
   content: '',
+  card_type: 'confession', // 默认为表白卡
   images: [],
   confessor_mode: 'custom', // 默认为自定义模式
 })
@@ -315,10 +381,20 @@ const showImageError = (message: string) => {
 const isFormValid = computed(() => {
   const blockingErrors = Object.entries(errors)
     .filter(([key, value]) => key !== 'images' && !!value)
-  const baseValid = form.target_name && form.content && blockingErrors.length === 0
-  if (form.confessor_mode === 'custom') {
-    return baseValid && form.author_name
+
+  // 基础验证：内容不能为空
+  let baseValid = form.content && blockingErrors.length === 0
+
+  // 表白卡需要表白对象
+  if (form.card_type === 'confession') {
+    baseValid = baseValid && !!form.target_name
   }
+
+  // 自定义模式需要昵称
+  if (form.confessor_mode === 'custom') {
+    return baseValid && !!form.author_name
+  }
+
   return baseValid
 })
 
@@ -433,11 +509,20 @@ const handleSubmit = async () => {
     if (form.confessor_mode === 'custom') {
       formData.append('author_name', form.author_name)
     }
-    
-    formData.append('target_name', form.target_name)
+
+    // 只有表白卡才需要表白对象
+    if (form.card_type === 'confession' && form.target_name) {
+      formData.append('target_name', form.target_name)
+    }
+
     formData.append('content', form.content)
     formData.append('confessor_mode', form.confessor_mode)
-    
+
+    // 添加卡片类型
+    if (form.card_type) {
+      formData.append('card_type', form.card_type)
+    }
+
     form.images.forEach(image => {
       formData.append('images', image)
     })

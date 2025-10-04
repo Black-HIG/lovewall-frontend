@@ -95,12 +95,23 @@
                 ]"
                 @click="showUserMenu = !showUserMenu"
               >
-                <img
-                  v-if="auth.currentUser?.avatar_url"
-                  :src="assetUrl(auth.currentUser.avatar_url)"
-                  :alt="auth.userDisplayName"
-                  :class="isMobile ? 'w-5 h-5 rounded-full' : 'w-6 h-6 rounded-full'"
-                >
+                <div v-if="auth.currentUser?.avatar_url" class="relative">
+                  <!-- 管理员光圈效果 -->
+                  <div
+                    v-if="auth.currentUser?.isadmin"
+                    class="absolute -inset-[2px] rounded-full bg-blue-500/30 blur-[4px]"
+                  ></div>
+
+                  <!-- 头像 -->
+                  <img
+                    :src="assetUrl(auth.currentUser.avatar_url)"
+                    :alt="auth.userDisplayName"
+                    :class="[
+                      'relative rounded-full object-cover border border-white/20',
+                      isMobile ? 'w-5 h-5' : 'w-6 h-6'
+                    ]"
+                  >
+                </div>
                 <UserIcon v-else :class="isMobile ? 'w-5 h-5' : 'w-6 h-6'" />
                 <span v-if="!isMobile" class="hidden sm:block">{{ auth.userDisplayName }}</span>
                 <ChevronDownIcon v-if="!isMobile" class="w-4 h-4" />

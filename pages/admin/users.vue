@@ -108,14 +108,23 @@
               <!-- User Info -->
               <td class="px-6 py-4">
                 <div class="flex items-center gap-3">
-                  <div class="w-10 h-10 rounded-full bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center text-white font-medium">
-                    <img
-                      v-if="user.avatar_url"
-                      :src="assetUrl(user.avatar_url)"
-                      :alt="user.username"
-                      class="w-10 h-10 rounded-full object-cover"
-                    >
-                    <span v-else>{{ user.username.slice(0, 2).toUpperCase() }}</span>
+                  <div class="relative">
+                    <!-- 管理员光圈效果 -->
+                    <div
+                      v-if="user.isadmin"
+                      class="absolute -inset-0.5 rounded-full bg-blue-500/30 blur-[6px]"
+                    ></div>
+
+                    <!-- 头像容器 -->
+                    <div class="relative w-10 h-10 rounded-full bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center text-white font-medium">
+                      <img
+                        v-if="user.avatar_url"
+                        :src="assetUrl(user.avatar_url)"
+                        :alt="user.username"
+                        class="w-10 h-10 rounded-full object-cover border border-white/20"
+                      >
+                      <span v-else>{{ user.username.slice(0, 2).toUpperCase() }}</span>
+                    </div>
                   </div>
                   <div>
                     <div class="font-medium text-gray-800">
@@ -1705,7 +1714,8 @@ const submitBanUser = async () => {
 }
 
 const confirmUnbanUser = async (user: User) => {
-  if (!confirm(`确定要解封用户 "${user.username}" 吗？`)) return
+  const { confirm } = useConfirm()
+  if (!await confirm(`确定要解封用户 "${user.username}" 吗？`)) return
   
   try {
     const api = useApi()

@@ -19,6 +19,7 @@ export interface User {
   avatar_url?: string | null
   bio?: string | null
   is_superadmin: boolean
+  isadmin: boolean // 拥有任何管理员权限
   status: number
   is_banned: boolean
   ban_reason?: string | null
@@ -72,6 +73,7 @@ export interface PostDto {
   author_name: string
   target_name: string
   content: string
+  card_type?: 'confession' | 'communication' // 卡片类型
   images: string[]
   status: 0 | 1 | 2 // 0=published, 1=hidden, 2=deleted
   is_pinned: boolean
@@ -79,6 +81,7 @@ export interface PostDto {
   created_at: string
   updated_at: string
   author_tag?: Pick<TagDto, 'name' | 'title' | 'background_color' | 'text_color'>
+  author_isadmin?: boolean // 帖子作者是否是管理员
   moderation_reason?: string | null
   // Optional stats fields when available from certain endpoints
   view_count?: number
@@ -105,6 +108,7 @@ export interface CommentDto {
   user_username: string
   user_display_name?: string | null
   user_avatar_url?: string | null
+  user_isadmin?: boolean // 评论作者是否是管理员
   content: string
   status: 0 | 1 // 0=normal, 1=hidden
   created_at: string
@@ -161,6 +165,7 @@ export interface PostForm {
   author_name: string
   target_name: string
   content: string
+  card_type?: 'confession' | 'communication' // 卡片类型
   images: File[]
 }
 

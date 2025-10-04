@@ -125,6 +125,9 @@
 
     <!-- Route announcer for accessibility -->
     <NuxtRouteAnnouncer />
+
+    <ConfirmDialog />
+    <PromptDialog />
   </div>
 </template>
 
@@ -135,6 +138,8 @@ import { onClickOutside } from '@vueuse/core'
 import ToastContainer from '~/components/ui/ToastContainer.vue'
 import LoadingSpinner from '~/components/ui/LoadingSpinner.vue'
 import AnnouncementBar from '~/components/layout/AnnouncementBar.vue'
+import ConfirmDialog from '~/components/ui/ConfirmDialog.vue'
+import PromptDialog from '~/components/ui/PromptDialog.vue'
 
 // Stores
 const auth = useAuthStore()
@@ -223,5 +228,6 @@ watch(() => route.path, () => {
   if (process.client) setTimeout(loadUnreadCount, 500)
 })
 </script>
+
 
 

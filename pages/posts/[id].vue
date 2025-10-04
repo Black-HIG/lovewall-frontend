@@ -29,22 +29,30 @@
               :images="post.images"
               :alt-prefix="`${post.author_name}对${post.target_name}的表白`"
             />
-            <div 
-              v-else
-              class="w-24 h-24 mx-auto rounded-full flex-shrink-0 cursor-pointer hover:ring-2 hover:ring-brand-300/50 transition-all"
-              @click="navigateToUser(post)"
-            >
-              <img
-                v-if="authorAvatar"
-                :src="authorAvatar"
-                :alt="post.author_name"
-                class="w-24 h-24 rounded-full object-cover border-2 border-white/20"
+            <div v-else class="relative w-24 h-24 mx-auto">
+              <!-- 管理员光圈效果 -->
+              <div
+                v-if="post.author_isadmin"
+                class="absolute -inset-0.5 rounded-full bg-blue-500/30 blur-[6px]"
+              ></div>
+
+              <!-- 头像容器 -->
+              <div
+                class="relative w-24 h-24 mx-auto rounded-full flex-shrink-0 cursor-pointer hover:ring-2 hover:ring-brand-300/50 transition-all"
+                @click="navigateToUser(post)"
               >
-              <div 
-                v-else
-                class="w-24 h-24 bg-gradient-to-br from-brand-400 to-brand-600 rounded-full flex items-center justify-center text-white text-lg font-medium border-2 border-white/20"
-              >
-                {{ post.author_name.slice(0, 2) }}
+                <img
+                  v-if="authorAvatar"
+                  :src="authorAvatar"
+                  :alt="post.author_name"
+                  class="w-24 h-24 rounded-full object-cover border-2 border-white/20"
+                >
+                <div
+                  v-else
+                  class="w-24 h-24 bg-gradient-to-br from-brand-400 to-brand-600 rounded-full flex items-center justify-center text-white text-lg font-medium border-2 border-white/20"
+                >
+                  {{ post.author_name.slice(0, 2) }}
+                </div>
               </div>
             </div>
           </div>
@@ -55,22 +63,30 @@
               <div class="flex items-center gap-2 mb-2">
                 <div class="flex items-center gap-2">
                   <!-- Author avatar (if post has image) -->
-                  <div 
-                    v-if="post.images?.length"
-                    class="w-8 h-8 rounded-full flex-shrink-0 cursor-pointer hover:ring-2 hover:ring-brand-300/50 transition-all"
-                    @click="navigateToUser(post)"
-                  >
-                    <img
-                      v-if="authorAvatar"
-                      :src="authorAvatar"
-                      :alt="post.author_name"
-                      class="w-8 h-8 rounded-full object-cover border border-white/20"
+                  <div v-if="post.images?.length" class="relative w-8 h-8">
+                    <!-- 管理员光圈效果 -->
+                    <div
+                      v-if="post.author_isadmin"
+                      class="absolute -inset-0.5 rounded-full bg-blue-500/30 blur-[6px]"
+                    ></div>
+
+                    <!-- 头像容器 -->
+                    <div
+                      class="relative w-8 h-8 rounded-full flex-shrink-0 cursor-pointer hover:ring-2 hover:ring-brand-300/50 transition-all"
+                      @click="navigateToUser(post)"
                     >
-                    <div 
-                      v-else
-                      class="w-8 h-8 bg-gradient-to-br from-brand-400 to-brand-600 rounded-full flex items-center justify-center text-white text-xs font-medium border border-white/20"
-                    >
-                      {{ post.author_name.slice(0, 2) }}
+                      <img
+                        v-if="authorAvatar"
+                        :src="authorAvatar"
+                        :alt="post.author_name"
+                        class="w-8 h-8 rounded-full object-cover border border-white/20"
+                      >
+                      <div
+                        v-else
+                        class="w-8 h-8 bg-gradient-to-br from-brand-400 to-brand-600 rounded-full flex items-center justify-center text-white text-xs font-medium border border-white/20"
+                      >
+                        {{ post.author_name.slice(0, 2) }}
+                      </div>
                     </div>
                   </div>
                   
@@ -275,22 +291,31 @@
               >
                 <div class="flex items-start gap-3">
                   <!-- User Avatar -->
-                  <div 
-                    class="w-10 h-10 rounded-full flex-shrink-0 cursor-pointer hover:ring-2 hover:ring-brand-300/50 transition-all"
-                    @click="navigateToUser(comment)"
-                  >
-                    <img
-                      v-if="comment.user_avatar_url"
-                      :src="assetUrl(comment.user_avatar_url)"
-                      :alt="commentDisplayName(comment)"
-                      class="w-10 h-10 rounded-full object-cover"
-                      @error="() => { comment.user_avatar_url = null }"
+                  <div class="relative w-10 h-10">
+                    <!-- 管理员光圈效果 -->
+                    <div
+                      v-if="comment.user_isadmin"
+                      class="absolute -inset-0.5 rounded-full bg-blue-500/30 blur-[6px]"
+                    ></div>
+
+                    <!-- 头像容器 -->
+                    <div
+                      class="relative w-10 h-10 rounded-full flex-shrink-0 cursor-pointer hover:ring-2 hover:ring-brand-300/50 transition-all"
+                      @click="navigateToUser(comment)"
                     >
-                    <div 
-                      v-else
-                      class="w-10 h-10 bg-gradient-to-br from-brand-400 to-brand-600 rounded-full flex items-center justify-center text-white text-sm font-medium"
-                    >
-                      {{ commentDisplayName(comment).slice(0, 2) }}
+                      <img
+                        v-if="comment.user_avatar_url"
+                        :src="assetUrl(comment.user_avatar_url)"
+                        :alt="commentDisplayName(comment)"
+                        class="w-10 h-10 rounded-full object-cover border-2 border-white/20"
+                        @error="() => { comment.user_avatar_url = null }"
+                      >
+                      <div
+                        v-else
+                        class="w-10 h-10 bg-gradient-to-br from-brand-400 to-brand-600 rounded-full flex items-center justify-center text-white text-sm font-medium border-2 border-white/20"
+                      >
+                        {{ commentDisplayName(comment).slice(0, 2) }}
+                      </div>
                     </div>
                   </div>
                   
@@ -459,6 +484,8 @@ const auth = useAuthStore()
 const toast = useToast()
 const assetUrl = useAssetUrl()
 const home = useHomeStore()
+const { confirm: confirmDialog } = useConfirm()
+const { prompt: promptDialog } = usePrompt()
 
 // State
 const post = ref<PostDto | null>(null)
@@ -678,9 +705,10 @@ const hideComment = async (comment: CommentDto) => {
   }
 }
 
-const promptModerationReason = (action: string): string | null => {
+const promptModerationReason = async (action: string): Promise<string | null> => {
   if (typeof window === 'undefined') return ''
-  const input = window.prompt(`${action}处理原因（可选，取消则中止操作）`, '')
+  const { prompt } = usePrompt()
+  const input = await prompt(`${action}处理原因（可选，取消则中止操作）`, '')
   if (input === null) return null
   return input.trim()
 }
@@ -729,11 +757,12 @@ const toggleHide = async () => {
   if (!post.value) return
   const shouldHide = post.value.status === 0
   if (shouldHide) {
-    const confirmed = window.confirm('确定要隐藏这个帖子吗？')
+    const { confirm } = useConfirm()
+    const confirmed = await confirm('确定要隐藏这个帖子吗？')
     if (!confirmed) return
   }
 
-  const reasonInput = promptModerationReason(shouldHide ? '隐藏' : '恢复')
+  const reasonInput = await promptModerationReason(shouldHide ? '隐藏' : '恢复')
   if (reasonInput === null) return
 
   actionLoading.value = true

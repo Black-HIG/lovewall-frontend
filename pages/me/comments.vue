@@ -26,18 +26,7 @@
 
     <!-- Controls -->
     <GlassCard class="p-4">
-      <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div class="flex gap-3">
-          <GlassButton
-            @click="refresh"
-            :loading="loading"
-            variant="secondary"
-          >
-            <RefreshCwIcon class="w-4 h-4 mr-2" />
-            刷新
-          </GlassButton>
-        </div>
-
+      <div class="flex flex-col sm:flex-row justify-end items-start sm:items-center gap-4">
         <!-- Filters -->
         <div class="flex gap-2">
           <select
@@ -66,9 +55,11 @@
         </div>
         <h3 class="text-lg font-semibold text-gray-800 mb-2">还没有发表评论</h3>
         <p class="text-gray-600 mb-6">去看看别人的表白，发表你的看法吧！</p>
-        <NuxtLink to="/" class="glass-button">
-          浏览表白
-        </NuxtLink>
+        <div class="flex justify-center">
+          <NuxtLink to="/" class="flex items-center gap-2 px-4 py-2 text-brand-600 hover:text-brand-700 hover:underline font-medium transition-colors">
+            浏览表白 →
+          </NuxtLink>
+        </div>
       </GlassCard>
     </div>
 
@@ -84,16 +75,25 @@
             <!-- Comment Header -->
             <div class="flex items-start justify-between">
               <div class="flex items-center gap-3">
-                <div class="w-8 h-8 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center text-white text-sm font-medium">
-                  <img
-                    v-if="auth.currentUser?.avatar_url"
-                    :src="assetUrl(auth.currentUser.avatar_url)"
-                    :alt="auth.userDisplayName"
-                    class="w-8 h-8 rounded-full object-cover"
-                  >
-                  <span v-else>
-                    {{ auth.userDisplayName.slice(0, 2) }}
-                  </span>
+                <div class="relative">
+                  <!-- 管理员光圈效果 -->
+                  <div
+                    v-if="auth.currentUser?.isadmin"
+                    class="absolute -inset-0.5 rounded-full bg-blue-500/30 blur-[6px]"
+                  ></div>
+
+                  <!-- 头像容器 -->
+                  <div class="relative w-8 h-8 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center text-white text-sm font-medium">
+                    <img
+                      v-if="auth.currentUser?.avatar_url"
+                      :src="assetUrl(auth.currentUser.avatar_url)"
+                      :alt="auth.userDisplayName"
+                      class="w-8 h-8 rounded-full object-cover border border-white/20"
+                    >
+                    <span v-else>
+                      {{ auth.userDisplayName.slice(0, 2) }}
+                    </span>
+                  </div>
                 </div>
                 
                 <div>
@@ -243,7 +243,6 @@
 
 <script setup lang="ts">
 import {
-  RefreshCwIcon,
   MessageSquareIcon,
   ExternalLinkIcon,
   EditIcon,

@@ -100,19 +100,29 @@ export const useHomeStore = defineStore('home', {
           }
           return 0
         }
+        // 统一的图片字段规范化函数
+        const normalizeImages = (p: any): string[] => {
+          if (Array.isArray(p.images) && p.images.length > 0) return p.images
+          if (p.images && typeof p.images === 'string') return [String(p.images)]
+          if (p.image_path) return [p.image_path]
+          if (p.image_url) return [p.image_url]
+          return []
+        }
+
         const normalizePost = (p: any): PostDto => ({
           id: String(p.id),
           author_id: String(p.author_id ?? p.user_id ?? ''),
           author_name: String(p.author_name ?? p.author_display_name ?? p.author_username ?? '匿名'),
           target_name: String(p.target_name ?? p.to_name ?? 'TA'),
           content: String(p.content ?? ''),
-          images: Array.isArray(p.images) ? p.images : (p.images ? [String(p.images)] : []),
+          images: normalizeImages(p),
           status: normalizeStatus(p.status) as 0 | 1 | 2,
           is_pinned: !!p.is_pinned,
           is_featured: !!p.is_featured,
           created_at: p.created_at ?? new Date().toISOString(),
           updated_at: p.updated_at ?? p.created_at ?? new Date().toISOString(),
           author_tag: p.author_tag,
+          author_isadmin: p.author_isadmin,
           moderation_reason: p.moderation_reason ?? null,
           view_count: p.view_count,
           comment_count: p.comment_count,
@@ -189,9 +199,18 @@ export const useHomeStore = defineStore('home', {
           page_size: pageSize,
           _t: timestamp 
         }
-        
+
         const listResp: Pagination<PostDto> = await api.listPosts(params)
-        
+
+        // 统一的图片字段规范化函数
+        const normalizeImages = (p: any): string[] => {
+          if (Array.isArray(p.images) && p.images.length > 0) return p.images
+          if (p.images && typeof p.images === 'string') return [String(p.images)]
+          if (p.image_path) return [p.image_path]
+          if (p.image_url) return [p.image_url]
+          return []
+        }
+
         // 普通用户只能看到正常帖子，管理员可以看到隐藏的帖子
         const itemsRaw: any[] = (listResp as any)?.items
           ?? (listResp as any)?.list
@@ -204,12 +223,14 @@ export const useHomeStore = defineStore('home', {
           author_name: String(p.author_name ?? p.author_display_name ?? p.author_username ?? '匿名'),
           target_name: String(p.target_name ?? p.to_name ?? 'TA'),
           content: String(p.content ?? ''),
-          images: Array.isArray(p.images) ? p.images : (p.image_path ? [p.image_path] : (p.image_url ? [p.image_url] : [])),
+          images: normalizeImages(p),
           status: (typeof (p as any).status === 'number' ? (p as any).status : (String((p as any).status || '').toLowerCase().includes('hide') ? 1 : (String((p as any).status || '').toLowerCase().includes('delete') || String((p as any).status || '').toLowerCase().includes('remove') ? 2 : 0))) as 0 | 1 | 2,
           is_pinned: !!(p as any).is_pinned,
           is_featured: !!(p as any).is_featured,
           created_at: (p as any).created_at ?? new Date().toISOString(),
           updated_at: (p as any).updated_at ?? (p as any).created_at ?? new Date().toISOString(),
+          author_tag: p.author_tag,
+          author_isadmin: p.author_isadmin,
         } as PostDto))
         const newPosts = canModerate
           ? items.filter((p: PostDto) => p.status !== 2)
