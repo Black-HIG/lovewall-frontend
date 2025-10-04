@@ -117,6 +117,7 @@
                       :src="assetUrl(comment.user_avatar_url)"
                       :alt="commentDisplayName(comment)"
                       class="w-8 h-8 object-cover"
+                      @error="() => { comment.user_avatar_url = null }"
                     >
                     <div
                       v-else
@@ -288,6 +289,7 @@ const comments = ref<CommentDto[]>([])
 const commentsData = ref<Pagination<CommentDto> | null>(null)
 const loading = ref(true)
 const actionLoading = ref<string | null>(null)
+const userAvatarCache = ref<Map<string, string | null>>(new Map())
 
 const filters = reactive({
   status: '',
@@ -318,13 +320,35 @@ const loadComments = async (page = 1) => {
       page,
       page_size: 20
     }
-    
+
     if (filters.status) params.status = parseInt(filters.status)
     if (filters.post_id) params.post_id = filters.post_id
     if (filters.user_id) params.user_id = filters.user_id
-    
+
     const data = await api.getAdminComments(params)
-    comments.value = data.items
+
+    // Batch fetch user avatars
+    const userIds = [...new Set(data.items.map(comment => comment.user_id))] as string[]
+    const uncachedIds = userIds.filter(id => !userAvatarCache.value.has(id))
+
+    if (uncachedIds.length > 0) {
+      await Promise.all(uncachedIds.map(async (userId) => {
+        try {
+          const user = await api.getUser(userId)
+          userAvatarCache.value.set(userId, user.avatar_url || null)
+        } catch {
+          userAvatarCache.value.set(userId, null)
+        }
+      }))
+    }
+
+    // Enrich comments with avatar URLs
+    const enrichedComments = data.items.map(comment => ({
+      ...comment,
+      user_avatar_url: userAvatarCache.value.get(comment.user_id) ?? null
+    })) as CommentDto[]
+
+    comments.value = enrichedComments
     commentsData.value = data
   } catch (error: any) {
     toast.error('加载评论列表失败')

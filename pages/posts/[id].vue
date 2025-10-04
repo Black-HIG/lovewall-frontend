@@ -22,16 +22,13 @@
       <!-- Post Card -->
       <GlassCard class="p-6">
         <div class="flex flex-col lg:flex-row gap-6">
-          <!-- Image or Author Avatar -->
-          <div class="lg:w-1/3">
-            <img
-              v-if="post.image_path"
-              :src="assetUrl(post.image_path)"
-              :alt="`${post.author_name}对${post.target_name}的表白`"
-              class="w-full rounded-xl object-cover shadow-lg cursor-pointer"
-              @click="showImageModal = true"
-            >
-            <!-- Author Avatar (if no image) -->
+          <!-- Images or Author Avatar -->
+          <div class="lg:w-1/3 space-y-4">
+            <ImageGrid
+              v-if="post.images?.length"
+              :images="post.images"
+              :alt-prefix="`${post.author_name}对${post.target_name}的表白`"
+            />
             <div 
               v-else
               class="w-24 h-24 mx-auto rounded-full flex-shrink-0 cursor-pointer hover:ring-2 hover:ring-brand-300/50 transition-all"
@@ -59,7 +56,7 @@
                 <div class="flex items-center gap-2">
                   <!-- Author avatar (if post has image) -->
                   <div 
-                    v-if="post.image_path"
+                    v-if="post.images?.length"
                     class="w-8 h-8 rounded-full flex-shrink-0 cursor-pointer hover:ring-2 hover:ring-brand-300/50 transition-all"
                     @click="navigateToUser(post)"
                   >
@@ -98,20 +95,11 @@
                   <CalendarIcon class="w-4 h-4" />
                   <span>{{ formatDate(post.created_at) }}</span>
                   
-                  <!-- Actions: Edit (if allowed) + Admin badges -->
+                  <!-- Admin badges -->
                   <div class="flex items-center gap-2 ml-auto flex-wrap">
-                    <GlassButton
-                      v-if="canEditPost"
-                      variant="secondary"
-                      class="!text-xs !py-1 !px-3"
-                      @click="openEditModal"
-                    >
-                      编辑
-                    </GlassButton>
-                    
                     <!-- 审核状态 -->
                     <span
-                      v-if="(auth.isSuperadmin || auth.hasAnyPerm(['HIDE_POST','DELETE_POST','EDIT_POST'])) && post.audit_status === 2"
+                      v-if="(auth.isSuperadmin || auth.hasPerm('MANAGE_POSTS')) && post.audit_status === 2"
                       class="px-2 py-1 text-xs bg-red-100 text-red-800 rounded-full"
                       :title="post.audit_msg || 'AI审核未通过'"
                     >
@@ -119,7 +107,7 @@
                     </span>
                     
                     <span
-                      v-if="(auth.isSuperadmin || auth.hasAnyPerm(['HIDE_POST','DELETE_POST','EDIT_POST'])) && post.manual_review_requested"
+                      v-if="(auth.isSuperadmin || auth.hasPerm('MANAGE_POSTS')) && post.manual_review_requested"
                       class="px-2 py-1 text-xs bg-orange-100 text-orange-800 rounded-full"
                       title="用户已申请人工复核"
                     >
@@ -139,7 +127,7 @@
                     置顶
                   </span>
                   <span
-                    v-if="(auth.isSuperadmin || auth.hasAnyPerm(['HIDE_POST','DELETE_POST','EDIT_POST'])) && post.status === 1"
+                    v-if="(auth.isSuperadmin || auth.hasPerm('MANAGE_POSTS')) && post.status === 1"
                     class="px-2 py-1 text-xs bg-gray-100 text-gray-800 rounded-full"
                   >
                     已隐藏
@@ -155,7 +143,7 @@
 
             <!-- AI审核信息（仅管理员可见） -->
             <div 
-              v-if="(auth.isSuperadmin || auth.hasAnyPerm(['HIDE_POST','DELETE_POST','EDIT_POST'])) && post.audit_status === 2 && post.audit_msg" 
+              v-if="(auth.isSuperadmin || auth.hasPerm('MANAGE_POSTS')) && post.audit_status === 2 && post.audit_msg" 
               class="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg"
             >
               <div class="flex items-start gap-2">
@@ -177,7 +165,7 @@
               <div class="flex flex-wrap gap-2">
                 <template v-if="post.status === 0">
                   <GlassButton
-                    v-if="auth.hasPerm('PIN_POST')"
+                    v-if="auth.hasPerm('MANAGE_FEATURED')"
                     @click="togglePin"
                     :loading="actionLoading"
                     variant="secondary"
@@ -187,7 +175,7 @@
                   </GlassButton>
                   
                   <GlassButton
-                    v-if="auth.hasPerm('FEATURE_POST')"
+                    v-if="auth.hasPerm('MANAGE_FEATURED')"
                     @click="toggleFeature"
                     :loading="actionLoading"
                     variant="secondary"
@@ -198,7 +186,7 @@
                 </template>
                 
                 <GlassButton
-                  v-if="auth.hasPerm('HIDE_POST') && post.status !== 2"
+                  v-if="auth.hasPerm('MANAGE_POSTS') && post.status !== 2"
                   @click="toggleHide"
                   :loading="actionLoading"
                   variant="secondary"
@@ -208,7 +196,7 @@
                 </GlassButton>
                 
                 <GlassButton
-                  v-if="auth.hasPerm('DELETE_POST')"
+                  v-if="auth.hasPerm('MANAGE_POSTS')"
                   @click="confirmDelete"
                   :loading="actionLoading"
                   variant="secondary"
@@ -296,6 +284,7 @@
                       :src="assetUrl(comment.user_avatar_url)"
                       :alt="commentDisplayName(comment)"
                       class="w-10 h-10 rounded-full object-cover"
+                      @error="() => { comment.user_avatar_url = null }"
                     >
                     <div 
                       v-else
@@ -320,23 +309,13 @@
                         <span class="text-xs text-gray-500">
                           {{ formatDate(comment.created_at) }}
                         </span>
-                        <div v-if="canManageComment(comment)" class="flex items-center gap-1">
-                          <GlassButton
-                            v-if="comment.user_id === auth.currentUser?.id && canEditComment(comment)"
-                            @click="startEditComment(comment)"
-                            variant="secondary"
-                            class="!px-2 !py-1 text-xs"
-                          >
-                            编辑
-                          </GlassButton>
-                          <GlassButton
-                            @click="hideComment(comment)"
-                            variant="secondary"
-                            class="!px-2 !py-1 text-xs"
-                          >
-                            {{ comment.status === 0 ? '隐藏' : '恢复' }}
-                          </GlassButton>
-                        </div>
+                        <button
+                          v-if="canManageComment(comment)"
+                          @click="hideComment(comment)"
+                          class="px-2 py-1 text-xs text-gray-600 hover:text-brand-600 border border-gray-300 hover:border-brand-400 rounded transition-colors"
+                        >
+                          {{ comment.status === 0 ? '隐藏' : '恢复' }}
+                        </button>
                       </div>
                     </div>
                     
@@ -362,42 +341,6 @@
         </template>
       </GlassCard>
     </div>
-
-    <!-- Image Modal -->
-    <div
-      v-if="showImageModal && post?.image_path"
-      class="fixed inset-0 z-[9000] flex items-center justify-center bg-black/80 backdrop-blur-sm"
-      @click="showImageModal = false"
-    >
-      <div class="max-w-4xl max-h-[90vh] p-4">
-        <img
-          :src="assetUrl(post.image_path)"
-          :alt="`${post.author_name}对${post.target_name}的表白`"
-          class="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
-        >
-      </div>
-    </div>
-
-    <!-- Edit Post Modal -->
-    <GlassModal
-      :is-open="showEditModal"
-      title="编辑帖子"
-      max-width="max-w-xl"
-      @close="showEditModal = false"
-    >
-      <div class="space-y-4">
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">帖子内容</label>
-          <GlassTextarea v-model="editForm.content" :rows="8" placeholder="请输入帖子内容" />
-        </div>
-      </div>
-      <template #footer>
-        <div class="flex gap-3 justify-end">
-          <GlassButton @click="showEditModal = false" variant="secondary">取消</GlassButton>
-          <GlassButton @click="submitEdit" :loading="editSubmitting">保存</GlassButton>
-        </div>
-      </template>
-    </GlassModal>
 
     <!-- Delete Confirmation Modal -->
     <GlassModal
@@ -481,17 +424,35 @@
 
 <script setup lang="ts">
 import { CalendarIcon } from 'lucide-vue-next'
+import { onBeforeRouteUpdate } from 'vue-router'
 // 显式导入，确保本页组件解析正常
 import GlassButton from '~/components/ui/GlassButton.vue'
 import GlassTextarea from '~/components/ui/GlassTextarea.vue'
 import GlassModal from '~/components/ui/GlassModal.vue'
 import TagBadge from '~/components/ui/TagBadge.vue'
+import LoadingSpinner from '~/components/ui/LoadingSpinner.vue'
+import GlassCard from '~/components/ui/GlassCard.vue'
+import ImageGrid from '~/components/ui/ImageGrid.vue'
 import type { PostDto, CommentDto, Pagination, CommentForm } from '~/types'
 
 // Get route params
 const route = useRoute()
 const router = useRouter()
-const postId = route.params.id as string
+const onRouteUpdate = async () => {
+  loading.value = true
+  error.value = null
+  post.value = null
+  comments.value = []
+  commentsData.value = null
+  authorAvatar.value = null
+  await loadPost()
+  if (post.value) {
+    await loadComments(1)
+  }
+  loading.value = false
+}
+// Keep id reactive to handle in-component route updates
+const postId = computed(() => route.params.id as string)
 
 // Stores
 const auth = useAuthStore()
@@ -508,10 +469,8 @@ const commentsLoading = ref(false)
 const commentSubmitting = ref(false)
 const actionLoading = ref(false)
 const error = ref<string | null>(null)
-const showImageModal = ref(false)
 const showDeleteModal = ref(false)
 const deleteReason = ref('')
-const showEditModal = ref(false)
 const showAIRejectionModal = ref(false)
 const aiRejectionInfo = ref<{
   message: string
@@ -526,6 +485,7 @@ const aiRejectionInfo = ref<{
 })
 const reviewRequesting = ref(false)
 const authorAvatar = ref<string | null>(null)
+const userAvatarCache = ref<Map<string, string | null>>(new Map())
 // Current user's active tag preview (only if enabled)
 const myActiveTagPreview = ref<{ name: string; title: string; background_color: string; text_color: string } | null>(null)
 
@@ -535,25 +495,12 @@ const commentForm = reactive<CommentForm>({
 })
 const commentErrors = ref<Partial<CommentForm>>({})
 
-// Edit form state (only content)
-const editForm = reactive<{ content: string }>({
-  content: '',
-})
-const editSubmitting = ref(false)
-
 // Computed
 const showAdminActions = computed(() => {
   return auth.isAuthenticated && (
     auth.isSuperadmin ||
-    auth.hasAnyPerm(['PIN_POST', 'FEATURE_POST', 'HIDE_POST', 'DELETE_POST'])
+    auth.hasAnyPerm(['MANAGE_FEATURED', 'MANAGE_POSTS'])
   )
-})
-
-// Show Edit entry if author or has permission; server enforces time window
-const canEditPost = computed(() => {
-  if (!post.value || !auth.isAuthenticated) return false
-  if (auth.isSuperadmin || auth.hasPerm('EDIT_POST')) return true
-  return post.value.author_id === auth.currentUser?.id
 })
 
 // Fetch author avatar
@@ -577,18 +524,18 @@ const loadPost = async () => {
   try {
     const api = useApi()
     // 根据用户权限决定使用哪个接口
-    if (auth.isAuthenticated && (auth.isSuperadmin || auth.hasAnyPerm(['HIDE_POST', 'DELETE_POST', 'EDIT_POST']))) {
-      post.value = await api.getPostForAdmin(postId)
+    if (auth.isAuthenticated && (auth.isSuperadmin || auth.hasPerm('MANAGE_POSTS'))) {
+      post.value = await api.getPostForAdmin(postId.value)
     } else {
-      post.value = await api.getPost(postId)
+      post.value = await api.getPost(postId.value)
     }
     // Fetch author avatar after loading post
     await fetchAuthorAvatar()
   } catch (err: any) {
     // 若普通详情接口拿不到，且当前用户具备管理权限，尝试从首页缓存里回退读取（隐藏贴在首页可见）
-    const canModerate = auth.isSuperadmin || auth.hasAnyPerm(['HIDE_POST', 'DELETE_POST', 'EDIT_POST'])
+    const canModerate = auth.isSuperadmin || auth.hasPerm('MANAGE_POSTS')
     if (canModerate) {
-      const cached = home.posts.find(p => p.id === postId)
+      const cached = home.posts.find(p => p.id === postId.value)
       if (cached) {
         post.value = cached
         error.value = null
@@ -605,12 +552,31 @@ const loadComments = async (page = 1) => {
   commentsLoading.value = true
   try {
     const api = useApi()
-    const data = await api.listComments(postId, { page, page_size: 20 })
-    
+    const data = await api.listComments(postId.value, { page, page_size: 20 })
+
+    const userIds = [...new Set(data.items.map(comment => comment.user_id))] as string[]
+    const uncachedIds = userIds.filter(id => !userAvatarCache.value.has(id))
+
+    if (uncachedIds.length > 0) {
+      await Promise.all(uncachedIds.map(async (userId) => {
+        try {
+          const user = await api.getUser(userId)
+          userAvatarCache.value.set(userId, user.avatar_url || null)
+        } catch {
+          userAvatarCache.value.set(userId, null)
+        }
+      }))
+    }
+
+    const enrichedComments = data.items.map(comment => ({
+      ...comment,
+      user_avatar_url: userAvatarCache.value.get(comment.user_id) ?? null
+    })) as CommentDto[]
+
     if (page === 1) {
-      comments.value = data.items
+      comments.value = enrichedComments
     } else {
-      comments.value.push(...data.items)
+      comments.value.push(...enrichedComments)
     }
     commentsData.value = data
   } catch (err: any) {
@@ -641,7 +607,7 @@ const submitComment = async () => {
   
   try {
     const api = useApi()
-    const newComment = await api.createComment(postId, commentForm)
+    const newComment = await api.createComment(postId.value, commentForm)
     
     // Add to top of comments list
     // 确保展示昵称：优先后端 user_display_name；若缺失则用当前登录者昵称回填
@@ -697,19 +663,6 @@ const canManageComment = (comment: CommentDto) => {
     auth.isSuperadmin ||
     auth.hasPerm('MANAGE_COMMENTS')
   )
-}
-
-const canEditComment = (comment: CommentDto) => {
-  if (!comment.created_at) return false
-  const createdAt = new Date(comment.created_at)
-  const now = new Date()
-  const diffMinutes = (now.getTime() - createdAt.getTime()) / (1000 * 60)
-  return diffMinutes <= 15 || auth.hasPerm('MANAGE_COMMENTS')
-}
-
-const startEditComment = (comment: CommentDto) => {
-  // TODO: Implement comment editing
-  toast.info('评论编辑功能正在开发中')
 }
 
 const hideComment = async (comment: CommentDto) => {
@@ -829,48 +782,6 @@ const closeDeleteModal = () => {
   deleteReason.value = ''
 }
 
-// Open edit modal prefilled with current post
-const openEditModal = () => {
-  if (!post.value) return
-  editForm.content = post.value.content || ''
-  showEditModal.value = true
-}
-
-// Submit edits
-const submitEdit = async () => {
-  if (!post.value || editSubmitting.value) return
-  const payload: Partial<PostDto> = {}
-  if (editForm.content !== post.value.content) payload.content = editForm.content
-  // Length limit: 2000 characters
-  if (payload.content && payload.content.length > 2000) {
-    toast.error('已提交内容不能超过 2000 个字符')
-    return
-  }
-
-
-  if (Object.keys(payload).length === 0) {
-    toast.info('没有需要保存的更改')
-    showEditModal.value = false
-    return
-  }
-
-  editSubmitting.value = true
-  try {
-    const api = useApi()
-    const updated = await api.updatePost(post.value.id, payload)
-    // Update local state from server response
-    post.value.author_name = updated.author_name
-    post.value.target_name = updated.target_name
-    post.value.content = updated.content
-    toast.success('更新成功')
-    showEditModal.value = false
-  } catch (err) {
-    // Error toasts handled globally; keep modal open for retry
-  } finally {
-    editSubmitting.value = false
-  }
-}
-
 const formatDate = (dateString: string) => {
   return new Date(dateString).toLocaleString('zh-CN')
 }
@@ -943,7 +854,7 @@ const requestReview = async () => {
       // await api.requestCommentReview(commentId)
       toast.info('评论复核申请功能正在开发中')
     } else {
-      await api.requestPostReview(postId)
+      await api.requestPostReview(postId.value)
       toast.success('已提交人工复核申请')
       // 更新帖子状态
       if (post.value) {
@@ -967,12 +878,25 @@ onMounted(async () => {
   // Prepare current user's active tag preview for comment UI
   await fetchMyActiveTagPreview()
   loading.value = false
-  // Open edit modal if requested via query and allowed
-  try {
-    if ((route.query as any)?.edit && canEditPost.value) {
-      openEditModal()
-    }
-  } catch {}
+})
+
+// Handle in-app navigation to different post IDs
+onBeforeRouteUpdate(async (to, from) => {
+  if (to.params.id !== from.params.id) {
+    console.log('[PostDetail] onBeforeRouteUpdate triggered', { from: from.params.id, to: to.params.id })
+    await onRouteUpdate()
+    try { window.scrollTo({ top: 0, behavior: 'smooth' }) } catch {}
+  }
+})
+
+// Force remount when param changes (extra safety in addition to watch)
+definePageMeta({
+  key: (route: any) => `post-${route.params?.id ?? ''}`
+})
+// React to route param changes when navigating between /posts/:id
+watch(() => postId.value, async () => {
+  await onRouteUpdate()
+  try { window.scrollTo({ top: 0, behavior: 'smooth' }) } catch {}
 })
 
 // SEO

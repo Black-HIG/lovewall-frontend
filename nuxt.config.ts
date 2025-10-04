@@ -1,59 +1,10 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
-// Dev-time CORS handling: if NUXT_PUBLIC_API_BASE is an absolute URL,
-// proxy its pathname to its origin so the browser sees same-origin requests.
-const isDev = process.env.NODE_ENV !== 'production'
-const rawApiBase = process.env.NUXT_PUBLIC_API_BASE
-
-let publicApiBase = rawApiBase
-let devProxy: Record<string, any> | undefined
-
-if (isDev && rawApiBase) {
-  try {
-    const u = new URL(rawApiBase)
-    const apiPath = u.pathname.endsWith('/') ? u.pathname : `${u.pathname}/`
-    const apiOrigin = `${u.protocol}//${u.host}`
-    // Only apply proxy when path is not root.
-    // Guard against accidentally proxying '/' which would hijack all routes including '/_nuxt'.
-    if (apiPath !== '/') {
-      // In dev, make the browser call a relative path to avoid CORS,
-      // while dev server proxies that path to the real backend.
-      const pathNoSlash = apiPath.replace(/\/$/, '') || '/'
-      publicApiBase = pathNoSlash
-      devProxy = {
-        [apiPath]: { 
-          target: apiOrigin, 
-          changeOrigin: true, 
-          secure: false,
-          cookieDomainRewrite: '',
-          headers: {
-            'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Methods': 'GET,HEAD,PUT,PATCH,POST,DELETE',
-            'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Device-ID, X-Admin-View'
-          }
-        },
-        [pathNoSlash]: { 
-          target: apiOrigin, 
-          changeOrigin: true, 
-          secure: false,
-          cookieDomainRewrite: '',
-          headers: {
-            'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Methods': 'GET,HEAD,PUT,PATCH,POST,DELETE',
-            'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Device-ID, X-Admin-View'
-          }
-        },
-      }
-    }
-  } catch {
-    // rawApiBase is not an absolute URL; assume it's already a relative path
-  }
-}
-
 export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
   devtools: { enabled: true },
+  components: true,
   
-  // SPA mode for better performance
+  // SPA mode
   ssr: false,
   
   modules: [
@@ -62,18 +13,10 @@ export default defineNuxtConfig({
     '@vueuse/nuxt'
   ],
   
-  runtimeConfig: {
-    public: {
-      // Do not provide defaults here per user requirement
-      apiBase: publicApiBase,
-      randomImageApiUrl: process.env.NUXT_PUBLIC_RANDOM_IMAGE_API_URL || 'https://pic.zz4th.space/',
-      pageSize: process.env.NUXT_PUBLIC_PAGE_SIZE ? parseInt(process.env.NUXT_PUBLIC_PAGE_SIZE) : undefined,
-    }
-  },
-  
-  css: ['~/assets/css/main.css'],
-  
+  // 添加页面过渡效果
   app: {
+    pageTransition: { name: 'page', mode: 'out-in' },
+    layoutTransition: { name: 'layout', mode: 'out-in' },
     head: {
       title: 'Love Wall - 表白墙',
       htmlAttrs: {
@@ -87,10 +30,46 @@ export default defineNuxtConfig({
         { 'http-equiv': 'Content-Type', content: 'text/html; charset=UTF-8' }
       ],
       link: [
-        { rel: 'icon', type: 'image/x-icon', href: '/favicon.ico' }
+        { rel: 'icon', type: 'image/x-icon', href: '/favicon.ico' },
+        { rel: 'preconnect', href: 'https://static.geetest.com' },
+        { rel: 'dns-prefetch', href: 'https://static.geetest.com' }
       ]
     }
   },
+  
+  // 确保代理配置正确 - SPA 模式下用 vite.server.proxy
+  vite: {
+    define: {
+      __VUE_PROD_HYDRATION_MISMATCH_DETAILS__: 'false'
+    },
+    server: {
+      proxy: {
+        '/api': {
+          target: 'http://127.0.0.1:8124',
+          changeOrigin: true,
+          secure: false,
+          rewrite: (path) => path.replace(/^\/api/, '/api'),
+        }
+      }
+    }
+  },
+  
+  runtimeConfig: {
+    // Private runtime config (server only)
+    geetestKey: process.env.NUXT_GEETEST_KEY,
+    public: {
+      // 使用相对路径，通过代理访问API
+      apiBase: '/api',
+      randomImageApiUrl: process.env.NUXT_PUBLIC_RANDOM_IMAGE_API_URL || 'https://pic.zz4th.space/',
+      pageSize: process.env.NUXT_PUBLIC_PAGE_SIZE ? parseInt(process.env.NUXT_PUBLIC_PAGE_SIZE) : undefined,
+      // Geetest (client needs captchaId)
+      geetestId: process.env.NUXT_PUBLIC_GEETEST_ID,
+      // Mainland-friendly jsDelivr origin (used when building CDN links)
+      jsdelivrOrigin: process.env.NUXT_PUBLIC_JSDELIVR_ORIGIN || 'https://fastly.jsdelivr.net',
+    }
+  },
+  
+  css: ['~/assets/css/main.css'],
   
   tailwindcss: {
     configPath: '~/tailwind.config.js'
@@ -100,19 +79,16 @@ export default defineNuxtConfig({
   build: {
     transpile: []
   },
-  
-  vite: {
-    define: {
-      __VUE_PROD_HYDRATION_MISMATCH_DETAILS__: 'false'
-    },
-    server: {
-      proxy: isDev && devProxy
-        ? Object.fromEntries(Object.entries(devProxy).map(([path, cfg]: any) => [path, { target: cfg.target, changeOrigin: true, secure: false }]))
-        : undefined,
-    },
-  },
-  
+    
+  // Nitro 代理作为备用
   nitro: {
-    devProxy: isDev ? devProxy : undefined,
+    devProxy: {
+      '/api': {
+        target: 'http://127.0.0.1:8124',
+        changeOrigin: true,
+        prependPath: true,
+        ws: true
+      }
+    }
   }
 })

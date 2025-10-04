@@ -7,6 +7,7 @@ interface AuthState {
   accessToken: string | null
   isLoading: boolean
   error: string | null
+  initialized: boolean
 }
 
 export const useAuthStore = defineStore('auth', {
@@ -16,6 +17,7 @@ export const useAuthStore = defineStore('auth', {
     accessToken: null,
     isLoading: false,
     error: null,
+    initialized: false,
   }),
 
   getters: {
@@ -204,7 +206,10 @@ export const useAuthStore = defineStore('auth', {
     },
 
     async initAuth(): Promise<void> {
-      if (!process.client) return
+      if (!process.client) {
+        this.initialized = true
+        return
+      }
       
       // Try to restore token from localStorage
       const token = localStorage.getItem('auth_token')
@@ -229,6 +234,7 @@ export const useAuthStore = defineStore('auth', {
           try { cookies.setToken(null) } catch {}
         }
       }
+      this.initialized = true
     },
 
     clearError(): void {

@@ -23,11 +23,8 @@ export const usePermissions = () => {
     canManageComments: computed(() => auth.isSuperadmin || auth.hasPerm('MANAGE_COMMENTS')),
     canManageAnnouncements: computed(() => auth.isSuperadmin || auth.hasPerm('MANAGE_ANNOUNCEMENTS')),
     canManageTags: computed(() => auth.isSuperadmin || auth.hasPerm('MANAGE_TAGS')),
-    canEditPost: computed(() => auth.isSuperadmin || auth.hasPerm('EDIT_POST')),
-    canDeletePost: computed(() => auth.isSuperadmin || auth.hasPerm('DELETE_POST')),
-    canHidePost: computed(() => auth.isSuperadmin || auth.hasPerm('HIDE_POST')),
-    canPinPost: computed(() => auth.isSuperadmin || auth.hasPerm('PIN_POST')),
-    canFeaturePost: computed(() => auth.isSuperadmin || auth.hasPerm('FEATURE_POST')),
+    canManagePosts: computed(() => auth.isSuperadmin || auth.hasPerm('MANAGE_POSTS')),
+    canManageFeatured: computed(() => auth.isSuperadmin || auth.hasPerm('MANAGE_FEATURED')),
 
     // 管理员权限检查 (拥有任一管理权限)
     isAdmin: computed(() => {
@@ -43,26 +40,11 @@ export const usePermissions = () => {
     // 内容管理权限检查
     isContentManager: computed(() => {
       const contentPerms: PermissionType[] = [
-        'EDIT_POST',
-        'DELETE_POST',
-        'HIDE_POST', 
-        'PIN_POST',
-        'FEATURE_POST',
+        'MANAGE_POSTS',
+        'MANAGE_FEATURED',
         'MANAGE_COMMENTS'
       ]
       return auth.isSuperadmin || auth.hasAnyPerm(contentPerms)
-    }),
-
-    // 帖子审核权限统一检查 - 拥有任意帖子管理权限即可审核
-    hasPostModerationPermission: computed(() => {
-      const postModerationPerms: PermissionType[] = [
-        'HIDE_POST',
-        'DELETE_POST', 
-        'EDIT_POST',
-        'PIN_POST',
-        'FEATURE_POST'
-      ]
-      return auth.isSuperadmin || auth.hasAnyPerm(postModerationPerms)
     })
   }
 }
@@ -73,11 +55,8 @@ export const usePermissions = () => {
 export const getPermissionDisplayName = (perm: string): string => {
   const permissionNames: Record<string, string> = {
     'MANAGE_USERS': '用户管理',
-    'EDIT_POST': '编辑表白',
-    'DELETE_POST': '删除表白', 
-    'HIDE_POST': '隐藏表白',
-    'PIN_POST': '置顶表白',
-    'FEATURE_POST': '精选表白',
+    'MANAGE_POSTS': '帖子管理',
+    'MANAGE_FEATURED': '精华管理',
     'MANAGE_ANNOUNCEMENTS': '公告管理',
     'MANAGE_COMMENTS': '评论管理',
     'MANAGE_TAGS': '标签管理',
@@ -96,7 +75,7 @@ export const getPermissionGroups = () => {
     },
     {
       name: '内容管理',
-      permissions: ['EDIT_POST', 'DELETE_POST', 'HIDE_POST', 'PIN_POST', 'FEATURE_POST']
+      permissions: ['MANAGE_POSTS', 'MANAGE_FEATURED']
     },
     {
       name: '社区管理', 
@@ -119,31 +98,16 @@ export const isContentCreator = (creatorId: string, userId?: string): boolean =>
 
 /**
  * 检查是否可以编辑内容（限时编辑或有权限）
+ * 注意：后端已废弃编辑功能，此函数仅保留用于历史兼容
  */
 export const canEditContent = (
-  createdAt: string, 
-  creatorId: string, 
+  createdAt: string,
+  creatorId: string,
   currentUserId?: string,
   editTimeLimit = 15 // 15分钟
 ): boolean => {
-  const permissions = usePermissions()
-  
-  // 有编辑权限直接返回 true
-  if (permissions.canEditPost.value) {
-    return true
-  }
-  
-  // 检查是否是创建者
-  if (!isContentCreator(creatorId, currentUserId)) {
-    return false
-  }
-  
-  // 检查时间限制
-  const createdTime = new Date(createdAt).getTime()
-  const now = Date.now()
-  const timeLimit = editTimeLimit * 60 * 1000 // 转换为毫秒
-  
-  return (now - createdTime) <= timeLimit
+  // 编辑功能已废弃，始终返回 false
+  return false
 }
 
 /**
@@ -154,7 +118,7 @@ export const getUserPermissionLevel = (user: any): 'superadmin' | 'admin' | 'con
   
   const permissions = user?.permissions || []
   const adminPerms = ['MANAGE_USERS', 'MANAGE_ANNOUNCEMENTS', 'MANAGE_COMMENTS', 'MANAGE_TAGS']
-  const contentPerms = ['EDIT_POST', 'DELETE_POST', 'HIDE_POST', 'PIN_POST', 'FEATURE_POST']
+  const contentPerms = ['MANAGE_POSTS', 'MANAGE_FEATURED']
   
   if (permissions.some((p: string) => adminPerms.includes(p))) {
     return 'admin'

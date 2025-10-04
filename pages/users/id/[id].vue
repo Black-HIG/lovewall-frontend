@@ -111,9 +111,9 @@
           >
             <div class="flex gap-4">
               <!-- Post Image Thumbnail -->
-              <div v-if="post.image_path" class="flex-shrink-0">
+              <div v-if="post.images?.length" class="flex-shrink-0">
                 <img
-                  :src="assetUrl(post.image_path)"
+                  :src="assetUrl(post.images[0])"
                   :alt="`${post.author_name}对${post.target_name}的表白`"
                   class="w-20 h-20 object-cover rounded-lg"
                 >
@@ -173,13 +173,18 @@
 </template>
 
 <script setup lang="ts">
+import { onBeforeRouteUpdate } from 'vue-router'
+import GlassCard from '~/components/ui/GlassCard.vue'
+import GlassButton from '~/components/ui/GlassButton.vue'
+import LoadingSpinner from '~/components/ui/LoadingSpinner.vue'
+import TagBadge from '~/components/ui/TagBadge.vue'
 import { HeartIcon } from 'lucide-vue-next'
 import type { User, PostDto, Pagination } from '~/types'
 import type { ActiveTagDto } from '~/types/extra'
 
 // Get route params
 const route = useRoute()
-const userId = route.params.id as string
+const userId = computed(() => route.params.id as string)
 
 // State
 const user = ref<User | null>(null)
@@ -209,7 +214,7 @@ const isDeleted = computed(() => {
 const loadUser = async () => {
   try {
     const api = useApi()
-    const status = await api.getUserStatus(userId)
+    const status = await api.getUserStatus(userId.value)
     userStatus.value = {
       exists: status.exists,
       isdeleted: !!status.isdeleted,
@@ -220,8 +225,8 @@ const loadUser = async () => {
       error.value = '用户不存在或已注销'
       return
     }
-    user.value = await api.getUser(userId)
-    activeTag.value = await api.getUserActiveTag(userId)
+    user.value = await api.getUser(userId.value)
+    activeTag.value = await api.getUserActiveTag(userId.value)
   } catch (err: any) {
     error.value = err.message || '用户信息加载失败'
   }
@@ -266,6 +271,48 @@ onMounted(async () => {
   }
   loading.value = false
 })
+
+// Handle in-app navigation to different user IDs
+onBeforeRouteUpdate(async (to, from) => {
+  if (to.params.id !== from.params.id) {
+    console.log('[UserProfileById] onBeforeRouteUpdate triggered', { from: from.params.id, to: to.params.id })
+    loading.value = true
+    error.value = null
+    user.value = null
+    activeTag.value = null
+    userPosts.value = []
+    postsData.value = null
+    await loadUser()
+    if (user.value) {
+      await loadUserPosts(1)
+    }
+    loading.value = false
+    try { window.scrollTo({ top: 0, behavior: 'smooth' }) } catch {}
+  }
+})
+
+definePageMeta({
+  key: (route: any) => `user-id-${(route as any).params?.id ?? ''}`
+})
+
+// React when navigating between /users/id/:id without full reload
+watch(
+  () => userId.value,
+  async () => {
+    loading.value = true
+    error.value = null
+    user.value = null
+    activeTag.value = null
+    userPosts.value = []
+    postsData.value = null
+    await loadUser()
+    if (user.value) {
+      await loadUserPosts(1)
+    }
+    loading.value = false
+    try { window.scrollTo({ top: 0, behavior: 'smooth' }) } catch {}
+  }
+)
 
 // SEO
 useHead(() => {

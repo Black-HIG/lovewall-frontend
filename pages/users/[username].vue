@@ -111,9 +111,9 @@
           >
             <div class="flex gap-4">
               <!-- Post Image Thumbnail -->
-              <div v-if="post.image_path" class="flex-shrink-0">
+              <div v-if="post.images?.length" class="flex-shrink-0">
                 <img
-                  :src="assetUrl(post.image_path)"
+                  :src="assetUrl(post.images[0])"
                   :alt="`${post.author_name}对${post.target_name}的表白`"
                   class="w-20 h-20 object-cover rounded-lg"
                 >
@@ -173,13 +173,18 @@
 </template>
 
 <script setup lang="ts">
+import { onBeforeRouteUpdate } from 'vue-router'
+import GlassCard from '~/components/ui/GlassCard.vue'
+import GlassButton from '~/components/ui/GlassButton.vue'
+import LoadingSpinner from '~/components/ui/LoadingSpinner.vue'
+import TagBadge from '~/components/ui/TagBadge.vue'
 import { HeartIcon } from 'lucide-vue-next'
 import type { User, PostDto, Pagination } from '~/types'
 import type { ActiveTagDto } from '~/types/extra'
 
 // Get route params
 const route = useRoute()
-const username = route.params.username as string
+const username = computed(() => route.params.username as string)
 
 // State
 const user = ref<User | null>(null)
@@ -209,7 +214,7 @@ const isDeleted = computed(() => {
 const loadUser = async () => {
   try {
     const api = useApi()
-    const status = await api.getUserStatusByUsername(username)
+    const status = await api.getUserStatusByUsername(username.value)
     userStatus.value = {
       exists: status.exists,
       isdeleted: !!status.isdeleted,
@@ -221,8 +226,8 @@ const loadUser = async () => {
       error.value = '用户不存在或已注销'
       return
     }
-    user.value = await api.getUserByUsername(username)
-    activeTag.value = await api.getUserActiveTagByUsername(username)
+    user.value = await api.getUserByUsername(username.value)
+    activeTag.value = await api.getUserActiveTagByUsername(username.value)
   } catch (err: any) {
     error.value = err.message || '用户信息加载失败'
   }
@@ -267,6 +272,48 @@ onMounted(async () => {
   }
   loading.value = false
 })
+
+// Handle in-app navigation to different usernames
+onBeforeRouteUpdate(async (to, from) => {
+  if (to.params.username !== from.params.username) {
+    console.log('[UserProfile] onBeforeRouteUpdate triggered', { from: from.params.username, to: to.params.username })
+    loading.value = true
+    error.value = null
+    user.value = null
+    activeTag.value = null
+    userPosts.value = []
+    postsData.value = null
+    await loadUser()
+    if (user.value) {
+      await loadUserPosts(1)
+    }
+    loading.value = false
+    try { window.scrollTo({ top: 0, behavior: 'smooth' }) } catch {}
+  }
+})
+
+definePageMeta({
+  key: (route: any) => `user-username-${(route as any).params?.username ?? ''}`
+})
+
+// React when navigating between /users/:username without full reload
+watch(
+  () => username.value,
+  async () => {
+    loading.value = true
+    error.value = null
+    user.value = null
+    activeTag.value = null
+    userPosts.value = []
+    postsData.value = null
+    await loadUser()
+    if (user.value) {
+      await loadUserPosts(1)
+    }
+    loading.value = false
+    try { window.scrollTo({ top: 0, behavior: 'smooth' }) } catch {}
+  }
+)
 
 // SEO
 useHead(() => {

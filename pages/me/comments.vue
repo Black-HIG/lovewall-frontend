@@ -187,7 +187,7 @@
               </div>
               <NuxtLink
                 :to="`/posts/${comment.post_id}`"
-                class="glass-button-secondary text-xs px-2 py-1 mt-1 inline-block"
+                class="inline-flex items-center gap-1 text-sm text-brand-600 hover:text-brand-700 hover:underline font-medium transition-colors mt-2"
               >
                 查看完整表白 →
               </NuxtLink>

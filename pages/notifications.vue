@@ -30,10 +30,13 @@
         class="p-4 border transition-colors"
         :class="n.is_read ? 'border-white/10' : 'border-brand-300/50'"
       >
-        <div class="flex items-start justify-between gap-4">
+        <div
+          class="flex items-start gap-4"
+          :ref="el => registerNotificationCard(n, el)"
+        >
           <div class="flex-1">
             <div class="flex items-center gap-2 mb-1">
-              <h3 class="font-medium text-gray-800">{{ n.title }}</h3>
+              <h3 class="text-lg font-bold text-gray-900">{{ n.title }}</h3>
               <span v-if="!n.is_read" class="px-2 py-0.5 text-xs bg-blue-100 text-blue-800 rounded-full">未读</span>
             </div>
 
@@ -44,9 +47,6 @@
             />
 
             <div class="text-xs text-gray-500 mt-1">{{ formatDate(n.created_at) }}</div>
-          </div>
-          <div class="flex-shrink-0">
-            <GlassButton v-if="!n.is_read" @click="markRead(n)" size="sm" variant="secondary">标为已读</GlassButton>
           </div>
         </div>
       </GlassCard>
@@ -77,12 +77,76 @@ const loadingMore = ref(false)
 const items = ref<NotificationDto[]>([])
 const data = ref<Pagination<NotificationDto> | null>(null)
 
+interface AutoReadObserver {
+  observer: IntersectionObserver
+  timerId: ReturnType<typeof setTimeout> | null
+  visible: boolean
+}
+
+const autoReadObservers = new Map<string, AutoReadObserver>()
+
+const cleanupObserver = (id: string) => {
+  if (!process.client) return
+  const entry = autoReadObservers.get(id)
+  if (!entry) return
+  entry.observer.disconnect()
+  if (entry.timerId !== null) {
+    window.clearTimeout(entry.timerId)
+  }
+  autoReadObservers.delete(id)
+}
+
+const cleanupObservers = () => {
+  if (!process.client) return
+  autoReadObservers.forEach((entry) => {
+    entry.observer.disconnect()
+    if (entry.timerId !== null) {
+      window.clearTimeout(entry.timerId)
+    }
+  })
+  autoReadObservers.clear()
+}
+
+const registerNotificationCard = (notification: NotificationDto, el: Element | null) => {
+  if (!process.client) return
+  cleanupObserver(notification.id)
+  if (!el || notification.is_read) return
+
+  const element = el instanceof HTMLElement ? el : (el as any)?.$el
+  if (!(element instanceof HTMLElement)) return
+
+  const state: AutoReadObserver = {
+    observer: new IntersectionObserver(([entry]) => {
+      if (!entry) return
+      state.visible = entry.isIntersecting
+      if (state.visible && !notification.is_read) {
+        if (state.timerId === null) {
+          state.timerId = window.setTimeout(async () => {
+            if (state.visible && !notification.is_read) {
+              await markRead(notification)
+            }
+          }, 1000)
+        }
+      } else if (!state.visible && state.timerId !== null) {
+        window.clearTimeout(state.timerId)
+        state.timerId = null
+      }
+    }, { threshold: 0.5 }),
+    timerId: null,
+    visible: false
+  }
+
+  state.observer.observe(element)
+  autoReadObservers.set(notification.id, state)
+}
+
 const load = async (page = 1) => {
   if (page === 1) loading.value = true
   else loadingMore.value = true
   try {
     const res = await api.listNotifications({ page, page_size: 20 })
     if (page === 1) {
+      cleanupObservers()
       items.value = res.items
       notificationContainers.clear()
     } else {
@@ -102,10 +166,15 @@ const refresh = () => load(1)
 const loadMore = () => { if (data.value) load(data.value.page + 1) }
 
 const markRead = async (n: NotificationDto) => {
+  if (n.is_read) {
+    cleanupObserver(n.id)
+    return
+  }
   try {
     await api.markNotificationRead(n.id)
     n.is_read = true
-  } catch { toast.error('标记失败') }
+    cleanupObserver(n.id)
+  } catch { toast.error('���ʧ��') }
 }
 
 const formatDate = (s: string) => new Date(s).toLocaleString('zh-CN')
@@ -220,66 +289,7 @@ const transformNotificationContent = (notification: NotificationDto, dompurify: 
   applyLinkPlaceholder('acceptLink', resolveMetaLink(meta, ['acceptLink', 'accept_link']))
   applyLinkPlaceholder('rejectLink', resolveMetaLink(meta, ['rejectLink', 'reject_link']))
 
-  const placeholders = Array.from(root.querySelectorAll('[data-role="replace-action"]'))
-  placeholders.forEach((placeholder) => {
-    const actionType = placeholder.getAttribute('data-action') || 'view-post'
-    const customLabel = placeholder.getAttribute('data-label')
-    const className = placeholder.getAttribute('data-class') || placeholder.getAttribute('class') || 'inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 hover:bg-white/20 text-sm text-brand-600 transition-colors'
-    const urlKey = placeholder.getAttribute('data-url-key') || ''
-    const explicitUrl = placeholder.getAttribute('data-url') || placeholder.getAttribute('href') || undefined
-    const postId = placeholder.getAttribute('data-post-id') || meta?.post_id
-
-    const label = (customLabel || placeholder.textContent || DEFAULT_ACTION_LABELS[actionType] || '查看详情').trim()
-
-    const replaceWithButton = (notificationAction: string) => {
-      const button = doc.createElement('button')
-      button.type = 'button'
-      button.textContent = label
-      button.className = className
-      button.setAttribute('data-notification-action', notificationAction)
-      button.setAttribute('data-notification-id', notification.id)
-      if (postId) {
-        button.setAttribute('data-post-id', String(postId))
-      }
-      placeholder.replaceWith(button)
-    }
-
-    if (actionType === 'request-review') {
-      replaceWithButton('REQUEST_REVIEW')
-      return
-    }
-
-    if (actionType === 'admin-accept') {
-      replaceWithButton('ADMIN_APPROVE')
-      return
-    }
-
-    if (actionType === 'admin-reject') {
-      replaceWithButton('ADMIN_REJECT')
-      return
-    }
-
-    let resolvedUrl = explicitUrl || resolveMetaLink(meta, [urlKey, actionType])
-    if (!resolvedUrl && actionType === 'view-post' && postId) {
-      resolvedUrl = `/posts/${postId}`
-    }
-    if (!resolvedUrl && actionType === 'appeal') {
-      resolvedUrl = resolveMetaLink(meta, ['appealLink', 'appeal_link'])
-    }
-
-    const safeUrl = sanitizeUrl(resolvedUrl)
-    const anchor = doc.createElement('a')
-    anchor.textContent = label
-    anchor.className = className
-    if (safeUrl) {
-      anchor.setAttribute('href', safeUrl)
-      if (/^https?:/i.test(safeUrl) && !safeUrl.startsWith(window.location.origin)) {
-        anchor.setAttribute('target', '_blank')
-        anchor.setAttribute('rel', 'noopener')
-      }
-    }
-    placeholder.replaceWith(anchor)
-  })
+  // 移除 data-role="replace-action" 相关逻辑,后端已删除等待替换功能
 
   return dompurify.sanitize(root.innerHTML, {
     ADD_ATTR: ['target', 'rel', 'data-notification-action', 'data-post-id', 'data-notification-id', 'type', 'role']
@@ -411,6 +421,8 @@ const requestReview = async (postId: string) => {
     toast.error(e?.message || '申请失败')
   }
 }
+
+onUnmounted(() => cleanupObservers())
 
 onMounted(() => load(1))
 

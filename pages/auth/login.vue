@@ -40,6 +40,12 @@
             />
           </div>
 
+          <!-- Geetest Captcha -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">安全验证</label>
+            <GeetestV4 ref="captchaRef" @verified="onCaptchaVerified" @error="onCaptchaError" />
+          </div>
+
           <!-- Error Message -->
           <div v-if="error" class="p-3 rounded-lg bg-red-50/50 border border-red-200">
             <p class="text-sm text-red-600">{{ error }}</p>
@@ -50,7 +56,7 @@
             type="submit"
             variant="secondary"
             class="w-full"
-            :disabled="!isFormValid || loading"
+            :disabled="!isFormValid || !captchaOk || loading"
           >
             {{ loading ? '登录中...' : '登录' }}
           </GlassButton>
@@ -87,6 +93,8 @@ import GlassButton from '~/components/ui/GlassButton.vue'
 import { z } from 'zod'
 import GlassInput from '~/components/ui/GlassInput.vue'
 import type { LoginForm } from '~/types'
+import type GeetestV4Type from '~/components/security/GeetestV4.vue'
+import GeetestV4 from '~/components/security/GeetestV4.vue'
 
 // Form schema
 const loginSchema = z.object({
@@ -103,6 +111,9 @@ const form = reactive<LoginForm>({
 const errors = reactive<Partial<Record<keyof LoginForm, string>>>({})
 const loading = ref(false)
 const error = ref('')
+const captchaOk = ref(false)
+const captchaTokens = ref<any | null>(null)
+const captchaRef = ref<InstanceType<typeof GeetestV4Type> | null>(null)
 
 // Stores
 const auth = useAuthStore()
@@ -140,6 +151,19 @@ const handleSubmit = async () => {
   error.value = ''
   
   try {
+    // Verify Geetest first
+    if (!captchaOk.value || !captchaTokens.value) {
+      throw new Error('请先完成安全验证')
+    }
+    const verify = await $fetch<{ success: boolean; error?: string }>('\/geetest\/validate', {
+      method: 'POST',
+      body: captchaTokens.value,
+    })
+    if (!verify.success) {
+      captchaOk.value = false
+      captchaRef.value?.reset?.()
+      throw new Error(verify.error || '安全验证失败')
+    }
     console.log('Attempting login with:', { username: form.username })
     await auth.login(form)
     console.log('Login successful, user:', auth.currentUser)
@@ -166,6 +190,17 @@ watch(form, () => {
     validateForm()
   }
 })
+
+// Captcha handlers
+const onCaptchaVerified = (tokens: any) => {
+  captchaTokens.value = tokens
+  captchaOk.value = true
+}
+const onCaptchaError = (msg: string) => {
+  const toast = useToast()
+  toast.error(msg || '验证码出错')
+  captchaOk.value = false
+}
 
 // Redirect if already logged in
 watch(

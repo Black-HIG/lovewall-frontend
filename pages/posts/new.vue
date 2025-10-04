@@ -117,31 +117,49 @@
           <!-- Upload Area -->
           <div
             :class="[
-              'relative border-2 border-dashed rounded-xl p-6 text-center transition-all',
+              'relative border-2 border-dashed rounded-xl p-6 transition-all',
               dragover ? 'border-brand-500 bg-brand-50/50' : 'border-white/30 hover:border-brand-300'
             ]"
             @drop.prevent="handleDrop"
             @dragover.prevent="dragover = true"
             @dragleave.prevent="dragover = false"
           >
-            <!-- Preview Image -->
-            <div v-if="imagePreview" class="relative inline-block">
-              <img
-                :src="imagePreview"
-                alt="预览图片"
-                class="max-w-full max-h-64 rounded-lg"
-              />
-              <button
-                type="button"
-                @click="removeImage"
-                class="absolute -top-2 -right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
-              >
-                <XIcon class="w-4 h-4" />
-              </button>
+            <!-- Preview Grid -->
+            <div v-if="imagePreviews.length" class="space-y-4">
+              <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                <div
+                  v-for="(preview, index) in imagePreviews"
+                  :key="`preview-${index}`"
+                  class="relative group"
+                >
+                  <img
+                    :src="preview"
+                    alt="预览图片"
+                    class="w-full h-40 object-cover rounded-lg border border-white/20"
+                  />
+                  <button
+                    type="button"
+                    @click="removeImage(index)"
+                    class="absolute -top-2 -right-2 p-1 bg-black/70 text-white rounded-full opacity-0 group-hover:opacity-100 transition"
+                  >
+                    <XIcon class="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+              <div class="text-sm text-gray-600 text-center space-y-1">
+                <button
+                  type="button"
+                  @click="fileInput?.click()"
+                  class="text-brand-600 hover:text-brand-700 hover:underline font-medium"
+                >
+                  继续添加图片
+                </button>
+                <p class="text-xs text-gray-500">已选择 {{ form.images.length }} / 9 张</p>
+              </div>
             </div>
 
             <!-- Upload Prompt -->
-            <div v-else class="space-y-2">
+            <div v-else class="space-y-2 text-center">
               <ImageIcon class="w-12 h-12 text-gray-400 mx-auto" />
               <div>
                 <p class="text-sm text-gray-600">
@@ -155,7 +173,7 @@
                   </button>
                 </p>
                 <p class="text-xs text-gray-500 mt-1">
-                  支持 JPG、PNG、WebP、GIF 格式，最大 10MB
+                  支持 JPG、PNG、WebP、GIF 格式，最多 9 张，单张 ≤ 5MB
                 </p>
               </div>
             </div>
@@ -166,12 +184,13 @@
               type="file"
               accept="image/jpeg,image/png,image/webp,image/gif"
               class="hidden"
+              multiple
               @change="handleFileSelect"
             />
           </div>
           
-          <p v-if="errors.image" class="mt-1 text-sm text-red-500">
-            {{ errors.image }}
+          <p v-if="errors.images" class="mt-1 text-sm text-red-500">
+            {{ errors.images }}
           </p>
         </div>
 
@@ -265,14 +284,14 @@ const form = reactive<PostForm & { confessor_mode: 'self' | 'custom' }>({
   author_name: '',
   target_name: '',
   content: '',
-  image: null,
+  images: [],
   confessor_mode: 'custom', // 默认为自定义模式
 })
 
 const errors = reactive<Partial<Record<keyof PostForm, string>>>({})
 const loading = ref(false)
 const dragover = ref(false)
-const imagePreview = ref<string>('')
+const imagePreviews = ref<string[]>([])
 
 // Stores
 const auth = useAuthStore()
@@ -280,9 +299,23 @@ const api = useApi()
 const toast = useToast()
 const router = useRouter()
 
+const showImageError = (message: string) => {
+  errors.images = message
+  toast.error(message)
+  if (typeof window !== 'undefined') {
+    window.setTimeout(() => {
+      if (errors.images === message) {
+        delete errors.images
+      }
+    }, 3000)
+  }
+}
+
 // Computed
 const isFormValid = computed(() => {
-  const baseValid = form.target_name && form.content && Object.keys(errors).length === 0
+  const blockingErrors = Object.entries(errors)
+    .filter(([key, value]) => key !== 'images' && !!value)
+  const baseValid = form.target_name && form.content && blockingErrors.length === 0
   if (form.confessor_mode === 'custom') {
     return baseValid && form.author_name
   }
@@ -309,62 +342,80 @@ const validateForm = () => {
 }
 
 // Handle file selection
-const handleFileSelect = (event: Event) => {
-  const target = event.target as HTMLInputElement
-  const file = target.files?.[0]
-  if (file) {
-    processImage(file)
+const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
+const maxFileSize = 5 * 1024 * 1024
+const maxImages = 9
+
+const resetFileInput = () => {
+  if (fileInput.value) {
+    fileInput.value.value = ''
   }
+}
+
+const handleFileSelect = async (event: Event) => {
+  const target = event.target as HTMLInputElement
+  const files = target.files
+  if (files?.length) {
+    await processFiles(files)
+  }
+  resetFileInput()
 }
 
 // Handle drag and drop
-const handleDrop = (event: DragEvent) => {
+const handleDrop = async (event: DragEvent) => {
   dragover.value = false
-  const file = event.dataTransfer?.files[0]
-  if (file) {
-    processImage(file)
+  const files = event.dataTransfer?.files
+  if (files?.length) {
+    await processFiles(files)
   }
 }
 
-// Process selected image
-const processImage = (file: File) => {
-  // Validate file type
-  const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
-  if (!allowedTypes.includes(file.type)) {
-    errors.image = '不支持的图片格式，请选择 JPG、PNG、WebP 或 GIF 格式'
-    const toast = useToast()
-    toast.error('不支持的图片格式，请选择 JPG、PNG、WebP 或 GIF 格式')
+const processFiles = async (files: FileList | File[]) => {
+  const incoming = Array.from(files)
+
+  if (form.images.length >= maxImages) {
+    showImageError(`最多只能上传 ${maxImages} 张图片`)
     return
   }
 
-  // Validate file size (10MB)
-  const maxSize = 10 * 1024 * 1024
-  if (file.size > maxSize) {
-    errors.image = '图片大小不能超过 10MB'
-    const toast = useToast()
-    toast.error('图片大小不能超过 10MB')
-    return
+  const availableSlots = maxImages - form.images.length
+  const filesToProcess = incoming.slice(0, availableSlots)
+
+  for (const file of filesToProcess) {
+    if (!allowedTypes.includes(file.type)) {
+      showImageError('不支持的图片格式，请选择 JPG、PNG、WebP 或 GIF 格式')
+      continue
+    }
+    if (file.size > maxFileSize) {
+      showImageError('单张图片大小不能超过 5MB')
+      continue
+    }
+
+    form.images.push(file)
+    delete errors.images
+    imagePreviews.value.push(await fileToDataUrl(file))
   }
 
-  // Clear previous error
-  delete errors.image
-
-  // Set file and create preview
-  form.image = file
-  const reader = new FileReader()
-  reader.onload = (e) => {
-    imagePreview.value = e.target?.result as string
+  if (incoming.length > filesToProcess.length) {
+    showImageError(`最多只能上传 ${maxImages} 张图片`)
   }
-  reader.readAsDataURL(file)
+}
+
+const fileToDataUrl = (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = (e) => resolve(e.target?.result as string)
+    reader.onerror = () => reject(new Error('图片预览生成失败'))
+    reader.readAsDataURL(file)
+  })
 }
 
 // Remove image
-const removeImage = () => {
-  form.image = null
-  imagePreview.value = ''
-  delete errors.image
-  if (fileInput.value) {
-    fileInput.value.value = ''
+const removeImage = (index: number) => {
+  form.images.splice(index, 1)
+  imagePreviews.value.splice(index, 1)
+  if (form.images.length === 0) {
+    delete errors.images
   }
 }
 
@@ -387,17 +438,17 @@ const handleSubmit = async () => {
     formData.append('content', form.content)
     formData.append('confessor_mode', form.confessor_mode)
     
-    if (form.image) {
-      formData.append('image', form.image)
-    }
+    form.images.forEach(image => {
+      formData.append('images', image)
+    })
 
     // Submit post
     const newPost = await api.createPost(formData)
-    
-    toast.success('已提交，等待审核')
-    
-    // Redirect to post detail or home
-    await router.push(`/posts/${newPost.id}`)
+
+    toast.success('帖子已发布，等待审核')
+
+    // Redirect to home page
+    await router.push('/')
   } catch (err: any) {
     console.error('Failed to create post:', err)
     toast.error(err.message || '发布失败，请稍后重试')

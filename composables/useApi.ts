@@ -176,6 +176,10 @@ export const useApi = () => {
         const isActiveTagNotFound = status === 404 && 
           (error.config?.url?.includes('active-tag') || message === 'active tag not found')
 
+        // Don't show toast for 404 user not found errors - user may be deleted
+        const isUserNotFound = status === 404 && 
+          (error.config?.url?.includes('/users/') || messageLower.includes('user not found'))
+
         // Skip toast when backend indicates the user is deleted/banned – homepage may request their data
         const resolveFlag = (source: Record<string, unknown> | undefined, ...keys: string[]): boolean => {
           if (!source) return false
@@ -210,7 +214,7 @@ export const useApi = () => {
           }
         }
 
-        if (!isActiveTagNotFound) {
+        if (!isActiveTagNotFound && !isUserNotFound) {
           toast.error(`${message}${trace ? ` · ${trace}` : ''}`)
         }
       } catch {}
@@ -314,7 +318,7 @@ export const useApi = () => {
     // 管理员获取帖子详情（包含审核信息）
     async getPostForAdmin(id: string): Promise<PostDto> {
       const res = await instance.get<ApiResp<PostDto>>(`/posts/${id}`, {
-        headers: { 'X-Admin-View': 'true' }
+        params: { admin_view: 'true' }
       })
       return unwrap(res)
     },
@@ -323,7 +327,7 @@ export const useApi = () => {
       return unwrap(res)
     },
     async createPost(formData: FormData): Promise<PostDto> {
-      const res = await instance.post<ApiResp<PostDto>>('/posts', formData, { headers: { 'Content-Type': 'multipart/form-data' } })
+      const res = await instance.post<ApiResp<PostDto>>('/posts', formData)
       return unwrap(res)
     },
     async requestPostReview(postId: string): Promise<void> {
@@ -581,6 +585,10 @@ export const useApi = () => {
     },
     async markNotificationRead(id: string): Promise<void> {
       await instance.post(`/notifications/${id}/read`)
+    },
+    async getUnreadNotificationCount(): Promise<{ count: number }> {
+      const res = await instance.get<ApiResp<{ count: number }>>('/notifications/unread-count')
+      return unwrap(res)
     },
 
     // Admin moderation for posts

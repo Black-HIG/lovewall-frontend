@@ -9,13 +9,31 @@
   }
   
   body {
-    @apply bg-gradient-to-br from-pink-100 via-purple-50 to-indigo-100;
+    @apply bg-gradient-to-br from-pink-50 via-purple-50 to-indigo-50;
     @apply text-gray-800;
     @apply leading-relaxed;
     /* 修复Mac端字体问题，确保中文显示正常 */
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Helvetica Neue", Helvetica, Arial, sans-serif;
     height: 100%;
-    overflow: hidden; /* 禁止全页滚动，使用块内滚动 */
+    overflow-x: hidden; /* 仅禁止水平滚动 */
+    min-height: 100vh;
+    position: relative;
+  }
+  
+  /* 动态背景层 */
+  body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: -1;
+    background: 
+      radial-gradient(circle at 20% 20%, rgba(255, 92, 163, 0.05) 0%, transparent 50%),
+      radial-gradient(circle at 80% 80%, rgba(99, 102, 241, 0.05) 0%, transparent 50%),
+      radial-gradient(circle at 40% 80%, rgba(45, 212, 191, 0.05) 0%, transparent 50%);
+    animation: float 20s ease-in-out infinite;
   }
   
   /* Nuxt root 占满视口高度，避免出现全页滚动条 */
@@ -34,15 +52,34 @@
 
 @layer components {
   .glass-card {
-    /* Liquid glass panels */
-    @apply relative rounded-3xl p-6 border border-white/20 shadow-lg backdrop-blur-xl;
-    background: rgba(255,255,255,0.28);
+    /* Enhanced liquid glass panels */
+    @apply relative rounded-3xl p-6 border backdrop-blur-xl;
+    background: rgba(255,255,255,0.15);
+    border: 1px solid rgba(255,255,255,0.18);
+    box-shadow: 
+      0 8px 32px 0 rgba(31, 38, 135, 0.15),
+      inset 0 1px 0 0 rgba(255, 255, 255, 0.2);
     background-image:
-      radial-gradient(1200px 500px at -15% -10%, rgba(255,92,163,0.20), rgba(255,92,163,0) 45%),
-      radial-gradient(1000px 420px at 115% -10%, rgba(99,102,241,0.20), rgba(99,102,241,0) 50%),
-      radial-gradient(1400px 700px at 120% 120%, rgba(45,212,191,0.20), rgba(45,212,191,0) 55%);
-    background-blend-mode: screen;
+      radial-gradient(1200px 500px at -15% -10%, rgba(255,92,163,0.08), rgba(255,92,163,0) 45%),
+      radial-gradient(1000px 420px at 115% -10%, rgba(99,102,241,0.08), rgba(99,102,241,0) 50%),
+      radial-gradient(1400px 700px at 120% 120%, rgba(45,212,191,0.08), rgba(45,212,191,0) 55%);
+    background-blend-mode: overlay;
     pointer-events: auto;
+    position: relative;
+    overflow: hidden;
+  }
+  
+  /* 增强毛玻璃效果的内发光 */
+  .glass-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, transparent 100%);
+    border-radius: inherit;
+    pointer-events: none;
   }
   
   .glass-input {
@@ -190,6 +227,16 @@
       radial-gradient(1200px 620px at 120% 120%, rgba(45,212,191,0.16), rgba(45,212,191,0) 55%);
     background-blend-mode: screen;
   }
+
+  .navigation-spacer {
+    height: 4rem; /* 64px - default nav height */
+  }
+
+  @media (max-width: 767px) {
+    .navigation-spacer {
+      height: 3.5rem; /* 56px - mobile nav height */
+    }
+  }
   
   .glass-bar {
     @apply rounded-2xl border border-white/20 shadow-lg backdrop-blur-xl;
@@ -238,50 +285,101 @@
     overflow: hidden;
   }
   
-  /* 卡片样式增强 */
+  /* 响应式卡片样式增强 */
   .post-card {
-    @apply relative rounded-3xl p-6 border border-white/20 shadow-lg backdrop-blur-xl;
-    /* Liquid glass: softer background, stronger blur and lower alpha to reduce stacking */
-    @apply bg-white/25 border-white/20 backdrop-blur-xl transform;
+    @apply relative border backdrop-blur-xl transform;
     @apply transition-all duration-300 ease-out;
-    /* 设置固定最小高度确保一致性 */
-    min-height: 280px;
-    /* Liquid gradient overlay */
+    background: rgba(255,255,255,0.12);
+    border: 1px solid rgba(255,255,255,0.15);
+    box-shadow: 
+      0 8px 32px 0 rgba(31, 38, 135, 0.12),
+      inset 0 1px 0 0 rgba(255, 255, 255, 0.15);
     background-image:
-      radial-gradient(800px 400px at -10% -20%, rgba(255,92,163,0.28), rgba(255,92,163,0) 45%),
-      radial-gradient(700px 300px at 110% -10%, rgba(99,102,241,0.28), rgba(99,102,241,0) 50%),
-      radial-gradient(900px 480px at 120% 120%, rgba(45,212,191,0.28), rgba(45,212,191,0) 55%);
-    background-blend-mode: screen;
+      radial-gradient(800px 400px at -10% -20%, rgba(255,92,163,0.06), rgba(255,92,163,0) 45%),
+      radial-gradient(700px 300px at 110% -10%, rgba(99,102,241,0.06), rgba(99,102,241,0) 50%),
+      radial-gradient(900px 480px at 120% 120%, rgba(45,212,191,0.06), rgba(45,212,191,0) 55%);
+    background-blend-mode: overlay;
     isolation: isolate;
+    overflow: hidden;
+    position: relative;
+  }
+  
+  /* 移动端优化 */
+  @media (max-width: 767px) {
+    .post-card {
+      @apply rounded-2xl p-4;
+      min-height: auto;
+    }
+  }
+  
+  /* 桌面端 */
+  @media (min-width: 768px) {
+    .post-card {
+      @apply rounded-3xl p-6;
+      min-height: 320px;
+    }
   }
   
   /* 列表模式下的卡片样式 */
   .post-card-list {
-    @apply relative rounded-3xl p-6 border border-white/20 shadow-lg backdrop-blur-xl;
-    @apply bg-white/25 border-white/20 backdrop-blur-xl transform;
+    @apply relative border backdrop-blur-xl transform;
     @apply transition-all duration-300 ease-out;
-    /* 列表模式下不设置固定高度，让内容决定 */
+    background: rgba(255,255,255,0.10);
+    border: 1px solid rgba(255,255,255,0.12);
+    box-shadow: 
+      0 4px 24px 0 rgba(31, 38, 135, 0.10),
+      inset 0 1px 0 0 rgba(255, 255, 255, 0.12);
     min-height: auto;
     background-image:
-      radial-gradient(800px 400px at -10% -20%, rgba(255,92,163,0.26), rgba(255,92,163,0) 45%),
-      radial-gradient(700px 300px at 110% -10%, rgba(99,102,241,0.26), rgba(99,102,241,0) 50%),
-      radial-gradient(900px 480px at 120% 120%, rgba(45,212,191,0.26), rgba(45,212,191,0) 55%);
-    background-blend-mode: screen;
+      radial-gradient(800px 400px at -10% -20%, rgba(255,92,163,0.05), rgba(255,92,163,0) 45%),
+      radial-gradient(700px 300px at 110% -10%, rgba(99,102,241,0.05), rgba(99,102,241,0) 50%),
+      radial-gradient(900px 480px at 120% 120%, rgba(45,212,191,0.05), rgba(45,212,191,0) 55%);
+    background-blend-mode: overlay;
     isolation: isolate;
+    overflow: hidden;
+    position: relative;
+  }
+  
+  /* 移动端列表模式优化 */
+  @media (max-width: 767px) {
+    .post-card-list {
+      @apply rounded-2xl p-3;
+    }
+  }
+  
+  /* 桌面端列表模式 */
+  @media (min-width: 768px) {
+    .post-card-list {
+      @apply rounded-3xl p-5;
+    }
   }
   
   .post-card:hover {
-    /* keep subtle — avoid jump to very high contrast */
-    @apply bg-white/40;
-    /* Use slight lift instead of scale to avoid edge clipping */
-    transform: translateY(-2px);
-    box-shadow: 0 20px 60px -15px rgba(255,92,163,0.35);
+    background: rgba(255,255,255,0.18);
+    border-color: rgba(255,255,255,0.25);
+    transform: translateY(-4px) scale(1.01);
+    box-shadow: 
+      0 16px 48px 0 rgba(31, 38, 135, 0.20),
+      0 8px 24px -8px rgba(255,92,163,0.25),
+      inset 0 1px 0 0 rgba(255, 255, 255, 0.25);
   }
   
   .post-card-list:hover {
-    @apply bg-white/40;
-    transform: translateY(-2px);
-    box-shadow: 0 20px 60px -15px rgba(255,92,163,0.30);
+    background: rgba(255,255,255,0.15);
+    border-color: rgba(255,255,255,0.20);
+    transform: translateY(-2px) scale(1.005);
+    box-shadow: 
+      0 12px 36px 0 rgba(31, 38, 135, 0.15),
+      0 4px 16px -4px rgba(255,92,163,0.20),
+      inset 0 1px 0 0 rgba(255, 255, 255, 0.20);
+  }
+  
+  /* 移动端禁用悬停缩放效果 */
+  @media (max-width: 767px) {
+    .post-card:hover,
+    .post-card-list:hover {
+      transform: none;
+    }
   }
   
   /* 头像样式增强 */
@@ -382,4 +480,35 @@
     background-blend-mode: screen;
   }
 
+}
+
+/* 页面过渡动画 */
+.page-enter-active,
+.page-leave-active {
+  transition: all 0.2s ease-out;
+}
+
+.page-enter-from {
+  opacity: 0;
+  transform: translateY(10px);
+}
+
+.page-leave-to {
+  opacity: 0;
+  transform: translateY(-10px);
+}
+
+.layout-enter-active,
+.layout-leave-active {
+  transition: all 0.2s ease-out;
+}
+
+.layout-enter-from {
+  opacity: 0;
+  transform: scale(0.98);
+}
+
+.layout-leave-to {
+  opacity: 0;
+  transform: scale(1.02);
 }

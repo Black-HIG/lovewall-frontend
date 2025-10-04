@@ -323,7 +323,7 @@ export default defineNuxtPlugin(() => {
     // 管理员获取帖子详情（包含审核信息）
     async getPostForAdmin(id: string): Promise<PostDto> {
       const response = await instance.get<ApiResp<PostDto>>(`/posts/${id}`, {
-        headers: { 'X-Admin-View': 'true' }
+        params: { admin_view: 'true' }
       })
       return unwrap(response)
     },
@@ -333,9 +333,7 @@ export default defineNuxtPlugin(() => {
     },
 
     async createPost(formData: FormData): Promise<PostDto> {
-      const response = await instance.post<ApiResp<PostDto>>('/posts', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      })
+      const response = await instance.post<ApiResp<PostDto>>('/posts', formData)
       return unwrap(response)
     },
     

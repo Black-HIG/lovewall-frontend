@@ -110,8 +110,8 @@
               <!-- Image -->
               <div class="w-32 flex-shrink-0">
                 <img
-                  v-if="post.image_path"
-                  :src="assetUrl(post.image_path)"
+                  v-if="post.images?.length"
+                  :src="assetUrl(post.images[0])"
                   :alt="`${post.author_name}对${post.target_name}的表白`"
                   class="w-32 h-32 object-cover rounded-xl"
                 >
@@ -234,7 +234,7 @@
                   </GlassButton>
 
                   <GlassButton
-                    v-if="auth.hasPerm('PIN_POST')"
+                    v-if="auth.hasPerm('MANAGE_FEATURED')"
                     @click.stop="togglePin(post)"
                     :loading="actionLoading === post.id"
                     variant="secondary"
@@ -244,7 +244,7 @@
                   </GlassButton>
                   
                   <GlassButton
-                    v-if="auth.hasPerm('FEATURE_POST')"
+                    v-if="auth.hasPerm('MANAGE_FEATURED')"
                     @click.stop="toggleFeature(post)"
                     :loading="actionLoading === post.id"
                     variant="secondary"
@@ -254,7 +254,7 @@
                   </GlassButton>
                   
                   <GlassButton
-                    v-if="auth.hasPerm('HIDE_POST') && post.status === 0"
+                    v-if="auth.hasPerm('MANAGE_POSTS') && post.status === 0"
                     @click.stop="hidePost(post)"
                     :loading="actionLoading === post.id"
                     variant="secondary"
@@ -264,7 +264,7 @@
                   </GlassButton>
                   
                   <GlassButton
-                    v-if="auth.hasPerm('HIDE_POST') && post.status === 1"
+                    v-if="auth.hasPerm('MANAGE_POSTS') && post.status === 1"
                     @click.stop="restoreHiddenPost(post)"
                     :loading="actionLoading === post.id"
                     variant="secondary"
@@ -274,7 +274,7 @@
                   </GlassButton>
                   
                   <GlassButton
-                    v-if="(auth.isSuperadmin || auth.hasPerm('DELETE_POST')) && post.status === 2"
+                    v-if="(auth.isSuperadmin || auth.hasPerm('MANAGE_POSTS')) && post.status === 2"
                     @click.stop="restoreDeletedPost(post)"
                     :loading="actionLoading === post.id"
                     variant="secondary"
@@ -284,7 +284,7 @@
                   </GlassButton>
                   
                   <GlassButton
-                    v-if="auth.hasPerm('DELETE_POST')"
+                    v-if="auth.hasPerm('MANAGE_POSTS')"
                     @click.stop="confirmDelete(post)"
                     :loading="actionLoading === post.id"
                     variant="secondary"
@@ -754,4 +754,5 @@ useHead({
   ]
 })
 </script>
+
 

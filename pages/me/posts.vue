@@ -88,8 +88,8 @@
             <!-- Image -->
             <div class="w-24 flex-shrink-0">
               <img
-                v-if="post.image_path"
-                :src="assetUrl(post.image_path)"
+                v-if="post.images?.length"
+                :src="assetUrl(post.images[0])"
                 :alt="`${post.author_name}对${post.target_name}的表白`"
                 class="w-24 h-24 object-cover rounded-lg"
               >
@@ -340,7 +340,7 @@ const canEdit = (post: PostDto) => {
   const createdAt = new Date(post.created_at)
   const now = new Date()
   const diffMinutes = (now.getTime() - createdAt.getTime()) / (1000 * 60)
-  return diffMinutes <= 15 || auth.hasPerm('EDIT_POST')
+  return diffMinutes <= 15 || auth.hasPerm('MANAGE_POSTS')
 }
 
 const editPost = (post: PostDto) => {
@@ -422,3 +422,4 @@ useHead({
   ]
 })
 </script>
+

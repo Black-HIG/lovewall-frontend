@@ -1,14 +1,20 @@
 <template>
   <nav class="fixed top-0 left-0 right-0 z-50 navigation-section">
     <div class="content-container">
-      <div class="flex items-center justify-between h-16">
+      <div :class="[
+        'flex items-center justify-between transition-all duration-300',
+        isMobile ? 'h-14 px-3' : 'h-16 px-4'
+      ]">
         <!-- Logo -->
         <NuxtLink
           to="/"
-          class="flex items-center gap-2 text-xl font-bold text-brand-600 hover:text-brand-700"
+          :class="[
+            'flex items-center gap-2 font-bold text-brand-600 hover:text-brand-700 transition-all',
+            isMobile ? 'text-lg' : 'text-xl'
+          ]"
         >
-          <HeartIcon class="w-6 h-6" />
-          <span>Love Wall</span>
+          <HeartIcon :class="isMobile ? 'w-5 h-5' : 'w-6 h-6'" />
+          <span :class="{ 'hidden xs:block': isMobile }">Love Wall</span>
         </NuxtLink>
 
         <!-- Desktop Navigation -->
@@ -38,10 +44,13 @@
         </div>
 
         <!-- User Menu -->
-        <div class="flex items-center gap-3">
+        <div :class="[
+          'flex items-center',
+          isMobile ? 'gap-2' : 'gap-3'
+        ]">
           <!-- Auth buttons for non-authenticated users -->
           <template v-if="!auth.isAuthenticated">
-            <div class="flex items-center gap-2">
+            <div v-if="!isMobile" class="flex items-center gap-2">
               <NuxtLink
                 to="/auth/login"
                 class="glass-button-secondary px-4 py-2 text-sm font-medium"
@@ -59,20 +68,42 @@
 
           <!-- User dropdown for authenticated users -->
           <template v-if="auth.isAuthenticated">
+            <!-- 通知按钮 -->
+            <NuxtLink
+              to="/notifications"
+              :class="[
+                'relative inline-flex items-center justify-center rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60',
+                isMobile ? 'h-9 w-9' : 'h-10 w-10',
+                'text-gray-700 hover:text-brand-600 hover:bg-white/30'
+              ]"
+              title="系统通知"
+              aria-label="系统通知"
+            >
+              <BellIcon :class="isMobile ? 'w-5 h-5' : 'w-6 h-6'" />
+              <!-- 未读红点 -->
+              <span
+                v-if="unreadCount > 0"
+                class="absolute top-1 right-1 inline-block w-2 h-2 bg-red-500 rounded-full"
+              />
+            </NuxtLink>
+
             <div class="relative" ref="userMenuRef">
               <button
-                class="flex items-center gap-2 p-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-white/20 transition-colors"
+                :class="[
+                  'flex items-center gap-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-white/20 transition-colors',
+                  isMobile ? 'p-1.5' : 'p-2'
+                ]"
                 @click="showUserMenu = !showUserMenu"
               >
                 <img
                   v-if="auth.currentUser?.avatar_url"
                   :src="assetUrl(auth.currentUser.avatar_url)"
                   :alt="auth.userDisplayName"
-                  class="w-6 h-6 rounded-full"
+                  :class="isMobile ? 'w-5 h-5 rounded-full' : 'w-6 h-6 rounded-full'"
                 >
-                <UserIcon v-else class="w-6 h-6" />
-                <span class="hidden sm:block">{{ auth.userDisplayName }}</span>
-                <ChevronDownIcon class="w-4 h-4" />
+                <UserIcon v-else :class="isMobile ? 'w-5 h-5' : 'w-6 h-6'" />
+                <span v-if="!isMobile" class="hidden sm:block">{{ auth.userDisplayName }}</span>
+                <ChevronDownIcon v-if="!isMobile" class="w-4 h-4" />
               </button>
 
               <!-- Dropdown menu -->
@@ -114,7 +145,8 @@
 
           <!-- Mobile menu button -->
           <button
-            class="md:hidden p-2 text-gray-700 hover:text-brand-600"
+            v-if="isMobile"
+            class="p-1.5 text-gray-700 hover:text-brand-600 transition-colors"
             @click="showMobileMenu = !showMobileMenu"
           >
             <MenuIcon class="w-5 h-5" />
@@ -124,8 +156,8 @@
 
       <!-- Mobile Navigation -->
       <div
-        v-if="showMobileMenu"
-        class="md:hidden py-4 border-t border-white/20"
+        v-if="showMobileMenu && isMobile"
+        class="py-3 border-t border-white/20 animate-slide-down"
       >
         <div class="space-y-2">
           <NuxtLink
@@ -199,19 +231,66 @@
 </template>
 
 <script setup lang="ts">
-import { 
-  HeartIcon, 
-  UserIcon, 
-  ChevronDownIcon, 
-  MenuIcon 
+import {
+  HeartIcon,
+  UserIcon,
+  ChevronDownIcon,
+  MenuIcon,
+  BellIcon
 } from 'lucide-vue-next'
 import { onClickOutside } from '@vueuse/core'
 
 const auth = useAuthStore()
+const api = useApi()
 const assetUrl = useAssetUrl()
+const { isMobile, deviceType } = useDevice()
 const showUserMenu = ref(false)
 const showMobileMenu = ref(false)
 const userMenuRef = ref<HTMLElement>()
+const unreadCount = ref(0)
+
+// 加载未读通知数
+const loadUnreadCount = async () => {
+  if (!auth.isAuthenticated) return
+  try {
+    const res = await api.getUnreadNotificationCount()
+    unreadCount.value = res.count || 0
+  } catch (e) {
+    // 忽略错误,避免影响页面加载
+  }
+}
+
+// 定时刷新未读数
+let unreadInterval: ReturnType<typeof setInterval> | null = null
+
+onMounted(() => {
+  if (process.client && auth.isAuthenticated) {
+    loadUnreadCount()
+    unreadInterval = setInterval(loadUnreadCount, 30000) // 30秒刷新一次
+  }
+})
+
+onUnmounted(() => {
+  if (unreadInterval) {
+    clearInterval(unreadInterval)
+  }
+})
+
+// 监听登录状态变化
+watch(() => auth.isAuthenticated, (newVal) => {
+  if (newVal) {
+    loadUnreadCount()
+    if (!unreadInterval) {
+      unreadInterval = setInterval(loadUnreadCount, 30000)
+    }
+  } else {
+    unreadCount.value = 0
+    if (unreadInterval) {
+      clearInterval(unreadInterval)
+      unreadInterval = null
+    }
+  }
+})
 
 // Close dropdowns when clicking outside
 onClickOutside(userMenuRef, () => {
@@ -220,6 +299,14 @@ onClickOutside(userMenuRef, () => {
 
 const handleLogout = async () => {
   showUserMenu.value = false
+  showMobileMenu.value = false
   await auth.logout()
 }
+
+// 关闭移动菜单当路由改变时
+const route = useRoute()
+watch(() => route.path, () => {
+  showMobileMenu.value = false
+  showUserMenu.value = false
+})
 </script>

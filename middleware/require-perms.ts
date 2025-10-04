@@ -30,11 +30,8 @@ export default defineNuxtRouteMiddleware(async (to) => {
     // If no specific permissions are required, just check for any admin permission
     const hasAnyAdminPerm = auth.isSuperadmin || auth.hasAnyPerm([
       'MANAGE_USERS',
-      'EDIT_POST', 
-      'DELETE_POST',
-      'HIDE_POST',
-      'PIN_POST',
-      'FEATURE_POST',
+      'MANAGE_POSTS',
+      'MANAGE_FEATURED',
       'MANAGE_ANNOUNCEMENTS',
       'MANAGE_COMMENTS',
       'MANAGE_TAGS'

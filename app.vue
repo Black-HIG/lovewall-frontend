@@ -36,8 +36,19 @@
               <NuxtLink to="/auth/register" class="glass-button px-3 py-1.5 text-sm font-medium">注册</NuxtLink>
             </template>
 
-            <!-- 已登录：头像/昵称 + 下拉 -->
+            <!-- 已登录：通知按钮 + 头像/昵称 + 下拉 -->
             <template v-else>
+              <!-- 通知按钮（在头像左侧） -->
+              <NuxtLink
+                to="/notifications"
+                class="relative inline-flex items-center justify-center rounded-lg h-9 w-9 text-gray-700 hover:text-brand-600 hover:bg-white/30 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60"
+                title="系统通知"
+                aria-label="系统通知"
+              >
+                <BellIcon class="w-5 h-5" />
+                <!-- 未读红点 -->
+                <span v-if="unreadCount > 0" class="absolute top-1 right-1 inline-block w-2 h-2 bg-red-500 rounded-full" />
+              </NuxtLink>
               <button
                 class="flex items-center gap-2 px-2 py-1.5 rounded-lg text-sm font-medium text-gray-700 hover:bg-white/20 transition-colors"
                 @click="showUserMenu = !showUserMenu"
@@ -58,7 +69,6 @@
                 <NuxtLink to="/me" class="block px-4 py-2 text-sm text-gray-700 hover:bg-white/20" @click="showUserMenu = false">个人中心</NuxtLink>
                 <NuxtLink to="/me/comments" class="block px-4 py-2 text-sm text-gray-700 hover:bg-white/20" @click="showUserMenu = false">我的评论</NuxtLink>
                 <NuxtLink to="/me/tags" class="block px-4 py-2 text-sm text-gray-700 hover:bg-white/20" @click="showUserMenu = false">我的标签</NuxtLink>
-                <NuxtLink to="/notifications" class="block px-4 py-2 text-sm text-gray-700 hover:bg-white/20" @click="showUserMenu = false">系统通知</NuxtLink>
                 <button
                   v-if="auth.isSuperadmin || auth.hasAnyPerm(['MANAGE_USERS','MANAGE_ANNOUNCEMENTS','MANAGE_COMMENTS','MANAGE_TAGS'])"
                   class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-white/20"
@@ -120,7 +130,7 @@
 
 <script setup lang="ts">
 import type { AnnouncementDto } from '~/types'
-import { HeartIcon, UserIcon, ChevronDownIcon } from 'lucide-vue-next'
+import { HeartIcon, UserIcon, ChevronDownIcon, BellIcon } from 'lucide-vue-next'
 import { onClickOutside } from '@vueuse/core'
 import ToastContainer from '~/components/ui/ToastContainer.vue'
 import LoadingSpinner from '~/components/ui/LoadingSpinner.vue'
@@ -170,5 +180,48 @@ const initializeApp = async () => {
 onMounted(() => {
   initializeApp()
 })
+
+// 通知红点：未读计数和轮询刷新
+const api = useApi()
+const unreadCount = ref(0)
+
+const loadUnreadCount = async () => {
+  if (!auth.isAuthenticated) return
+  try {
+    const res = await api.getUnreadNotificationCount()
+    unreadCount.value = res.count || 0
+  } catch {}
+}
+
+let unreadInterval: ReturnType<typeof setInterval> | null = null
+
+onMounted(() => {
+  if (process.client && auth.isAuthenticated) {
+    loadUnreadCount()
+    unreadInterval = setInterval(loadUnreadCount, 30000)
+  }
+})
+
+onUnmounted(() => {
+  if (unreadInterval) clearInterval(unreadInterval)
+})
+
+watch(() => auth.isAuthenticated, (v) => {
+  if (v) {
+    loadUnreadCount()
+    if (!unreadInterval) unreadInterval = setInterval(loadUnreadCount, 30000)
+  } else {
+    unreadCount.value = 0
+    if (unreadInterval) { clearInterval(unreadInterval); unreadInterval = null }
+  }
+})
+
+// 路由变化时刷新一次（进入通知页读完后尽快清红点）
+const route = useRoute()
+watch(() => route.path, () => {
+  showUserMenu.value = false
+  if (process.client) setTimeout(loadUnreadCount, 500)
+})
 </script>
+
 

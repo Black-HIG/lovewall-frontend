@@ -2,35 +2,55 @@
   <GlassCard 
     :class="[
       variant === 'list' ? 'post-card-list' : 'post-card',
-      'cursor-pointer group'
+      'cursor-pointer group relative overflow-hidden',
+      'transition-all duration-300 hover:scale-[1.02] hover:shadow-glow-lg',
+      deviceType === 'mobile' ? 'rounded-2xl' : 'rounded-3xl'
     ]" 
     @click="goDetail"
   >
     <!-- Header -->
-    <div class="flex items-center justify-between p-4 pb-3">
+    <div :class="[
+      'flex items-center justify-between pb-3',
+      deviceType === 'mobile' ? 'px-3 pt-3' : 'px-4 pt-4'
+    ]">
       <div class="flex items-center gap-3 flex-1 min-w-0">
         <!-- Author Avatar -->
         <div 
-          class="w-10 h-10 rounded-full flex-shrink-0 cursor-pointer avatar-ring transition-all"
+          :class="[
+            'rounded-full flex-shrink-0 cursor-pointer avatar-ring transition-all hover:scale-110',
+            deviceType === 'mobile' ? 'w-8 h-8' : 'w-10 h-10'
+          ]"
           @click.stop="navigateToAuthor"
         >
           <img
             v-if="authorAvatar"
             :src="authorAvatar"
             :alt="post.author_name"
-            class="w-10 h-10 rounded-full object-cover border-2 border-white/20"
+            :class="[
+              'rounded-full object-cover border-2 border-white/20',
+              deviceType === 'mobile' ? 'w-8 h-8' : 'w-10 h-10'
+            ]"
           >
           <div 
             v-else
-            class="w-10 h-10 bg-gradient-to-br from-brand-400 to-brand-600 rounded-full flex items-center justify-center text-white text-xs font-medium border-2 border-white/20"
+            :class="[
+              'bg-gradient-to-br from-brand-400 to-brand-600 rounded-full flex items-center justify-center text-white font-medium border-2 border-white/20',
+              deviceType === 'mobile' ? 'w-8 h-8 text-xs' : 'w-10 h-10 text-sm'
+            ]"
           >
             {{ post.author_name.slice(0, 2) }}
           </div>
         </div>
         
         <div class="flex-1 min-w-0">
-          <div class="flex items-center gap-2 mb-1">
-            <h3 class="text-base font-semibold text-gray-900 cursor-pointer hover:text-brand-600 transition-colors" @click.stop="navigateToAuthor">
+          <div :class="[
+            'flex items-center gap-2',
+            deviceType === 'mobile' ? 'mb-0.5' : 'mb-1'
+          ]">
+            <h3 :class="[
+              'font-semibold text-gray-900 cursor-pointer hover:text-brand-600 transition-colors truncate',
+              deviceType === 'mobile' ? 'text-sm' : 'text-base'
+            ]" @click.stop="navigateToAuthor">
               {{ post.author_name }}
             </h3>
             <span
@@ -109,7 +129,7 @@
           <template v-if="canManagePost">
             <hr class="my-1 border-white/20">
             <button
-              v-if="auth.hasPerm('PIN_POST') && post.status === 0"
+              v-if="auth.hasPerm('MANAGE_FEATURED') && post.status === 0"
               @click="handlePin(!post.is_pinned)"
               class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-white/20"
             >
@@ -117,7 +137,7 @@
             </button>
             
             <button
-              v-if="auth.hasPerm('FEATURE_POST') && post.status === 0"
+              v-if="auth.hasPerm('MANAGE_FEATURED') && post.status === 0"
               @click="handleFeature(!post.is_featured)"
               class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-white/20"
             >
@@ -125,7 +145,7 @@
             </button>
             
             <button
-              v-if="auth.hasPerm('HIDE_POST')"
+              v-if="auth.hasPerm('MANAGE_POSTS')"
               @click="handleHide"
               class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50/20"
             >
@@ -133,7 +153,7 @@
             </button>
             
             <button
-              v-if="auth.hasPerm('DELETE_POST')"
+              v-if="auth.hasPerm('MANAGE_POSTS')"
               @click="handleDelete"
               class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50/20"
             >
@@ -145,13 +165,24 @@
     </div>
 
     <!-- Content -->
-    <div class="px-4 pb-3">
+    <div :class="[
+      'pb-3',
+      deviceType === 'mobile' ? 'px-3' : 'px-4'
+    ]">
       <!-- Love declaration -->
-      <div class="mb-3">
-        <p class="text-lg font-medium text-gray-900 mb-2">
+      <div :class="deviceType === 'mobile' ? 'mb-2' : 'mb-3'">
+        <p :class="[
+          'font-medium text-gray-900 mb-2',
+          deviceType === 'mobile' ? 'text-base' : 'text-lg'
+        ]">
           → {{ post.target_name }}
         </p>
-        <p class="text-gray-700 leading-relaxed text-sm" :class="{ 'line-clamp-4': !expanded }">
+        <p :class="[
+          'text-gray-700 leading-relaxed',
+          deviceType === 'mobile' ? 'text-xs' : 'text-sm',
+          { 'line-clamp-3': !expanded && deviceType === 'mobile' },
+          { 'line-clamp-4': !expanded && deviceType !== 'mobile' }
+        ]">
           {{ post.content }}
         </p>
         
@@ -165,54 +196,43 @@
       </div>
     </div>
 
-    <!-- Image -->
-    <div v-if="post.image_path" class="px-4 pb-3">
-      <img
-        :src="assetUrl(post.image_path)"
-        :alt="`${post.author_name} 的表白图片`"
-        class="w-full max-h-64 object-cover rounded-xl border border-white/20 cursor-pointer hover:opacity-90 transition-opacity"
-        @click.stop="showImageModal = true"
+    <!-- Images -->
+    <div
+      v-if="post.images?.length"
+      :class="[
+        'pb-3',
+        deviceType === 'mobile' ? 'px-3' : 'px-4'
+      ]"
+    >
+      <ImageGrid
+        :images="post.images"
+        :alt-prefix="post.author_name + ' 的表白图片'"
       />
     </div>
 
     <!-- Footer -->
-    <div class="flex items-center justify-between px-4 py-3 border-t border-white/10">
+    <div :class="[
+      'flex items-center justify-between border-t border-white/10',
+      deviceType === 'mobile' ? 'px-3 py-2' : 'px-4 py-3'
+    ]">
       <div class="flex items-center gap-4">
-        <button
-          @click.stop="sharePost"
-          class="flex items-center gap-2 text-gray-500 hover:text-brand-600 transition-colors text-sm"
-        >
-          <Share2Icon class="w-4 h-4" />
-          分享
-        </button>
+        <ShareButton
+          :data="shareData"
+          :show-text="deviceType !== 'mobile'"
+          :size="deviceType === 'mobile' ? 'sm' : 'md'"
+          mode="smart"
+          @click.stop
+        />
       </div>
       
-      <div class="text-xs text-gray-400">
+      <div :class="[
+        'text-gray-400',
+        deviceType === 'mobile' ? 'text-xs' : 'text-sm'
+      ]">
         {{ formatTimeAgo(post.created_at) }}
       </div>
     </div>
 
-    <!-- Image Modal -->
-    <div
-      v-if="showImageModal"
-      class="fixed inset-0 z-[9000] flex items-center justify-center bg-black/80 backdrop-blur-sm"
-      @click="showImageModal = false"
-    >
-      <div class="relative max-w-4xl max-h-[90vh] mx-4">
-        <img
-          :src="assetUrl(post.image_path)"
-          :alt="`${post.author_name} 的表白图片`"
-          class="max-w-full max-h-full object-contain rounded-lg"
-          @click.stop
-        />
-        <button
-          @click="showImageModal = false"
-          class="absolute top-4 right-4 p-2 text-white bg-black/50 rounded-full hover:bg-black/70 transition-colors"
-        >
-          <XIcon class="w-5 h-5" />
-        </button>
-      </div>
-    </div>
   </GlassCard>
 </template>
 
@@ -220,13 +240,13 @@
 import {
   PinIcon,
   StarIcon,
-  MoreVerticalIcon,
-  Share2Icon,
-  XIcon
+  MoreVerticalIcon
 } from 'lucide-vue-next'
 import { onClickOutside } from '@vueuse/core'
 import GlassCard from '~/components/ui/GlassCard.vue'
 import TagBadge from '~/components/ui/TagBadge.vue'
+import ShareButton from '~/components/ui/ShareButton.vue'
+import ImageGrid from '~/components/ui/ImageGrid.vue'
 import type { PostDto } from '~/types'
 import type { ActiveTagDto } from '~/types/extra'
 
@@ -251,11 +271,11 @@ const api = useApi()
 const toast = useToast()
 const assetUrl = useAssetUrl()
 const router = useRouter()
+const { deviceType, isMobile } = useDevice()
 
 // State
 const expanded = ref(false)
 const showDropdown = ref(false)
-const showImageModal = ref(false)
 const dropdownRef = ref<HTMLElement>()
 const authorProfile = ref<any>(null)
 const authorDeleted = ref(false)
@@ -306,19 +326,32 @@ onMounted(() => {
 const canManage = computed(() => {
   return auth.isAuthenticated && (
     auth.isSuperadmin ||
-    auth.hasAnyPerm(['PIN_POST', 'FEATURE_POST', 'HIDE_POST', 'DELETE_POST']) ||
+    auth.hasAnyPerm(['MANAGE_FEATURED', 'MANAGE_POSTS']) ||
     auth.currentUser?.id === props.post.author_id
   )
 })
 
 const canManagePost = computed(() => {
-  return auth.isSuperadmin || auth.hasAnyPerm(['PIN_POST', 'FEATURE_POST', 'HIDE_POST', 'DELETE_POST'])
+  return auth.isSuperadmin || auth.hasAnyPerm(['MANAGE_FEATURED', 'MANAGE_POSTS'])
 })
 
-const isModerator = computed(() => auth.isSuperadmin || auth.hasAnyPerm(['HIDE_POST','DELETE_POST','EDIT_POST']))
+const isModerator = computed(() => auth.isSuperadmin || auth.hasPerm('MANAGE_POSTS'))
 
-const goDetail = () => {
-  router.push(`/posts/${props.post.id}`)
+// 分享数据
+const shareData = computed(() => {
+  const origin = process.client ? window.location.origin : 'https://your-domain.com'
+  return {
+    title: `${props.post.author_name} 对 ${props.post.target_name} 的表白`,
+    text: props.post.content.length > 100 ? 
+      `${props.post.content.substring(0, 100)}...` : 
+      props.post.content,
+    url: `${origin}/posts/${props.post.id}`,
+    image: props.post.images?.[0] ? assetUrl(props.post.images[0]) : undefined
+  }
+})
+
+const goDetail = async () => {
+  await navigateTo(`/posts/${props.post.id}`)
 }
 
 // Navigate to author profile
@@ -393,30 +426,6 @@ const handleDelete = async () => {
   showDropdown.value = false
 }
 
-const sharePost = async () => {
-  const url = `${window.location.origin}/posts/${props.post.id}`
-  
-  if (navigator.share) {
-    try {
-      await navigator.share({
-        title: `${props.post.author_name} → ${props.post.target_name}`,
-        text: props.post.content,
-        url,
-      })
-    } catch (error) {
-      // User cancelled sharing
-    }
-  } else {
-    // Fallback: copy to clipboard
-    try {
-      await navigator.clipboard.writeText(url)
-      toast.success('链接已复制到剪贴板')
-    } catch (error) {
-      console.error('Copy failed:', error)
-      toast.error('分享失败')
-    }
-  }
-}
 
 const promptModerationReason = (action: string): string | null => {
   if (typeof window === 'undefined') return ''
@@ -460,3 +469,4 @@ const formatTimeAgo = (dateString: string) => {
   return date.toLocaleDateString('zh-CN', { month: 'numeric', day: 'numeric' })
 }
 </script>
+

@@ -1,35 +1,44 @@
 export const useAssetUrl = () => {
   const config = useRuntimeConfig()
-  const apiBase = (config.public.apiBase as string) || ''
 
-  // Derive the file host base from apiBase by stripping trailing `/api`
-  // Examples:
-  //  - 'https://example.com/api'  -> 'https://example.com'
-  //  - 'https://example.com/api/' -> 'https://example.com'
-  //  - '/api' or '/api/'          -> '' (use relative to current origin)
-  let fileBase = ''
-  try {
-    if (/^https?:\/\//i.test(apiBase)) {
-      const u = new URL(apiBase)
-      u.pathname = u.pathname.replace(/\/?api\/?$/, '/')
-      // Normalize to origin only (no trailing slash path)
-      fileBase = `${u.origin}${u.pathname === '/' ? '' : u.pathname.replace(/\/$/, '')}`
+  // 获取后端基础地址（用于拼接静态资源）
+  const getBackendBaseUrl = () => {
+    const apiBase = config.public.apiBase as string
+    if (process.client) {
+      if (apiBase && /^https?:\/\//i.test(apiBase)) {
+        try {
+          const u = new URL(apiBase)
+          return u.origin
+        } catch {
+          return 'http://127.0.0.1:8124'
+        }
+      } else {
+        return 'http://127.0.0.1:8124'
+      }
     } else {
-      // Relative dev proxy like '/api' -> serve assets with absolute path only
-      fileBase = apiBase.replace(/\/?api\/?$/, '')
+      if (apiBase && /^https?:\/\//i.test(apiBase)) {
+        try {
+          const u = new URL(apiBase)
+          return u.origin
+        } catch {
+          return 'http://127.0.0.1:8124'
+        }
+      }
+      return 'http://127.0.0.1:8124'
     }
-  } catch {
-    fileBase = apiBase.replace(/\/?api\/?$/, '')
   }
 
   const assetUrl = (path?: string | null) => {
     if (!path) return ''
-    if (/^https?:\/\//i.test(path)) return path
-    // Strip leading '/api' if present in returned path
-    const cleaned = path.replace(/^\/api(?=\/|$)/, '')
-    const normalized = cleaned.startsWith('/') ? cleaned : `/${cleaned}`
-    // If fileBase is empty, return absolute path relative to current origin
-    return `${fileBase}${normalized}`
+    // 已是完整地址或受支持的方案，原样返回
+    if (/^(https?:)?\/\//i.test(path)) return path
+    if (/^data:/i.test(path)) return path
+    if (/^blob:/i.test(path)) return path
+
+    // 规范化路径并拼接后端地址
+    const normalizedPath = path.startsWith('/') ? path : `/${path}`
+    const backendBase = getBackendBaseUrl()
+    return `${backendBase}${normalizedPath}`
   }
 
   return assetUrl

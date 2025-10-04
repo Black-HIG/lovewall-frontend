@@ -72,7 +72,7 @@ export interface PostDto {
   author_name: string
   target_name: string
   content: string
-  image_path?: string | null
+  images: string[]
   status: 0 | 1 | 2 // 0=published, 1=hidden, 2=deleted
   is_pinned: boolean
   is_featured: boolean
@@ -161,7 +161,7 @@ export interface PostForm {
   author_name: string
   target_name: string
   content: string
-  image?: File | null
+  images: File[]
 }
 
 export interface CommentForm {
@@ -279,14 +279,11 @@ export interface DeleteRedemptionCodesResponse {
 
 // Permission constants
 export const PERMISSIONS = {
-  MANAGE_USERS: 'MANAGE_USERS',
-  EDIT_POST: 'EDIT_POST',
-  DELETE_POST: 'DELETE_POST',
-  HIDE_POST: 'HIDE_POST',
-  PIN_POST: 'PIN_POST',
-  FEATURE_POST: 'FEATURE_POST',
-  MANAGE_ANNOUNCEMENTS: 'MANAGE_ANNOUNCEMENTS',
+  MANAGE_POSTS: 'MANAGE_POSTS',
+  MANAGE_FEATURED: 'MANAGE_FEATURED',
   MANAGE_COMMENTS: 'MANAGE_COMMENTS',
+  MANAGE_USERS: 'MANAGE_USERS',
+  MANAGE_ANNOUNCEMENTS: 'MANAGE_ANNOUNCEMENTS',
   MANAGE_TAGS: 'MANAGE_TAGS',
 } as const
 

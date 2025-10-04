@@ -258,13 +258,36 @@
                 <div class="text-sm text-gray-700 mb-2 flex flex-wrap gap-4">
                   <span v-if="log.user_id">
                     用户:
-                    <NuxtLink :to="`/users/id/${log.user_id}`" class="text-brand-600 hover:text-brand-700 hover:underline">
+                    <span
+                      v-if="userMap[log.user_id] === null"
+                      class="text-gray-500"
+                    >
+                      {{ userLabel(log.user_id) }}
+                    </span>
+                    <NuxtLink
+                      v-else
+                      :to="`/users/id/${log.user_id}`"
+                      class="text-brand-600 hover:text-brand-700 hover:underline"
+                    >
                       {{ userLabel(log.user_id) }}
                     </NuxtLink>
                   </span>
                   <span v-if="log.admin_id">
                     管理员:
-                    <NuxtLink :to="`/users/id/${log.admin_id}`" class="text-brand-600 hover:text-brand-700 hover:underline">
+                    <a
+                      v-if="log.admin_id === '00000000-0000-0000-0000-000000000001'"
+                      href="https://openai.com/"
+                      target="_blank"
+                      rel="noopener"
+                      class="text-brand-600 hover:text-brand-700 hover:underline"
+                    >
+                      {{ userLabel(log.admin_id) }}
+                    </a>
+                    <NuxtLink
+                      v-else
+                      :to="`/users/id/${log.admin_id}`"
+                      class="text-brand-600 hover:text-brand-700 hover:underline"
+                    >
                       {{ userLabel(log.admin_id) }}
                     </NuxtLink>
                   </span>
@@ -300,17 +323,68 @@
                 <div class="flex justify-between"><span class="text-gray-600">对象:</span><span>{{ logDetails.log.object_type }}</span></div>
                 <div v-if="logDetails.log.user_id" class="flex justify-between">
                   <span class="text-gray-600">用户:</span>
-                  <NuxtLink :to="`/users/id/${logDetails.log.user_id}`" class="text-brand-600 hover:text-brand-700 hover:underline">
+                  <span
+                    v-if="userMap[logDetails.log.user_id] === null"
+                    class="text-gray-500"
+                  >
+                    {{ userLabel(logDetails.log.user_id) }}
+                  </span>
+                  <NuxtLink
+                    v-else
+                    :to="`/users/id/${logDetails.log.user_id}`"
+                    class="text-brand-600 hover:text-brand-700 hover:underline"
+                  >
                     {{ userLabel(logDetails.log.user_id) }}
                   </NuxtLink>
                 </div>
                 <div v-if="logDetails.log.admin_id" class="flex justify-between">
                   <span class="text-gray-600">管理员:</span>
-                  <NuxtLink :to="`/users/id/${logDetails.log.admin_id}`" class="text-brand-600 hover:text-brand-700 hover:underline">
+                  <a
+                    v-if="logDetails.log.admin_id === '00000000-0000-0000-0000-000000000001'"
+                    href="https://openai.com/"
+                    target="_blank"
+                    rel="noopener"
+                    class="text-brand-600 hover:text-brand-700 hover:underline"
+                  >
+                    {{ userLabel(logDetails.log.admin_id) }}
+                  </a>
+                  <NuxtLink
+                    v-else
+                    :to="`/users/id/${logDetails.log.admin_id}`"
+                    class="text-brand-600 hover:text-brand-700 hover:underline"
+                  >
                     {{ userLabel(logDetails.log.admin_id) }}
                   </NuxtLink>
                 </div>
                 <div v-if="logDetails.log.ip" class="flex justify-between"><span class="text-gray-600">IP:</span><span class="font-mono text-xs">{{ logDetails.log.ip }}</span></div>
+                <div v-if="logDetails.log.parsedMetadata?.ai_decision">
+                  <div class="border-t border-gray-200 my-2"></div>
+                  <div class="text-xs font-medium text-gray-700 mb-1">AI 审核信息</div>
+                  <div class="flex justify-between">
+                    <span class="text-gray-600">AI决策:</span>
+                    <span>{{ logDetails.log.parsedMetadata.ai_decision === 'auto_deleted' ? '自动删除' : logDetails.log.parsedMetadata.ai_decision }}</span>
+                  </div>
+                  <div v-if="logDetails.log.parsedMetadata.ai_reason" class="flex justify-between">
+                    <span class="text-gray-600">原因:</span>
+                    <span>{{ logDetails.log.parsedMetadata.ai_reason }}</span>
+                  </div>
+                  <div v-if="logDetails.log.parsedMetadata.ai_score !== undefined && logDetails.log.parsedMetadata.ai_score !== null" class="flex justify-between">
+                    <span class="text-gray-600">评分:</span>
+                    <span>{{ logDetails.log.parsedMetadata.ai_score }}</span>
+                  </div>
+                  <div v-if="logDetails.log.parsedMetadata.author_name" class="flex justify-between">
+                    <span class="text-gray-600">作者:</span>
+                    <span>{{ logDetails.log.parsedMetadata.author_name }}</span>
+                  </div>
+                  <div v-if="logDetails.log.parsedMetadata.content_preview" class="flex justify-between">
+                    <span class="text-gray-600">内容预览:</span>
+                    <span>{{ logDetails.log.parsedMetadata.content_preview }}</span>
+                  </div>
+                  <div v-if="logDetails.log.parsedMetadata.target_name" class="flex justify-between">
+                    <span class="text-gray-600">目标:</span>
+                    <span>{{ logDetails.log.parsedMetadata.target_name }}</span>
+                  </div>
+                </div>
               </div>
             </div>
             <div>
@@ -432,11 +506,8 @@ const formatDate = (dateString: string) => {
 const getPermissionName = (permission: string) => {
   const permissionNames: Record<string, string> = {
     [PERMISSIONS.MANAGE_USERS]: '用户管理',
-    [PERMISSIONS.EDIT_POST]: '编辑帖子',
-    [PERMISSIONS.DELETE_POST]: '删除帖子',
-    [PERMISSIONS.HIDE_POST]: '隐藏帖子',
-    [PERMISSIONS.PIN_POST]: '置顶帖子',
-    [PERMISSIONS.FEATURE_POST]: '精华帖子',
+    [PERMISSIONS.MANAGE_POSTS]: '帖子管理',
+    [PERMISSIONS.MANAGE_FEATURED]: '精华管理',
     [PERMISSIONS.MANAGE_ANNOUNCEMENTS]: '公告管理',
     [PERMISSIONS.MANAGE_COMMENTS]: '评论管理',
     [PERMISSIONS.MANAGE_TAGS]: '标签管理',
@@ -467,6 +538,7 @@ const formatLogAction = (action: string): string => {
     'hide_post': '隐藏帖子',
     'unhide_post': '取消隐藏帖子',
     'delete_post': '删除帖子',
+    'auto_delete': 'AI 自动审核',
     // 评论管理
     'edit_comment': '编辑评论',
     'hide_comment': '隐藏评论',
@@ -585,7 +657,49 @@ const clearLogFilters = () => {
   logFilters.q = ''
 }
 
+const formatAIMetadata = (metadata: Record<string, any>): string => {
+  const parts: string[] = []
+  if (Object.prototype.hasOwnProperty.call(metadata, 'ai_decision')) {
+    const decision = metadata.ai_decision === 'auto_deleted' ? '自动删除' : String(metadata.ai_decision)
+    parts.push(`AI决策: ${decision}`)
+  }
+  if (Object.prototype.hasOwnProperty.call(metadata, 'ai_reason')) {
+    const value = metadata.ai_reason
+    if (value !== undefined && value !== null && String(value).trim() !== '') {
+      parts.push(`原因: ${String(value)}`)
+    }
+  }
+  if (Object.prototype.hasOwnProperty.call(metadata, 'ai_score')) {
+    const value = metadata.ai_score
+    if (value !== undefined && value !== null && String(value).trim() !== '') {
+      parts.push(`评分: ${String(value)}`)
+    }
+  }
+  if (Object.prototype.hasOwnProperty.call(metadata, 'author_name')) {
+    const value = metadata.author_name
+    if (value !== undefined && value !== null && String(value).trim() !== '') {
+      parts.push(`作者: ${String(value)}`)
+    }
+  }
+  if (Object.prototype.hasOwnProperty.call(metadata, 'content_preview')) {
+    const value = metadata.content_preview
+    if (value !== undefined && value !== null && String(value).trim() !== '') {
+      parts.push(`内容预览: ${String(value)}`)
+    }
+  }
+  if (Object.prototype.hasOwnProperty.call(metadata, 'target_name')) {
+    const value = metadata.target_name
+    if (value !== undefined && value !== null && String(value).trim() !== '') {
+      parts.push(`目标: ${String(value)}`)
+    }
+  }
+  return parts.join(' | ')
+}
+
 const metadataPreview = (obj: Record<string, any>) => {
+  if (Object.prototype.hasOwnProperty.call(obj, 'ai_decision')) {
+    return formatAIMetadata(obj)
+  }
   const keys = Object.keys(obj)
   if (!keys.length) return ''
   const parts = keys.slice(0, 3).map(k => `${k}: ${String(obj[k])}`)
@@ -613,20 +727,27 @@ const preloadUserNames = async (items: LogEntry[]) => {
     if (l.user_id) ids.add(l.user_id)
     if (l.admin_id) ids.add(l.admin_id)
   })
-  const missing = Array.from(ids).filter(id => !(id in userMap.value))
+  const missing = Array.from(ids).filter(id =>
+    id !== '00000000-0000-0000-0000-000000000001' && !(id in userMap.value)
+  )
   if (!missing.length) return
   const api = useApi()
   await Promise.all(missing.map(async (id) => {
     try {
       const u = await api.getUser(id)
       userMap.value[id] = u
-    } catch {
+    } catch (error: any) {
+      if (error?.response?.status === 404) {
+        userMap.value[id] = null
+        return
+      }
       userMap.value[id] = null
     }
   }))
 }
 
 const userLabel = (id?: string) => {
+  if (id === '00000000-0000-0000-0000-000000000001') return 'OpenAI'
   if (!id) return '-'
   const u = userMap.value[id]
   if (u === undefined) return '加载中...'
@@ -705,3 +826,4 @@ useHead({
   ]
 })
 </script>
+

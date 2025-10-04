@@ -1056,11 +1056,8 @@ const fileToBase64 = (file: File): Promise<string> => {
 // Available permissions
 const availablePermissions = [
   { key: PERMISSIONS.MANAGE_USERS, name: '用户管理', description: '管理用户账户和基本信息' },
-  { key: PERMISSIONS.EDIT_POST, name: '编辑帖子', description: '编辑任意用户的帖子内容' },
-  { key: PERMISSIONS.DELETE_POST, name: '删除帖子', description: '删除任意用户的帖子' },
-  { key: PERMISSIONS.HIDE_POST, name: '隐藏帖子', description: '隐藏或恢复帖子的显示' },
-  { key: PERMISSIONS.PIN_POST, name: '置顶帖子', description: '设置帖子置顶或取消置顶' },
-  { key: PERMISSIONS.FEATURE_POST, name: '精华帖子', description: '设置帖子为精华或取消精华' },
+  { key: PERMISSIONS.MANAGE_POSTS, name: '帖子管理', description: '审核、删除、隐藏帖子' },
+  { key: PERMISSIONS.MANAGE_FEATURED, name: '精华管理', description: '置顶、精华帖子' },
   { key: PERMISSIONS.MANAGE_ANNOUNCEMENTS, name: '公告管理', description: '创建、编辑和删除系统公告' },
   { key: PERMISSIONS.MANAGE_COMMENTS, name: '评论管理', description: '审核、隐藏和删除用户评论' },
   { key: PERMISSIONS.MANAGE_TAGS, name: '标签管理', description: '创建标签和生成兑换码' },
@@ -1748,3 +1745,4 @@ useHead({
   ]
 })
 </script>
+

@@ -140,11 +140,8 @@ const canManageTags = computed(() =>
 const getPermissionName = (perm: string): string => {
   const names: Record<string, string> = {
     'MANAGE_USERS': '用户管理',
-    'EDIT_POST': '编辑表白',
-    'DELETE_POST': '删除表白',
-    'HIDE_POST': '隐藏表白',
-    'PIN_POST': '置顶表白',
-    'FEATURE_POST': '精选表白',
+    'MANAGE_POSTS': '帖子管理',
+    'MANAGE_FEATURED': '精华管理',
     'MANAGE_ANNOUNCEMENTS': '公告管理',
     'MANAGE_COMMENTS': '评论管理',
     'MANAGE_TAGS': '标签管理',
