@@ -128,6 +128,7 @@
 
     <ConfirmDialog />
     <PromptDialog />
+    <AdminDialog />
   </div>
 </template>
 
@@ -140,6 +141,7 @@ import LoadingSpinner from '~/components/ui/LoadingSpinner.vue'
 import AnnouncementBar from '~/components/layout/AnnouncementBar.vue'
 import ConfirmDialog from '~/components/ui/ConfirmDialog.vue'
 import PromptDialog from '~/components/ui/PromptDialog.vue'
+import AdminDialog from '~/components/ui/AdminDialog.vue'
 
 // Stores
 const auth = useAuthStore()

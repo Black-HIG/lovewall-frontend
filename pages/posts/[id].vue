@@ -707,8 +707,14 @@ const hideComment = async (comment: CommentDto) => {
 
 const promptModerationReason = async (action: string): Promise<string | null> => {
   if (typeof window === 'undefined') return ''
-  const { prompt } = usePrompt()
-  const input = await prompt(`${action}处理原因（可选，取消则中止操作）`, '')
+  const { prompt } = useAdminDialog()
+  const input = await prompt({
+    title: `${action}处理`,
+    inputLabel: '处理原因(可选)',
+    placeholder: '请输入处理原因(可选)',
+    confirmText: '确定',
+    cancelText: '取消'
+  })
   if (input === null) return null
   return input.trim()
 }
@@ -757,8 +763,13 @@ const toggleHide = async () => {
   if (!post.value) return
   const shouldHide = post.value.status === 0
   if (shouldHide) {
-    const { confirm } = useConfirm()
-    const confirmed = await confirm('确定要隐藏这个帖子吗？')
+    const { confirm } = useAdminDialog()
+    const confirmed = await confirm({
+      title: '确认隐藏',
+      message: '确定要隐藏这个帖子吗？',
+      confirmText: '确认隐藏',
+      cancelText: '取消'
+    })
     if (!confirmed) return
   }
 

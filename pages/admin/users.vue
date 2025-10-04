@@ -1714,8 +1714,13 @@ const submitBanUser = async () => {
 }
 
 const confirmUnbanUser = async (user: User) => {
-  const { confirm } = useConfirm()
-  if (!await confirm(`确定要解封用户 "${user.username}" 吗？`)) return
+  const { confirm } = useAdminDialog()
+  if (!await confirm({
+    title: '确认解封',
+    message: `确定要解封用户 "${user.username}" 吗？`,
+    confirmText: '确认解封',
+    cancelText: '取消'
+  })) return
   
   try {
     const api = useApi()

@@ -295,8 +295,8 @@ const toast = useToast()
 const assetUrl = useAssetUrl()
 const router = useRouter()
 const { deviceType, isMobile } = useDevice()
-const { confirm: confirmDialog } = useConfirm()
-const { prompt: promptDialog } = usePrompt()
+const { confirm: confirmDialog } = useAdminDialog()
+const { prompt: promptDialog } = useAdminDialog()
 
 // State
 const expanded = ref(false)
@@ -437,7 +437,12 @@ const handleFeature = async (feature: boolean) => {
 const handleHide = async () => {
   const hide = props.post.status === 0
   if (hide) {
-    const confirmed = await confirmDialog('确定要隐藏这个帖子吗？')
+    const confirmed = await confirmDialog({
+      title: '确认隐藏',
+      message: '确定要隐藏这个帖子吗？',
+      confirmText: '确认隐藏',
+      cancelText: '取消'
+    })
     if (!confirmed) return
   }
   try {
@@ -478,10 +483,11 @@ const promptModerationReason = async (action: string): Promise<string | null> =>
   if (!process.client) return ''
 
   const input = await promptDialog({
-    title: `${action}处理原因`,
-    message: '可选,取消则中止操作',
+    title: `${action}处理`,
+    inputLabel: '处理原因(可选)',
     placeholder: '请输入处理原因(可选)',
-    defaultValue: ''
+    confirmText: '确定',
+    cancelText: '取消'
   })
 
   if (input === null) return null

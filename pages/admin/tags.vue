@@ -1257,8 +1257,13 @@ const toggleSelectAll = (e: Event) => {
 
 const bulkDeleteSelected = async () => {
   if (!selectedIds.value.length) return
-  const { confirm } = useConfirm()
-  if (!await confirm(`确定删除选中的 ${selectedIds.value.length} 个兑换码？仅未使用的会被删除。`)) return
+  const { confirm } = useAdminDialog()
+  if (!await confirm({
+    title: '确认删除',
+    message: `确定删除选中的 ${selectedIds.value.length} 个兑换码？仅未使用的会被删除。`,
+    confirmText: '确认删除',
+    cancelText: '取消'
+  })) return
   try {
     const api = useApi()
     const res = await api.deleteRedemptionCodes({ ids: selectedIds.value })
@@ -1300,8 +1305,13 @@ const closeCodeDetailsModal = () => {
 // Delete a single redemption code (unused only)
 const confirmDeleteCode = async (code: RedemptionCodeDto) => {
   if (code.is_used) return
-  const { confirm } = useConfirm()
-  if (!await confirm('确定要删除该兑换码吗？仅未使用的兑换码可删除')) return
+  const { confirm } = useAdminDialog()
+  if (!await confirm({
+    title: '确认删除',
+    message: '确定要删除该兑换码吗？仅未使用的兑换码可删除',
+    confirmText: '确认删除',
+    cancelText: '取消'
+  })) return
   try {
     const api = useApi()
     const res = await api.deleteRedemptionCodes({ ids: [code.id] })
