@@ -18,19 +18,20 @@ export default defineNuxtConfig({
     pageTransition: { name: 'page', mode: 'out-in' },
     layoutTransition: { name: 'layout', mode: 'out-in' },
     head: {
-      title: 'Love Wall - 表白墙',
+      title: '郑州四中表白墙',
       htmlAttrs: {
         lang: 'zh-CN'
       },
       meta: [
         { charset: 'utf-8' },
-        { name: 'description', content: '一个温暖的表白墙，记录美好的告白时刻' },
+        { name: 'description', content: '郑州市第四高级中学校园信息交流平台，分享校园生活、表达心声的正规社区' },
+        { name: 'keywords', content: '郑州四中,郑州市第四高级中学,表白墙,校园社区,学生交流' },
         { name: 'viewport', content: 'width=device-width, initial-scale=1' },
         { 'http-equiv': 'X-UA-Compatible', content: 'IE=edge' },
         { 'http-equiv': 'Content-Type', content: 'text/html; charset=UTF-8' }
       ],
       link: [
-        { rel: 'icon', type: 'image/x-icon', href: '/favicon.ico' },
+        { rel: 'icon', type: 'image/png', href: '/bandge.png' },
         { rel: 'preconnect', href: 'https://static.geetest.com' },
         { rel: 'dns-prefetch', href: 'https://static.geetest.com' }
       ]

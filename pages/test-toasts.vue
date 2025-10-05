@@ -78,7 +78,7 @@ const showMultiple = () => {
 
 // Page meta
 definePageMeta({
-  title: '通知测试 - Love Wall',
+  title: '通知测试 - 郑州四中表白墙',
   middleware: 'auth',
 })
 </script>

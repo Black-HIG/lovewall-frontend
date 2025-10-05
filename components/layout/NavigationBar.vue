@@ -14,7 +14,7 @@
           ]"
         >
           <HeartIcon :class="isMobile ? 'w-5 h-5' : 'w-6 h-6'" />
-          <span :class="{ 'hidden xs:block': isMobile }">Love Wall</span>
+          <span :class="{ 'hidden xs:block': isMobile }">郑州四中表白墙</span>
         </NuxtLink>
 
         <!-- Desktop Navigation -->

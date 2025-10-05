@@ -3,9 +3,9 @@
     <!-- Header (no outer frame) -->
     <section>
       <div class="page-header">
-        <h1 class="page-title">Love Wall</h1>
+        <h1 class="page-title">郑州市第四高级中学表白墙</h1>
         <p class="text-gray-600 max-w-2xl mx-auto">
-          这里是一个温暖的表白墙，记录每一个美好的告白时刻。勇敢地说出你的心声吧！
+          校园信息交流平台。在这里发布你的想法、分享校园生活，与同学建立联系。
         </p>
       </div>
 
@@ -313,11 +313,19 @@ onActivated(async () => {
 })
 
 // Set page meta
-      definePageMeta({
-    title: 'Love Wall - 表白墙',
-    description: '一面温暖的表白墙，记录美好的告白时刻',
-    key: (route: any) => `index-${(route as any).fullPath || '/'}`
-  })
+definePageMeta({
+  title: '郑州市第四高级中学表白墙',
+  description: '郑州四中官方校园信息交流平台，学生可以在这里发布表白、分享联系方式、交流校园生活。安全、正规、实名认证的校园社区。',
+  key: (route: any) => `index-${(route as any).fullPath || '/'}`
+})
+
+useHead({
+  title: '郑州四中表白墙 - 校园信息交流平台',
+  meta: [
+    { name: 'description', content: '郑州四中官方校园信息交流平台，学生可以在这里发布表白、分享联系方式、交流校园生活。安全、正规、实名认证的校园社区。' },
+    { name: 'keywords', content: '郑州四中表白墙,郑州市第四高级中学,校园表白,学生社区,校园交流平台' }
+  ]
+})
 </script>
 
 

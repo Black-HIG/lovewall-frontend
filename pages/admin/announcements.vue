@@ -525,7 +525,7 @@ onMounted(() => {
 
 // SEO
 useHead({
-  title: '公告管理 - Love Wall',
+  title: '公告管理 - 郑州四中表白墙',
   meta: [
     { name: 'description', content: '创建、编辑和管理系统公告' }
   ]

@@ -318,13 +318,13 @@ watch(
 // SEO
 useHead(() => {
   if (!user.value) {
-    return { title: '用户不存在 - Love Wall' }
+    return { title: '用户不存在 - 郑州四中表白墙' }
   }
   
   return {
-    title: `${userDisplayName.value} (@${user.value.username}) - Love Wall`,
+    title: `${userDisplayName.value} (@${user.value.username}) - 郑州四中表白墙`,
     meta: [
-      { name: 'description', content: `查看 ${userDisplayName.value} 在 Love Wall 的个人主页` },
+      { name: 'description', content: `查看 ${userDisplayName.value} 在郑州四中表白墙的个人主页` },
     ]
   }
 })

@@ -402,5 +402,5 @@ onUnmounted(() => cleanupObservers())
 
 onMounted(() => load(1))
 
-useHead({ title: '系统通知 - Love Wall' })
+useHead({ title: '系统通知 - 郑州四中表白墙' })
 </script>

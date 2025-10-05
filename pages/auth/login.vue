@@ -10,7 +10,7 @@
             </div>
           </div>
           <h1 class="text-2xl font-bold text-gray-900 mb-2">欢迎回来</h1>
-          <p class="text-gray-600">登录您的 Love Wall 账户</p>
+          <p class="text-gray-600">登录您的账户</p>
         </div>
 
         <!-- Login Form -->
@@ -216,8 +216,8 @@ watch(
 
 // Page meta
 definePageMeta({
-  title: '登录 - Love Wall',
-  description: '登录您的 Love Wall 账户',
+  title: '登录 - 郑州四中表白墙',
+  description: '登录郑州四中表白墙账户',
   layout: false, // Use custom layout
 })
 </script>

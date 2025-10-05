@@ -113,7 +113,7 @@ import GlassInput from '~/components/ui/GlassInput.vue'
 import type { ChangePasswordForm } from '~/types'
 
 definePageMeta({
-  title: '修改密码 - Love Wall',
+  title: '修改密码 - 郑州四中表白墙',
   middleware: ['auth']
 })
 
@@ -226,7 +226,7 @@ watch(form, () => {
 
 // SEO
 useHead({
-  title: '修改密码 - Love Wall',
+  title: '修改密码 - 郑州四中表白墙',
   meta: [
     { name: 'description', content: '修改您的账户密码' }
   ]

@@ -1412,7 +1412,7 @@ onMounted(() => {
 
 // SEO
 useHead({
-  title: '标签管理 - Love Wall',
+  title: '标签管理 - 郑州四中表白墙',
   meta: [
     { name: 'description', content: '创建标签和生成兑换码' }
   ]

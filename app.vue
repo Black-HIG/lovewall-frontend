@@ -24,8 +24,8 @@
         <div class="glass-bar rounded-none h-14 px-3 sm:px-4 flex items-center justify-between">
           <!-- Site name / logo -->
           <NuxtLink to="/" class="flex items-center gap-2 text-brand-600 hover:text-brand-700">
-            <HeartIcon class="w-5 h-5" />
-            <span class="font-bold text-lg hidden sm:block">Love Wall</span>
+            <img src="/bandge.png" alt="郑州四中表白墙" class="w-8 h-8 rounded-lg">
+            <span class="font-bold text-lg hidden sm:block">郑州四中表白墙</span>
           </NuxtLink>
 
           <!-- Auth Area -->
@@ -104,7 +104,7 @@
         <hr class="border-t border-white/40 mb-4" />
         <footer class="glass-card rounded-none py-6 text-center text-sm text-gray-600">
           <div class="space-y-2">
-            <p>© 2024 Love Wall. Made with ❤</p>
+            <p>© 2024 郑州市第四高级中学表白墙</p>
             <div class="flex justify-center gap-4">
               <a href="#" class="hover:text-brand-600 transition-colors">隐私政策</a>
               <a href="#" class="hover:text-brand-600 transition-colors">服务条款</a>
@@ -134,7 +134,7 @@
 
 <script setup lang="ts">
 import type { AnnouncementDto } from '~/types'
-import { HeartIcon, UserIcon, ChevronDownIcon, BellIcon } from 'lucide-vue-next'
+import { UserIcon, ChevronDownIcon, BellIcon } from 'lucide-vue-next'
 import { onClickOutside } from '@vueuse/core'
 import ToastContainer from '~/components/ui/ToastContainer.vue'
 import LoadingSpinner from '~/components/ui/LoadingSpinner.vue'

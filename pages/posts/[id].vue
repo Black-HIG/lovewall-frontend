@@ -942,11 +942,11 @@ watch(() => postId.value, async () => {
 // SEO
 useHead(() => {
   if (!post.value) {
-    return { title: '加载中 - Love Wall' }
+    return { title: '加载中 - 郑州四中表白墙' }
   }
   
   return {
-    title: `${post.value.author_name}对${post.value.target_name}的表白 - Love Wall`,
+    title: `${post.value.author_name}对${post.value.target_name}的表白 - 郑州四中表白墙`,
     meta: [
       { name: 'description', content: post.value.content.slice(0, 150) + '...' },
     ]

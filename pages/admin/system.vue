@@ -14,7 +14,7 @@
         <div class="space-y-4">
           <div class="flex justify-between py-2 border-b border-gray-100">
             <span class="text-gray-600">系统版本</span>
-            <span class="font-medium">Love Wall v1.0</span>
+            <span class="font-medium">郑州四中表白墙 v1.0</span>
           </div>
           
           <div class="flex justify-between py-2 border-b border-gray-100">
@@ -820,7 +820,7 @@ onMounted(() => {
 
 // SEO
 useHead({
-  title: '系统信息 - Love Wall',
+  title: '系统信息 - 郑州四中表白墙',
   meta: [
     { name: 'description', content: '查看系统运行状态和基本信息' }
   ]

@@ -98,9 +98,9 @@ watch(() => route.path, () => {
 
 // SEO
 useHead({
-  title: `${currentPageName.value ? `${currentPageName.value} - ` : ''}管理后台 - Love Wall`,
+  title: `${currentPageName.value ? `${currentPageName.value} - ` : ''}管理后台 - 郑州四中表白墙`,
   meta: [
-    { name: 'description', content: 'Love Wall 管理后台' }
+    { name: 'description', content: '郑州四中表白墙管理后台' }
   ]
 })
 </script>

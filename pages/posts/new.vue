@@ -6,7 +6,7 @@
         <div class="mb-8">
           <h1 class="page-title">发布表白</h1>
           <p class="text-gray-600 text-center">
-            {{ form.card_type === 'communication' ? '分享你的联系方式,找到志同道合的朋友 🤝' : '勇敢地说出你的心声,让爱传递出去 💕' }}
+            {{ form.card_type === 'communication' ? '分享你的联系方式，寻找志同道合的同学' : '发布你的表白信息' }}
           </p>
         </div>
 
@@ -34,7 +34,7 @@
               />
               <div>
                 <div class="font-medium text-gray-900">表白卡</div>
-                <div class="text-sm text-gray-500">向TA表白你的心意</div>
+                <div class="text-sm text-gray-500">表达你对TA的心意</div>
               </div>
             </label>
 
@@ -551,9 +551,13 @@ watch(form, () => {
 
 // Page meta
 definePageMeta({
-  title: '发布表白 - Love Wall',
+  title: '发布信息 - 郑州四中表白墙',
   description: '发布您的表白内容',
   middleware: ['auth'],
+})
+
+useHead({
+  title: '发布信息 - 郑州四中表白墙'
 })
 </script>
 

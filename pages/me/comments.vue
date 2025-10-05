@@ -441,7 +441,7 @@ onMounted(() => {
 
 // SEO
 useHead({
-  title: '我的评论 - Love Wall',
+  title: '我的评论 - 郑州四中表白墙',
   meta: [
     { name: 'description', content: '管理你发表的所有评论' }
   ]

@@ -9,7 +9,7 @@
               <UserPlusIcon class="w-8 h-8 text-white" />
             </div>
           </div>
-          <h1 class="text-2xl font-bold text-gray-900 mb-2">加入 Love Wall</h1>
+          <h1 class="text-2xl font-bold text-gray-900 mb-2">加入郑州四中表白墙</h1>
           <p class="text-gray-600">创建您的账户，开始记录美好的表白时刻</p>
         </div>
 
@@ -274,8 +274,8 @@ watch(
 
 // Page meta
 definePageMeta({
-  title: '注册 - Love Wall',
-  description: '创建您的 Love Wall 账户',
+  title: '注册 - 郑州四中表白墙',
+  description: '创建您的郑州四中表白墙账户',
   layout: false, // Use custom layout
 })
 </script>

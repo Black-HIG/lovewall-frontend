@@ -416,7 +416,7 @@ onMounted(() => {
 
 // SEO
 useHead({
-  title: '我的表白 - Love Wall',
+  title: '我的表白 - 郑州四中表白墙',
   meta: [
     { name: 'description', content: '管理你发布的所有表白内容' }
   ]

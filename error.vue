@@ -75,6 +75,6 @@ const goHome = () => {
 
 // Set page title
 useHead({
-  title: `${props.error.statusCode} - ${getErrorTitle(props.error.statusCode)} - Love Wall`
+  title: `${props.error.statusCode} - ${getErrorTitle(props.error.statusCode)} - 郑州四中表白墙`
 })
 </script>

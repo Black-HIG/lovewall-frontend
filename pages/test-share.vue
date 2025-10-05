@@ -207,7 +207,7 @@ const capabilities = ref(getShareCapabilities())
 
 // 测试数据
 const testData = ref({
-  title: 'Love Wall - 表白墙',
+  title: '郑州四中表白墙 - 表白墙',
   text: '这是一个温暖的表白墙，记录每一个美好的告白时刻。快来看看这个表白吧！',
   url: window.location.origin + '/posts/test',
   image: ''

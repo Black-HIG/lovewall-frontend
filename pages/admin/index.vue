@@ -359,9 +359,9 @@ onMounted(() => {
 
 // SEO
 useHead({
-  title: '管理后台 - Love Wall',
+  title: '管理后台 - 郑州四中表白墙',
   meta: [
-    { name: 'description', content: 'Love Wall 管理后台，系统管理和内容审核' }
+    { name: 'description', content: '郑州四中表白墙管理后台，系统管理和内容审核' }
   ]
 })
 </script>

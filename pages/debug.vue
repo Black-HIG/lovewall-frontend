@@ -225,6 +225,6 @@ onMounted(() => {
 
 // Page meta
 definePageMeta({
-  title: '调试页面 - Love Wall',
+  title: '调试页面 - 郑州四中表白墙',
 })
 </script>

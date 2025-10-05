@@ -543,7 +543,7 @@ onMounted(() => {
 
 // SEO
 useHead({
-  title: '我的标签 - Love Wall',
+  title: '我的标签 - 郑州四中表白墙',
   meta: [
     { name: 'description', content: '管理你拥有的标签和当前显示标签' }
   ]
