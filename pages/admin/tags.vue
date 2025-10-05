@@ -212,545 +212,560 @@
     </div>
 
     <!-- Create/Edit Tag Modal -->
-    <GlassModal
-      :is-open="tagModal.show"
-      :title="tagModal.tag ? '编辑标签' : '新建标签'"
-      max-width="max-w-md"
-      @close="closeTagModal"
-    >
-      <form @submit.prevent="saveTag" class="space-y-4">
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">标识名 *</label>
-          <GlassInput
-            v-model="tagForm.name"
-            placeholder="英文标识名，如：vip"
-            required
-          />
-          <p class="text-xs text-gray-500 mt-1">用于程序识别，只能包含字母、数字和下划线</p>
-        </div>
+    <Teleport to="body">
+      <Transition name="dialog-fade">
+        <div v-if="tagModal.show" class="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+          <div class="absolute inset-0 bg-black/20 backdrop-blur-sm" @click="closeTagModal" />
+          <div class="relative bg-white rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-hidden flex flex-col animate-dialog-in" @click.stop>
+            <div class="relative p-6 pb-4 pr-12">
+              <h3 class="text-xl font-semibold text-gray-900">{{ tagModal.tag ? '编辑标签' : '新建标签' }}</h3>
+              <button type="button" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors" @click="closeTagModal">
+                <XIcon class="w-5 h-5" />
+              </button>
+            </div>
+            <div class="px-6 pb-6 flex-1 overflow-y-auto">
+              <form id="tag-form" @submit.prevent="saveTag" class="space-y-4">
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">标识名 *</label>
+                  <input
+                    v-model="tagForm.name"
+                    type="text"
+                    placeholder="英文标识名，如：vip"
+                    required
+                    class="w-full px-4 py-2.5 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-400 focus:border-transparent"
+                  />
+                  <p class="text-xs text-gray-500 mt-1">用于程序识别，只能包含字母、数字和下划线</p>
+                </div>
 
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">显示名称 *</label>
-          <GlassInput
-            v-model="tagForm.title"
-            placeholder="显示给用户的名称，如：VIP用户"
-            required
-          />
-        </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">显示名称 *</label>
+                  <input
+                    v-model="tagForm.title"
+                    type="text"
+                    placeholder="显示给用户的名称，如：VIP用户"
+                    required
+                    class="w-full px-4 py-2.5 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-400 focus:border-transparent"
+                  />
+                </div>
 
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">描述</label>
-          <GlassTextarea
-            v-model="tagForm.description"
-            placeholder="标签的描述信息..."
-            :rows="3"
-          />
-        </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">描述</label>
+                  <textarea
+                    v-model="tagForm.description"
+                    placeholder="标签的描述信息..."
+                    rows="3"
+                    class="w-full px-4 py-2.5 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-400 focus:border-transparent resize-none"
+                  ></textarea>
+                </div>
 
-        <div class="grid grid-cols-2 gap-4">
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">背景色</label>
-            <div class="flex items-center gap-2">
-              <input
-                type="color"
-                v-model="tagForm.background_color"
-                class="w-10 h-10 rounded border border-gray-300"
-              />
-              <GlassInput
-                v-model="tagForm.background_color"
-                placeholder="#FF5CA3"
-                class="flex-1"
-              />
+                <div class="grid grid-cols-2 gap-4">
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">背景色</label>
+                    <div class="flex items-center gap-2">
+                      <input
+                        type="color"
+                        v-model="tagForm.background_color"
+                        class="w-10 h-10 rounded border border-gray-300"
+                      />
+                      <input
+                        v-model="tagForm.background_color"
+                        type="text"
+                        placeholder="#FF5CA3"
+                        class="flex-1 w-full px-4 py-2.5 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-400 focus:border-transparent"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">文字色</label>
+                    <div class="flex items-center gap-2">
+                      <input
+                        type="color"
+                        v-model="tagForm.text_color"
+                        class="w-10 h-10 rounded border border-gray-300"
+                      />
+                      <input
+                        v-model="tagForm.text_color"
+                        type="text"
+                        placeholder="#FFFFFF"
+                        class="flex-1 w-full px-4 py-2.5 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-400 focus:border-transparent"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div class="p-3 bg-gray-50 rounded-lg">
+                  <p class="text-sm text-gray-600 mb-2">预览：</p>
+                  <TagBadge
+                    :title="tagForm.title || '标签预览'"
+                    :background="tagForm.background_color"
+                    :text="tagForm.text_color"
+                  />
+                </div>
+
+                <div>
+                  <label class="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      v-model="tagForm.is_active"
+                      class="rounded"
+                    />
+                    <span class="text-sm font-medium text-gray-700">启用标签</span>
+                  </label>
+                </div>
+              </form>
+            </div>
+            <div class="flex gap-3 justify-end px-6 pb-6">
+              <button type="button" class="px-5 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors" @click="closeTagModal">取消</button>
+              <button type="submit" form="tag-form" class="px-5 py-2.5 text-sm font-medium text-white bg-brand-500 hover:bg-brand-600 rounded-lg transition-colors shadow-sm flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed" :disabled="saving">
+                <span v-if="saving" class="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin"></span>
+                <span>{{ tagModal.tag ? '保存' : '创建' }}</span>
+              </button>
             </div>
           </div>
-
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">文字色</label>
-            <div class="flex items-center gap-2">
-              <input
-                type="color"
-                v-model="tagForm.text_color"
-                class="w-10 h-10 rounded border border-gray-300"
-              />
-              <GlassInput
-                v-model="tagForm.text_color"
-                placeholder="#FFFFFF"
-                class="flex-1"
-              />
-            </div>
-          </div>
         </div>
-
-        <!-- Preview -->
-        <div class="p-3 bg-gray-50 rounded-lg">
-          <p class="text-sm text-gray-600 mb-2">预览：</p>
-          <TagBadge
-            :title="tagForm.title || '标签预览'"
-            :background="tagForm.background_color"
-            :text="tagForm.text_color"
-          />
-        </div>
-
-        <div>
-          <label class="flex items-center gap-2">
-            <input
-              type="checkbox"
-              v-model="tagForm.is_active"
-              class="rounded"
-            />
-            <span class="text-sm font-medium text-gray-700">启用标签</span>
-          </label>
-        </div>
-      </form>
-
-      <template #footer>
-        <div class="flex gap-3 justify-end">
-          <GlassButton
-            type="button"
-            @click="closeTagModal"
-            variant="secondary"
-          >
-            取消
-          </GlassButton>
-          <GlassButton
-            @click="saveTag"
-            :loading="saving"
-          >
-            {{ tagModal.tag ? '保存' : '创建' }}
-          </GlassButton>
-        </div>
-      </template>
-    </GlassModal>
+      </Transition>
+    </Teleport>
 
     <!-- Generate Codes Modal -->
-    <GlassModal
-      :is-open="codesModal.show"
-      title="生成兑换码"
-      max-width="max-w-md"
-      @close="closeCodesModal"
-    >
-      <div v-if="codesModal.tag" class="mb-4 p-3 bg-gray-50 rounded-lg">
-        <p class="text-sm text-gray-600 mb-2">为标签生成兑换码：</p>
-        <TagBadge
-          :title="codesModal.tag.title"
-          :background="codesModal.tag.background_color"
-          :text="codesModal.tag.text_color"
-        />
-      </div>
-      
-      <form @submit.prevent="generateCodes" class="space-y-4">
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">生成数量 *</label>
-          <GlassInput
-            v-model="codesForm.count"
-            type="number"
-            placeholder="100"
-            min="1"
-            max="1000"
-            required
-          />
-          <p class="text-xs text-gray-500 mt-1">最多一次生成1000个</p>
-        </div>
+    <Teleport to="body">
+      <Transition name="dialog-fade">
+        <div v-if="codesModal.show" class="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+          <div class="absolute inset-0 bg-black/20 backdrop-blur-sm" @click="closeCodesModal" />
+          <div class="relative bg-white rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-hidden flex flex-col animate-dialog-in" @click.stop>
+            <div class="relative p-6 pb-4 pr-12">
+              <h3 class="text-xl font-semibold text-gray-900">生成兑换码</h3>
+              <button type="button" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors" @click="closeCodesModal">
+                <XIcon class="w-5 h-5" />
+              </button>
+            </div>
+            <div class="px-6 pb-6 flex-1 overflow-y-auto">
+              <div v-if="codesModal.tag" class="mb-4 p-3 bg-gray-50 rounded-lg">
+                <p class="text-sm text-gray-600 mb-2">为标签生成兑换码：</p>
+                <TagBadge
+                  :title="codesModal.tag.title"
+                  :background="codesModal.tag.background_color"
+                  :text="codesModal.tag.text_color"
+                />
+              </div>
 
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">过期时间</label>
-          <GlassInput
-            v-model="codesForm.expires_at"
-            type="datetime-local"
-            placeholder="留空表示永不过期"
-          />
-        </div>
-      </form>
+              <form id="codes-form" @submit.prevent="generateCodes" class="space-y-4">
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">生成数量 *</label>
+                  <input
+                    v-model="codesForm.count"
+                    type="number"
+                    placeholder="100"
+                    min="1"
+                    max="1000"
+                    required
+                    class="w-full px-4 py-2.5 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-400 focus:border-transparent"
+                  />
+                  <p class="text-xs text-gray-500 mt-1">最多一次生成1000个</p>
+                </div>
 
-      <template #footer>
-        <div class="flex gap-3 justify-end">
-          <GlassButton
-            type="button"
-            @click="closeCodesModal"
-            variant="secondary"
-          >
-            取消
-          </GlassButton>
-          <GlassButton
-            @click="generateCodes"
-            :loading="generating"
-          >
-            生成兑换码
-          </GlassButton>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">过期时间</label>
+                  <input
+                    v-model="codesForm.expires_at"
+                    type="datetime-local"
+                    placeholder="留空表示永不过期"
+                    class="w-full px-4 py-2.5 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-400 focus:border-transparent"
+                  />
+                </div>
+              </form>
+            </div>
+            <div class="flex gap-3 justify-end px-6 pb-6">
+              <button type="button" class="px-5 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors" @click="closeCodesModal">取消</button>
+              <button type="submit" form="codes-form" class="px-5 py-2.5 text-sm font-medium text-white bg-brand-500 hover:bg-brand-600 rounded-lg transition-colors shadow-sm flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed" :disabled="generating">
+                <span v-if="generating" class="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin"></span>
+                <span>生成兑换码</span>
+              </button>
+            </div>
+          </div>
         </div>
-      </template>
-    </GlassModal>
+      </Transition>
+    </Teleport>
 
     <!-- Generated Codes Modal -->
-    <GlassModal
-      :is-open="generatedModal.show"
-      title="兑换码生成成功"
-      max-width="max-w-4xl"
-      @close="closeGeneratedModal"
-    >
-      <div class="flex items-center justify-between mb-4">
-        <p class="text-gray-600">
-          已为标签"{{ generatedModal.tag?.title }}"生成 {{ generatedModal.codes?.length }} 个兑换码
-        </p>
-        <GlassButton
-          @click="downloadCodes"
-          variant="secondary"
-          class="text-sm"
-        >
-          <DownloadIcon class="w-4 h-4 mr-1" />
-          下载
-        </GlassButton>
-      </div>
-      
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 max-h-60 overflow-y-auto bg-gray-50 p-4 rounded-lg">
-        <code
-          v-for="code in generatedModal.codes"
-          :key="code.id"
-          class="text-xs bg-white px-2 py-1 rounded border font-mono"
-        >
-          {{ code.code }}
-        </code>
-      </div>
+    <Teleport to="body">
+      <Transition name="dialog-fade">
+        <div v-if="generatedModal.show" class="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+          <div class="absolute inset-0 bg-black/20 backdrop-blur-sm" @click="closeGeneratedModal" />
+          <div class="relative bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col animate-dialog-in" @click.stop>
+            <div class="relative p-6 pb-4 pr-12">
+              <h3 class="text-xl font-semibold text-gray-900">兑换码生成成功</h3>
+              <button type="button" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors" @click="closeGeneratedModal">
+                <XIcon class="w-5 h-5" />
+              </button>
+            </div>
+            <div class="px-6 pb-6 flex-1 overflow-y-auto space-y-4">
+              <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <p class="text-gray-600">
+                  已为标签"{{ generatedModal.tag?.title }}"生成 {{ generatedModal.codes?.length }} 个兑换码
+                </p>
+                <GlassButton
+                  @click="downloadCodes"
+                  variant="secondary"
+                  class="text-sm"
+                >
+                  <DownloadIcon class="w-4 h-4 mr-1" />
+                  下载
+                </GlassButton>
+              </div>
 
-      <template #footer>
-        <div class="flex justify-end">
-          <GlassButton @click="closeGeneratedModal">
-            关闭
-          </GlassButton>
+              <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 max-h-60 overflow-y-auto bg-gray-50 p-4 rounded-lg">
+                <code
+                  v-for="code in generatedModal.codes"
+                  :key="code.id"
+                  class="text-xs bg-white px-2 py-1 rounded border font-mono"
+                >
+                  {{ code.code }}
+                </code>
+              </div>
+            </div>
+            <div class="flex gap-3 justify-end px-6 pb-6">
+              <button type="button" class="px-5 py-2.5 text-sm font-medium text-white bg-brand-500 hover:bg-brand-600 rounded-lg transition-colors shadow-sm" @click="closeGeneratedModal">
+                关闭
+              </button>
+            </div>
+          </div>
         </div>
-      </template>
-    </GlassModal>
+      </Transition>
+    </Teleport>
 
     <!-- Delete Confirmation Modal -->
-    <GlassModal
-      :is-open="deleteModal.show"
-      title="确认删除"
-      max-width="max-w-md"
-      @close="deleteModal.show = false"
-    >
-      <p class="text-gray-600 mb-6">
-        确定要删除标签"{{ deleteModal.tag?.title }}"吗？删除后无法恢复，相关的兑换码也会失效。
-      </p>
-
-      <template #footer>
-        <div class="flex gap-3 justify-end">
-          <GlassButton
-            @click="deleteModal.show = false"
-            variant="secondary"
-            class="glass-button-secondary"
-          >
-            取消
-          </GlassButton>
-          <GlassButton
-            @click="deleteTag"
-            class="glass-button !bg-red-600 hover:!bg-red-700"
-            :loading="deleting"
-
-          >
-            确认删除
-          </GlassButton>
+    <Teleport to="body">
+      <Transition name="dialog-fade">
+        <div v-if="deleteModal.show" class="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+          <div class="absolute inset-0 bg-black/20 backdrop-blur-sm" @click="closeDeleteModal" />
+          <div class="relative bg-white rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-hidden flex flex-col animate-dialog-in" @click.stop>
+            <div class="relative p-6 pb-4 pr-12">
+              <h3 class="text-xl font-semibold text-gray-900">确认删除</h3>
+              <button type="button" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors" @click="closeDeleteModal">
+                <XIcon class="w-5 h-5" />
+              </button>
+            </div>
+            <div class="px-6 pb-6 flex-1 overflow-y-auto">
+              <p class="text-gray-600">
+                确定要删除标签"{{ deleteModal.tag?.title }}"吗？删除后无法恢复，相关的兑换码也会失效。
+              </p>
+            </div>
+            <div class="flex gap-3 justify-end px-6 pb-6">
+              <button type="button" class="px-5 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors" @click="closeDeleteModal">取消</button>
+              <button type="button" class="px-5 py-2.5 text-sm font-medium text-white bg-brand-500 hover:bg-brand-600 rounded-lg transition-colors shadow-sm flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed" :disabled="deleting" @click="deleteTag">
+                <span v-if="deleting" class="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin"></span>
+                <span>确认删除</span>
+              </button>
+            </div>
+          </div>
         </div>
-      </template>
-    </GlassModal>
+      </Transition>
+    </Teleport>
 
     <!-- Codes List Modal -->
-    <GlassModal
-      :is-open="codesListModal.show"
-      title="兑换码列表"
-      max-width="max-w-6xl"
-      @close="closeCodesListModal"
-    >
-      <!-- Filters -->
-      <div class="mb-4 flex flex-col sm:flex-row sm:flex-nowrap gap-3 items-center">
-        <GlassInput
-          v-model="codesFilter.code"
-          placeholder="搜索兑换码..."
-          class="flex-1"
-        />
-        
-        <select
-          v-model="codesFilter.tag_id"
-          class="glass-input px-3 py-2 min-w-32"
-        >
-          <option value="">全部标签</option>
-          <option v-for="tag in tags" :key="tag.id" :value="tag.id">
-            {{ tag.title }}
-          </option>
-        </select>
-        
-        <select
-          v-model="codesFilter.used"
-          class="glass-input px-3 py-2 min-w-24"
-        >
-          <option value="">全部状态</option>
-          <option value="false">未使用</option>
-          <option value="true">已使用</option>
-        </select>
-        
-        <GlassButton
-          @click="loadCodes(1)"
-          :loading="loadingCodes"
-          variant="secondary"
-          class="toolbar-button"
-        >
-          搜索
-        </GlassButton>
-
-        <GlassButton
-          @click="bulkDeleteSelected"
-          :disabled="!selectedIds.length"
-          variant="secondary"
-          class="toolbar-button !text-red-600 hover:!bg-red-50"
-          title="批量删除未使用的兑换码（仅删除未使用，已使用会跳过）"
-        >
-          批量删除
-        </GlassButton>
-
-        <!-- Page size selector -->
-        <div class="ml-auto flex items-center gap-2 text-sm text-gray-600">
-          <span>每页显示:</span>
-          <select
-            v-model.number="codesPageSize"
-            @change="changeCodesPageSize"
-            class="glass-input px-2 py-1 text-sm"
-          >
-            <option :value="20">20</option>
-            <option :value="50">50</option>
-            <option :value="100">100</option>
-            <option :value="500">500</option>
-          </select>
-          <span>条</span>
-        </div>
-      </div>
-
-      <!-- Loading State -->
-      <div v-if="loadingCodes" class="flex items-center justify-center py-12">
-        <LoadingSpinner size="lg" />
-      </div>
-
-      <!-- Empty State -->
-      <div v-else-if="!codes.length" class="text-center py-12">
-        <div class="w-16 h-16 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
-          <TicketIcon class="w-8 h-8 text-white" />
-        </div>
-        <h3 class="text-lg font-semibold text-gray-800 mb-2">暂无兑换码</h3>
-        <p class="text-gray-600">点击"生成兑换码"来创建第一个兑换码</p>
-      </div>
-
-      <!-- Codes Table -->
-      <div v-else class="overflow-x-auto">
-        <table class="w-full">
-          <thead class="bg-gray-50">
-            <tr>
-              <th class="px-4 py-3 text-left w-10">
-                <input
-                  type="checkbox"
-                  :checked="allSelectableSelected"
-                  @change="toggleSelectAll($event)"
-                >
-              </th>
-              <th class="px-4 py-3 text-left text-sm font-medium text-gray-700 whitespace-nowrap">兑换码</th>
-              <th class="px-4 py-3 text-left text-sm font-medium text-gray-700 whitespace-nowrap">标签</th>
-              <th class="px-4 py-3 text-left text-sm font-medium text-gray-700 whitespace-nowrap">状态</th>
-              <th class="px-4 py-3 text-left text-sm font-medium text-gray-700 whitespace-nowrap">使用者</th>
-              <th class="px-4 py-3 text-left text-sm font-medium text-gray-700 whitespace-nowrap">过期时间</th>
-              <th class="px-4 py-3 text-left text-sm font-medium text-gray-700 whitespace-nowrap">创建时间</th>
-              <th class="px-4 py-3 text-left text-sm font-medium text-gray-700 whitespace-nowrap">操作</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-gray-200">
-            <tr v-for="code in codes" :key="code.id" class="hover:bg-gray-50">
-              <td class="px-4 py-3">
-                <input type="checkbox" :value="code.id" v-model="selectedIds" :disabled="code.is_used">
-              </td>
-              <td class="px-4 py-3">
-                <code class="text-xs bg-gray-100 px-2 py-1 rounded font-mono">{{ code.code }}</code>
-              </td>
-              <td class="px-4 py-3">
-                <TagBadge
-                  v-if="code.tag"
-                  :title="code.tag.title"
-                  :background="code.tag.background_color"
-                  :text="code.tag.text_color"
-                />
-              </td>
-              <td class="px-4 py-3 whitespace-nowrap">
-                <span
-                  :class="{
-                    'bg-green-100 text-green-800': !code.is_used,
-                    'bg-gray-100 text-gray-800': code.is_used
-                  }"
-                  class="px-2 py-1 text-xs rounded-full"
-                >
-                  {{ code.is_used ? '已使用' : '未使用' }}
-                </span>
-              </td>
-              <td class="px-4 py-3 text-sm text-gray-600">
-                <span class="block truncate max-w-[220px]">{{ codeUserLabel(code) }}</span>
-              </td>
-              <td class="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">
-                {{ code.expires_at ? formatDate(code.expires_at) : '永不过期' }}
-              </td>
-              <td class="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">
-                {{ formatDate(code.created_at) }}
-              </td>
-              <td class="px-4 py-3">
-                <GlassButton
-                  @click="viewCodeDetails(code)"
-                  class="!p-1 text-xs"
-                  variant="secondary"
-                >
-                  查看详情
-                </GlassButton>
-                <GlassButton
-                  v-if="!code.is_used"
-                  @click="confirmDeleteCode(code)"
-                  class="!p-1 text-xs !text-red-600 hover:!bg-red-50"
-                  variant="secondary"
-                >
-                  删除
-                </GlassButton>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-
-        <!-- Pagination -->
-        <div
-          v-if="codesData && codesData.total > codesData.page_size"
-          class="flex justify-center pt-6"
-        >
-          <div class="flex gap-2">
-            <GlassButton
-              @click="prevCodesPage"
-              :disabled="codesData.page <= 1"
-              variant="secondary"
-              class="px-4 py-2 text-sm"
-            >
-              上一页
-            </GlassButton>
-            
-            <div class="flex items-center px-4 py-2 text-sm text-gray-600">
-              第 {{ codesData.page }} 页，共 {{ Math.ceil(codesData.total / codesData.page_size) }} 页
+    <Teleport to="body">
+      <Transition name="dialog-fade">
+        <div v-if="codesListModal.show" class="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+          <div class="absolute inset-0 bg-black/20 backdrop-blur-sm" @click="closeCodesListModal" />
+          <div class="relative bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-hidden flex flex-col animate-dialog-in" @click.stop>
+            <div class="relative p-6 pb-4 pr-12">
+              <h3 class="text-xl font-semibold text-gray-900">兑换码列表</h3>
+              <button type="button" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors" @click="closeCodesListModal">
+                <XIcon class="w-5 h-5" />
+              </button>
             </div>
-            
-            <GlassButton
-              @click="nextCodesPage"
-              :disabled="codesData.page * codesData.page_size >= codesData.total"
-              variant="secondary"
-              class="px-4 py-2 text-sm"
-            >
-              下一页
-            </GlassButton>
+            <div class="px-6 pb-6 flex-1 overflow-y-auto space-y-6">
+              <div class="flex flex-col sm:flex-row sm:flex-nowrap gap-3 items-center">
+                <input
+                  v-model="codesFilter.code"
+                  type="text"
+                  placeholder="搜索兑换码..."
+                  class="flex-1 w-full px-4 py-2.5 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-400 focus:border-transparent"
+                />
+
+                <select
+                  v-model="codesFilter.tag_id"
+                  class="glass-input px-3 py-2 min-w-32"
+                >
+                  <option value="">全部标签</option>
+                  <option v-for="tag in tags" :key="tag.id" :value="tag.id">
+                    {{ tag.title }}
+                  </option>
+                </select>
+
+                <select
+                  v-model="codesFilter.used"
+                  class="glass-input px-3 py-2 min-w-24"
+                >
+                  <option value="">全部状态</option>
+                  <option value="false">未使用</option>
+                  <option value="true">已使用</option>
+                </select>
+
+                <GlassButton
+                  @click="loadCodes(1)"
+                  :loading="loadingCodes"
+                  variant="secondary"
+                  class="toolbar-button"
+                >
+                  搜索
+                </GlassButton>
+
+                <GlassButton
+                  @click="bulkDeleteSelected"
+                  :disabled="!selectedIds.length"
+                  variant="secondary"
+                  class="toolbar-button !text-red-600 hover:!bg-red-50"
+                  title="批量删除未使用的兑换码（仅删除未使用，已使用会跳过）"
+                >
+                  批量删除
+                </GlassButton>
+
+                <div class="ml-auto flex items-center gap-2 text-sm text-gray-600">
+                  <span>每页显示:</span>
+                  <select
+                    v-model.number="codesPageSize"
+                    @change="changeCodesPageSize"
+                    class="glass-input px-2 py-1 text-sm"
+                  >
+                    <option :value="20">20</option>
+                    <option :value="50">50</option>
+                    <option :value="100">100</option>
+                    <option :value="500">500</option>
+                  </select>
+                  <span>条</span>
+                </div>
+              </div>
+
+              <div v-if="loadingCodes" class="flex items-center justify-center py-12">
+                <LoadingSpinner size="lg" />
+              </div>
+
+              <div v-else-if="!codes.length" class="text-center py-12">
+                <div class="w-16 h-16 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <TicketIcon class="w-8 h-8 text-white" />
+                </div>
+                <h3 class="text-lg font-semibold text-gray-800 mb-2">暂无兑换码</h3>
+                <p class="text-gray-600">点击"生成兑换码"来创建第一个兑换码</p>
+              </div>
+
+              <div v-else class="overflow-x-auto">
+                <table class="w-full">
+                  <thead class="bg-gray-50">
+                    <tr>
+                      <th class="px-4 py-3 text-left w-10">
+                        <input
+                          type="checkbox"
+                          :checked="allSelectableSelected"
+                          @change="toggleSelectAll($event)"
+                        >
+                      </th>
+                      <th class="px-4 py-3 text-left text-sm font-medium text-gray-700 whitespace-nowrap">兑换码</th>
+                      <th class="px-4 py-3 text-left text-sm font-medium text-gray-700 whitespace-nowrap">标签</th>
+                      <th class="px-4 py-3 text-left text-sm font-medium text-gray-700 whitespace-nowrap">状态</th>
+                      <th class="px-4 py-3 text-left text-sm font-medium text-gray-700 whitespace-nowrap">使用者</th>
+                      <th class="px-4 py-3 text-left text-sm font-medium text-gray-700 whitespace-nowrap">过期时间</th>
+                      <th class="px-4 py-3 text-left text-sm font-medium text-gray-700 whitespace-nowrap">创建时间</th>
+                      <th class="px-4 py-3 text-left text-sm font-medium text-gray-700 whitespace-nowrap">操作</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-gray-200">
+                    <tr v-for="code in codes" :key="code.id" class="hover:bg-gray-50">
+                      <td class="px-4 py-3">
+                        <input type="checkbox" :value="code.id" v-model="selectedIds" :disabled="code.is_used">
+                      </td>
+                      <td class="px-4 py-3">
+                        <code class="text-xs bg-gray-100 px-2 py-1 rounded font-mono">{{ code.code }}</code>
+                      </td>
+                      <td class="px-4 py-3">
+                        <TagBadge
+                          v-if="code.tag"
+                          :title="code.tag.title"
+                          :background="code.tag.background_color"
+                          :text="code.tag.text_color"
+                        />
+                      </td>
+                      <td class="px-4 py-3 whitespace-nowrap">
+                        <span
+                          :class="{
+                            'bg-green-100 text-green-800': !code.is_used,
+                            'bg-gray-100 text-gray-800': code.is_used
+                          }"
+                          class="px-2 py-1 text-xs rounded-full"
+                        >
+                          {{ code.is_used ? '已使用' : '未使用' }}
+                        </span>
+                      </td>
+                      <td class="px-4 py-3 text-sm text-gray-600">
+                        <span class="block truncate max-w-[220px]">{{ codeUserLabel(code) }}</span>
+                      </td>
+                      <td class="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">
+                        {{ code.expires_at ? formatDate(code.expires_at) : '永不过期' }}
+                      </td>
+                      <td class="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">
+                        {{ formatDate(code.created_at) }}
+                      </td>
+                      <td class="px-4 py-3">
+                        <GlassButton
+                          @click="viewCodeDetails(code)"
+                          class="!p-1 text-xs"
+                          variant="secondary"
+                        >
+                          查看详情
+                        </GlassButton>
+                        <GlassButton
+                          v-if="!code.is_used"
+                          @click="confirmDeleteCode(code)"
+                          class="!p-1 text-xs !text-red-600 hover:!bg-red-50"
+                          variant="secondary"
+                        >
+                          删除
+                        </GlassButton>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+
+                <div
+                  v-if="codesData && codesData.total > codesData.page_size"
+                  class="flex justify-center pt-6"
+                >
+                  <div class="flex gap-2">
+                    <GlassButton
+                      @click="prevCodesPage"
+                      :disabled="codesData.page <= 1"
+                      variant="secondary"
+                      class="px-4 py-2 text-sm"
+                    >
+                      上一页
+                    </GlassButton>
+
+                    <div class="flex items-center px-4 py-2 text-sm text-gray-600">
+                      第 {{ codesData.page }} 页，共 {{ Math.ceil(codesData.total / codesData.page_size) }} 页
+                    </div>
+
+                    <GlassButton
+                      @click="nextCodesPage"
+                      :disabled="codesData.page * codesData.page_size >= codesData.total"
+                      variant="secondary"
+                      class="px-4 py-2 text-sm"
+                    >
+                      下一页
+                    </GlassButton>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="flex gap-3 justify-end px-6 pb-6">
+              <button type="button" class="px-5 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors" @click="closeCodesListModal">关闭</button>
+            </div>
           </div>
         </div>
-      </div>
-
-      <template #footer>
-        <div class="flex justify-end">
-          <GlassButton @click="closeCodesListModal" variant="secondary" class="toolbar-button">
-            关闭
-          </GlassButton>
-        </div>
-      </template>
-    </GlassModal>
+      </Transition>
+    </Teleport>
 
     <!-- Code Details Modal -->
-    <GlassModal
-      :is-open="codeDetailsModal.show"
-      title="兑换码详情"
-      max-width="max-w-md"
-      @close="closeCodeDetailsModal"
-    >
-      <div v-if="codeDetailsModal.code" class="space-y-4">
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">兑换码</label>
-          <code class="block text-sm bg-gray-100 px-3 py-2 rounded font-mono">{{ codeDetailsModal.code.code }}</code>
-        </div>
-        
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">使用者</label>
-          <div class="text-sm text-gray-600">
-            <template v-if="codeDetailsModal.code.used_by">
-              <NuxtLink
-                :to="`/users/id/${codeDetailsModal.code.used_by}`"
-                class="text-brand-600 hover:text-brand-700 hover:underline"
+    <Teleport to="body">
+      <Transition name="dialog-fade">
+        <div v-if="codeDetailsModal.show" class="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+          <div class="absolute inset-0 bg-black/20 backdrop-blur-sm" @click="closeCodeDetailsModal" />
+          <div class="relative bg-white rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-hidden flex flex-col animate-dialog-in" @click.stop>
+            <div class="relative p-6 pb-4 pr-12">
+              <h3 class="text-xl font-semibold text-gray-900">兑换码详情</h3>
+              <button type="button" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors" @click="closeCodeDetailsModal">
+                <XIcon class="w-5 h-5" />
+              </button>
+            </div>
+            <div class="px-6 pb-6 flex-1 overflow-y-auto">
+              <div v-if="codeDetailsModal.code" class="space-y-4">
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">兑换码</label>
+                  <code class="block text-sm bg-gray-100 px-3 py-2 rounded font-mono">{{ codeDetailsModal.code.code }}</code>
+                </div>
+
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">使用者</label>
+                  <div class="text-sm text-gray-600">
+                    <template v-if="codeDetailsModal.code.used_by">
+                      <NuxtLink
+                        :to="`/users/id/${codeDetailsModal.code.used_by}`"
+                        class="text-brand-600 hover:text-brand-700 hover:underline"
+                      >
+                        {{ codeUserLabel(codeDetailsModal.code) }}
+                      </NuxtLink>
+                    </template>
+                    <span v-else>-</span>
+                  </div>
+                </div>
+
+                <div v-if="codeDetailsModal.code.tag">
+                  <label class="block text-sm font-medium text-gray-700 mb-1">关联标签</label>
+                  <TagBadge
+                    :title="codeDetailsModal.code.tag.title"
+                    :background="codeDetailsModal.code.tag.background_color"
+                    :text="codeDetailsModal.code.tag.text_color"
+                  />
+                </div>
+
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">状态</label>
+                  <span
+                    :class="{
+                      'bg-green-100 text-green-800': !codeDetailsModal.code.is_used,
+                      'bg-gray-100 text-gray-800': codeDetailsModal.code.is_used
+                    }"
+                    class="px-2 py-1 text-xs rounded-full"
+                  >
+                    {{ codeDetailsModal.code.is_used ? '已使用' : '未使用' }}
+                  </span>
+                </div>
+
+                <div v-if="codeDetailsModal.code.used_by">
+                  <label class="block text-sm font-medium text-gray-700 mb-1">使用者</label>
+                  <p class="text-sm text-gray-600">用户 {{ codeDetailsModal.code.used_by }}</p>
+                </div>
+
+                <div v-if="codeDetailsModal.code.used_at">
+                  <label class="block text-sm font-medium text-gray-700 mb-1">使用时间</label>
+                  <p class="text-sm text-gray-600">{{ formatDate(codeDetailsModal.code.used_at) }}</p>
+                </div>
+
+                <div v-if="codeDetailsModal.code.expires_at">
+                  <label class="block text-sm font-medium text-gray-700 mb-1">过期时间</label>
+                  <p class="text-sm text-gray-600">{{ formatDate(codeDetailsModal.code.expires_at) }}</p>
+                </div>
+
+                <div v-if="codeDetailsModal.code.batch_id">
+                  <label class="block text-sm font-medium text-gray-700 mb-1">批次ID</label>
+                  <code class="text-xs bg-gray-100 px-2 py-1 rounded">{{ codeDetailsModal.code.batch_id }}</code>
+                </div>
+
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">创建时间</label>
+                  <p class="text-sm text-gray-600">{{ formatDate(codeDetailsModal.code.created_at) }}</p>
+                </div>
+              </div>
+            </div>
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-6 pb-6">
+              <button
+                v-if="codeDetailsModal.code && !codeDetailsModal.code.is_used"
+                type="button"
+                class="px-5 py-2.5 text-sm font-medium text-white bg-brand-500 hover:bg-brand-600 rounded-lg transition-colors shadow-sm"
+                @click="confirmDeleteCode(codeDetailsModal.code)"
               >
-                {{ codeUserLabel(codeDetailsModal.code) }}
-              </NuxtLink>
-            </template>
-            <span v-else>-</span>
+                删除兑换码
+              </button>
+              <div class="sm:ml-auto">
+                <button type="button" class="px-5 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors" @click="closeCodeDetailsModal">
+                  关闭
+                </button>
+              </div>
+            </div>
           </div>
         </div>
-
-        <div v-if="codeDetailsModal.code.tag">
-          <label class="block text-sm font-medium text-gray-700 mb-1">关联标签</label>
-          <TagBadge
-            :title="codeDetailsModal.code.tag.title"
-            :background="codeDetailsModal.code.tag.background_color"
-            :text="codeDetailsModal.code.tag.text_color"
-          />
-        </div>
-        
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">状态</label>
-          <span
-            :class="{
-              'bg-green-100 text-green-800': !codeDetailsModal.code.is_used,
-              'bg-gray-100 text-gray-800': codeDetailsModal.code.is_used
-            }"
-            class="px-2 py-1 text-xs rounded-full"
-          >
-            {{ codeDetailsModal.code.is_used ? '已使用' : '未使用' }}
-          </span>
-        </div>
-        
-        <div v-if="codeDetailsModal.code.used_by">
-          <label class="block text-sm font-medium text-gray-700 mb-1">使用者</label>
-          <p class="text-sm text-gray-600">用户 {{ codeDetailsModal.code.used_by }}</p>
-        </div>
-        
-        <div v-if="codeDetailsModal.code.used_at">
-          <label class="block text-sm font-medium text-gray-700 mb-1">使用时间</label>
-          <p class="text-sm text-gray-600">{{ formatDate(codeDetailsModal.code.used_at) }}</p>
-        </div>
-        
-        <div v-if="codeDetailsModal.code.expires_at">
-          <label class="block text-sm font-medium text-gray-700 mb-1">过期时间</label>
-          <p class="text-sm text-gray-600">{{ formatDate(codeDetailsModal.code.expires_at) }}</p>
-        </div>
-        
-        <div v-if="codeDetailsModal.code.batch_id">
-          <label class="block text-sm font-medium text-gray-700 mb-1">批次ID</label>
-          <code class="text-xs bg-gray-100 px-2 py-1 rounded">{{ codeDetailsModal.code.batch_id }}</code>
-        </div>
-        
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">创建时间</label>
-          <p class="text-sm text-gray-600">{{ formatDate(codeDetailsModal.code.created_at) }}</p>
-        </div>
-      </div>
-
-      <template #footer>
-        <div class="flex justify-between items-center gap-3">
-          <div>
-            <GlassButton
-              v-if="codeDetailsModal.code && !codeDetailsModal.code.is_used"
-              @click="confirmDeleteCode(codeDetailsModal.code)"
-              class="!text-red-600 hover:!bg-red-50"
-              variant="secondary"
-            >
-              删除兑换码
-            </GlassButton>
-          </div>
-          <div>
-            <GlassButton @click="closeCodeDetailsModal" variant="secondary" class="toolbar-button">
-              关闭
-            </GlassButton>
-          </div>
-        </div>
-      </template>
-    </GlassModal>
+      </Transition>
+    </Teleport>
   </div>
 </template>
 
@@ -765,11 +780,9 @@ import {
   PauseIcon,
   TrashIcon,
   TicketIcon,
-  DownloadIcon
+  DownloadIcon,
+  XIcon
 } from 'lucide-vue-next'
-import GlassModal from '~/components/ui/GlassModal.vue'
-import GlassInput from '~/components/ui/GlassInput.vue'
-import GlassTextarea from '~/components/ui/GlassTextarea.vue'
 import TagBadge from '~/components/ui/TagBadge.vue'
 import type { TagDto, RedemptionCodeDto, Pagination, User } from '~/types'
 
@@ -823,6 +836,33 @@ const codeDetailsModal = reactive({
   show: false,
   code: null as RedemptionCodeDto | null
 })
+
+const isAnyModalOpen = computed(() =>
+  tagModal.show ||
+  codesModal.show ||
+  generatedModal.show ||
+  deleteModal.show ||
+  codesListModal.show ||
+  codeDetailsModal.show
+)
+
+const handleEscape = (event: KeyboardEvent) => {
+  if (event.key === 'Escape') {
+    if (tagModal.show) {
+      closeTagModal()
+    } else if (codesModal.show) {
+      closeCodesModal()
+    } else if (generatedModal.show) {
+      closeGeneratedModal()
+    } else if (deleteModal.show) {
+      closeDeleteModal()
+    } else if (codesListModal.show) {
+      closeCodesListModal()
+    } else if (codeDetailsModal.show) {
+      closeCodeDetailsModal()
+    }
+  }
+}
 
 // Codes related state
 const codes = ref<RedemptionCodeDto[]>([])
@@ -1004,15 +1044,31 @@ const saveTag = async () => {
 }
 
 const toggleStatus = async (tag: TagDto) => {
+  const { confirm } = useAdminDialog()
+  const nextState = !tag.is_active
+  const confirmed = await confirm({
+    title: nextState ? '确认启用' : '确认停用',
+    message: `确定要${nextState ? '启用' : '停用'}标签"${tag.title}"吗?`,
+    confirmText: nextState ? '确认启用' : '确认停用',
+    cancelText: '取消'
+  })
+
+  if (!confirmed) return
+
   try {
     const api = useApi()
     await api.updateTag(tag.id, {
-      is_active: !tag.is_active
+      name: tag.name,
+      title: tag.title,
+      description: tag.description,
+      background_color: tag.background_color,
+      text_color: tag.text_color,
+      is_active: nextState
     })
-    
-    tag.is_active = !tag.is_active
+
+    tag.is_active = nextState
     tag.updated_at = new Date().toISOString()
-    
+
     toast.success(tag.is_active ? '标签已启用' : '标签已停用')
   } catch (error) {
     toast.error('操作失败')
@@ -1087,6 +1143,11 @@ const confirmDelete = (tag: TagDto) => {
   deleteModal.show = true
 }
 
+const closeDeleteModal = () => {
+  deleteModal.show = false
+  deleteModal.tag = null
+}
+
 const deleteTag = async () => {
   if (!deleteModal.tag) return
   
@@ -1102,8 +1163,7 @@ const deleteTag = async () => {
     }
     
     toast.success('标签已删除')
-    deleteModal.show = false
-    deleteModal.tag = null
+    closeDeleteModal()
   } catch (error) {
     toast.error('删除失败')
   } finally {
@@ -1326,6 +1386,24 @@ const confirmDeleteCode = async (code: RedemptionCodeDto) => {
   }
 }
 
+watch(isAnyModalOpen, (open) => {
+  if (typeof window !== 'undefined') {
+    document.body.style.overflow = open ? 'hidden' : ''
+    if (open) {
+      window.addEventListener('keydown', handleEscape)
+    } else {
+      window.removeEventListener('keydown', handleEscape)
+    }
+  }
+})
+
+onUnmounted(() => {
+  if (typeof window !== 'undefined') {
+    document.body.style.overflow = ''
+    window.removeEventListener('keydown', handleEscape)
+  }
+})
+
 // Initialize
 onMounted(() => {
   loadTags()
@@ -1340,3 +1418,30 @@ useHead({
   ]
 })
 </script>
+
+<style scoped>
+.dialog-fade-enter-active,
+.dialog-fade-leave-active {
+  transition: opacity 0.2s ease;
+}
+
+.dialog-fade-enter-from,
+.dialog-fade-leave-to {
+  opacity: 0;
+}
+
+@keyframes dialog-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.animate-dialog-in {
+  animation: dialog-in 0.2s ease-out;
+}
+</style>

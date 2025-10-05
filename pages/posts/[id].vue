@@ -721,9 +721,9 @@ const promptModerationReason = async (action: string): Promise<string | null> =>
 
 const togglePin = async () => {
   if (!post.value) return
-  
+
   const nextState = !post.value.is_pinned
-  const reasonInput = promptModerationReason(nextState ? '置顶' : '取消置顶')
+  const reasonInput = await promptModerationReason(nextState ? '置顶' : '取消置顶')
   if (reasonInput === null) return
 
   actionLoading.value = true
@@ -741,9 +741,9 @@ const togglePin = async () => {
 
 const toggleFeature = async () => {
   if (!post.value) return
-  
+
   const nextState = !post.value.is_featured
-  const reasonInput = promptModerationReason(nextState ? '设为精华' : '取消精华')
+  const reasonInput = await promptModerationReason(nextState ? '设为精华' : '取消精华')
   if (reasonInput === null) return
 
   actionLoading.value = true

@@ -404,6 +404,12 @@ export const useApi = () => {
       const res = await instance.get<ApiResp<AnnouncementDto[]>>('/announcements')
       return unwrap(res)
     },
+    async listAnnouncementsAdmin(): Promise<AnnouncementDto[]> {
+      // 管理端接口,返回所有公告(包括已停用的),仅删除的不返回
+      // 查询条件: WHERE deleted_at IS NULL (不限制 is_active)
+      const res = await instance.get<ApiResp<AnnouncementDto[]>>('/announcements/admin')
+      return unwrap(res)
+    },
     async createAnnouncement(data: AnnouncementForm): Promise<AnnouncementDto> {
       const res = await instance.post<ApiResp<AnnouncementDto>>('/announcements', data)
       return unwrap(res)

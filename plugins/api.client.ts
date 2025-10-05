@@ -458,6 +458,10 @@ export default defineNuxtPlugin(() => {
       const response = await instance.get<ApiResp<AnnouncementDto[]>>('/announcements')
       return unwrap(response)
     },
+    async listAnnouncementsAdmin(): Promise<AnnouncementDto[]> {
+      const response = await instance.get<ApiResp<AnnouncementDto[]>>('/announcements/admin')
+      return unwrap(response)
+    },
 
     async createAnnouncement(data: AnnouncementForm): Promise<AnnouncementDto> {
       const response = await instance.post<ApiResp<AnnouncementDto>>('/announcements', data)
@@ -708,5 +712,6 @@ export default defineNuxtPlugin(() => {
     }
   }
 })
+
 
 

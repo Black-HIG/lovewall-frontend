@@ -4,11 +4,10 @@
     <Transition name="dialog-fade">
       <div
         v-if="isOpen"
-        class="fixed inset-0 z-[9999] flex items-center justify-center p-4"
-        @click.self="handleCancel"
+        class="fixed inset-0 z-[10000] flex items-center justify-center p-4"
       >
         <!-- 背景遮罩 -->
-        <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" />
+        <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" @click="handleCancel" />
 
         <!-- 对话框内容 -->
         <div
@@ -106,6 +105,13 @@ const handleCancel = () => {
   respond({ confirmed: false, inputValue: '' })
 }
 
+// ESC 键关闭
+const handleEscape = (event: KeyboardEvent) => {
+  if (event.key === 'Escape' && isOpen.value) {
+    handleCancel()
+  }
+}
+
 // 自动聚焦输入框
 watch(isOpen, (open) => {
   if (open && showInput.value) {
@@ -115,16 +121,22 @@ watch(isOpen, (open) => {
   }
 })
 
-// 阻止背景滚动
+// 阻止背景滚动 + ESC 键监听
 watch(isOpen, (open) => {
   if (typeof window !== 'undefined') {
     document.body.style.overflow = open ? 'hidden' : ''
+    if (open) {
+      window.addEventListener('keydown', handleEscape)
+    } else {
+      window.removeEventListener('keydown', handleEscape)
+    }
   }
 })
 
 onUnmounted(() => {
   if (typeof window !== 'undefined') {
     document.body.style.overflow = ''
+    window.removeEventListener('keydown', handleEscape)
   }
 })
 </script>

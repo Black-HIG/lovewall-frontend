@@ -330,86 +330,125 @@
       </div>
     </div>
 
-    <!-- Delete Confirmation Modal (GlassModal style) -->
-    <GlassModal
-      :is-open="deleteModal.show"
-      title="确认删除"
-      max-width="max-w-md"
-      @close="closeDeleteModal"
-    >
-      <p class="text-gray-700 mb-6">
-        确定要删除表白“{{ deleteModal.post?.author_name }} → {{ deleteModal.post?.target_name }}”吗？删除后不可恢复。
-      </p>
-      <div class="space-y-3">
-        <label class="text-sm text-gray-700">处理原因（可选）</label>
-        <GlassTextarea
-          v-model="deleteModal.reason"
-          :rows="3"
-          placeholder="填写给用户的处理说明"
-        />
-      </div>
-
-      <template #footer>
-        <div class="flex gap-3 justify-end">
-          <button type="button" class="glass-button-secondary" @click="closeDeleteModal">
-            取消
-          </button>
-          <button
-            type="button"
-            class="glass-button !bg-red-600 hover:!bg-red-700"
-            :disabled="actionLoading === deleteModal.post?.id"
-            @click="deletePost"
-          >
-            <LoadingSpinner v-if="actionLoading === deleteModal.post?.id" size="sm" class="mr-2" />
-            确认删除
-          </button>
-        </div>
-      </template>
-    </GlassModal>
-
     <!-- Moderation Reason Modal -->
-    <GlassModal
-      :is-open="actionReasonModal.show"
-      :title="actionReasonTitle"
-      max-width="max-w-md"
-      @close="closeActionReasonModal"
-    >
-      <div class="space-y-3">
-        <label class="text-sm text-gray-700">处理原因（可选）</label>
-        <GlassTextarea
-          v-model="actionReasonModal.reason"
-          :rows="3"
-          placeholder="这次操作的说明，将同步给相关用户"
-        />
-      </div>
-      <template #footer>
-        <div class="flex gap-3 justify-end">
-          <GlassButton @click="closeActionReasonModal" variant="secondary">取消</GlassButton>
-          <GlassButton :loading="actionLoading === actionReasonModal.post?.id" @click="confirmActionReason">
-            {{ actionReasonConfirmText }}
-          </GlassButton>
+    <Teleport to="body">
+      <Transition name="dialog-fade">
+        <div
+          v-if="actionReasonModal.show"
+          class="fixed inset-0 z-[9999] flex items-center justify-center p-4"
+        >
+          <div class="absolute inset-0 bg-black/20 backdrop-blur-sm" @click="closeActionReasonModal" />
+
+          <div
+            class="relative bg-white rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-hidden flex flex-col animate-dialog-in"
+            @click.stop
+          >
+            <div class="relative p-6 pb-4 pr-12">
+              <h3 class="text-xl font-semibold text-gray-900">{{ actionReasonTitle }}</h3>
+              <button
+                type="button"
+                class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
+                @click="closeActionReasonModal"
+              >
+                <XIcon class="w-5 h-5" />
+              </button>
+            </div>
+
+            <div class="px-6 pb-6 space-y-3">
+              <label class="block text-sm font-medium text-gray-700">处理原因（可选）</label>
+              <textarea
+                v-model="actionReasonModal.reason"
+                rows="3"
+                placeholder="这次操作的说明，将同步给相关用户"
+                class="w-full px-4 py-2.5 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-400 focus:border-transparent resize-none"
+              ></textarea>
+            </div>
+
+            <div class="flex gap-3 justify-end px-6 pb-6">
+              <button
+                type="button"
+                class="px-5 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                @click="closeActionReasonModal"
+              >
+                取消
+              </button>
+              <button
+                type="button"
+                class="px-5 py-2.5 text-sm font-medium text-white bg-brand-500 hover:bg-brand-600 rounded-lg transition-colors shadow-sm flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+                :disabled="actionLoading === actionReasonModal.post?.id"
+                @click="confirmActionReason"
+              >
+                <span
+                  v-if="actionLoading === actionReasonModal.post?.id"
+                  class="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin"
+                ></span>
+                <span>{{ actionReasonConfirmText }}</span>
+              </button>
+            </div>
+          </div>
         </div>
-      </template>
-    </GlassModal>
-    
+      </Transition>
+    </Teleport>
+
     <!-- Reject Reason Modal -->
-    <GlassModal
-      :is-open="rejectModal.show"
-      title="拒绝审核"
-      max-width="max-w-md"
-      @close="rejectModal.show = false"
-    >
-      <div class="space-y-3">
-        <label class="text-sm text-gray-700">原因（可选）</label>
-        <GlassTextarea v-model="rejectModal.reason" :rows="4" placeholder="填写本次拒绝的原因..." />
-      </div>
-      <template #footer>
-        <div class="flex gap-3 justify-end">
-          <GlassButton @click="rejectModal.show = false" variant="secondary">取消</GlassButton>
-          <GlassButton :loading="actionLoading === rejectModal.post?.id" @click="rejectPost">确认拒绝</GlassButton>
+    <Teleport to="body">
+      <Transition name="dialog-fade">
+        <div
+          v-if="rejectModal.show"
+          class="fixed inset-0 z-[9999] flex items-center justify-center p-4"
+        >
+          <div class="absolute inset-0 bg-black/20 backdrop-blur-sm" @click="rejectModal.show = false" />
+
+          <div
+            class="relative bg-white rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-hidden flex flex-col animate-dialog-in"
+            @click.stop
+          >
+            <div class="relative p-6 pb-4 pr-12">
+              <h3 class="text-xl font-semibold text-gray-900">拒绝审核</h3>
+              <button
+                type="button"
+                class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
+                @click="rejectModal.show = false"
+              >
+                <XIcon class="w-5 h-5" />
+              </button>
+            </div>
+
+            <div class="px-6 pb-6 space-y-3">
+              <label class="block text-sm font-medium text-gray-700">原因（可选）</label>
+              <textarea
+                v-model="rejectModal.reason"
+                rows="4"
+                placeholder="填写本次拒绝的原因..."
+                class="w-full px-4 py-2.5 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-400 focus:border-transparent resize-none"
+              ></textarea>
+            </div>
+
+            <div class="flex gap-3 justify-end px-6 pb-6">
+              <button
+                type="button"
+                class="px-5 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                @click="rejectModal.show = false"
+              >
+                取消
+              </button>
+              <button
+                type="button"
+                class="px-5 py-2.5 text-sm font-medium text-white bg-brand-500 hover:bg-brand-600 rounded-lg transition-colors shadow-sm flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+                :disabled="actionLoading === rejectModal.post?.id"
+                @click="rejectPost"
+              >
+                <span
+                  v-if="actionLoading === rejectModal.post?.id"
+                  class="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin"
+                ></span>
+                <span>确认拒绝</span>
+              </button>
+            </div>
+          </div>
         </div>
-      </template>
-    </GlassModal>
+      </Transition>
+    </Teleport>
   </div>
 </template>
 
@@ -418,10 +457,10 @@ import {
   RefreshCwIcon,
   FileTextIcon,
   EyeIcon,
-  CalendarIcon
+  CalendarIcon,
+  XIcon
 } from 'lucide-vue-next'
 import type { PostDto, Pagination } from '~/types'
-import GlassModal from '~/components/ui/GlassModal.vue'
 
 definePageMeta({
   middleware: 'admin'
@@ -444,12 +483,6 @@ const filters = reactive({
   status: '',
   featured: '',
   pinned: ''
-})
-
-const deleteModal = reactive({
-  show: false,
-  post: null as PostDto | null,
-  reason: ''
 })
 
 const actionReasonModal = reactive({
@@ -702,28 +735,31 @@ const rejectPost = async () => {
   }
 }
 
-const confirmDelete = (post: PostDto) => {
-  deleteModal.post = post
-  deleteModal.reason = ''
-  deleteModal.show = true
-}
+const confirmDelete = async (post: PostDto) => {
+  const { prompt } = useAdminDialog()
+  const reason = await prompt({
+    title: '确认删除',
+    message: `确定要删除表白"${post.author_name} → ${post.target_name}"吗？删除后不可恢复。`,
+    inputLabel: '删除原因(可选)',
+    placeholder: '请输入删除原因(可选)',
+    confirmText: '确认删除',
+    cancelText: '取消'
+  })
 
-const deletePost = async () => {
-  if (!deleteModal.post) return
-  
-  actionLoading.value = deleteModal.post.id
+  if (reason === null) return
+
+  actionLoading.value = post.id
   try {
     const api = useApi()
-    await api.deletePost(deleteModal.post.id, deleteModal.reason.trim() || undefined)
-    
+    await api.deletePost(post.id, reason.trim() || undefined)
+
     // Remove from local list
-    posts.value = posts.value.filter(p => p.id !== deleteModal.post!.id)
+    posts.value = posts.value.filter(p => p.id !== post.id)
     if (postsData.value) {
       postsData.value.total -= 1
     }
-    
+
     toast.success('表白已删除')
-    closeDeleteModal()
   } catch (error) {
     toast.error('删除失败')
   } finally {
@@ -731,15 +767,42 @@ const deletePost = async () => {
   }
 }
 
-const closeDeleteModal = () => {
-  deleteModal.show = false
-  deleteModal.reason = ''
-  deleteModal.post = null
-}
-
 const formatDate = (dateString: string) => {
   return new Date(dateString).toLocaleString('zh-CN')
 }
+
+// Modal state management
+const isAnyModalOpen = computed(() => actionReasonModal.show || rejectModal.show)
+
+// ESC key handler
+const handleEscape = (event: KeyboardEvent) => {
+  if (event.key === 'Escape') {
+    if (actionReasonModal.show) {
+      closeActionReasonModal()
+    } else if (rejectModal.show) {
+      rejectModal.show = false
+    }
+  }
+}
+
+// Watch modals for body overflow and ESC key
+watch(isAnyModalOpen, (open) => {
+  if (typeof window !== 'undefined') {
+    document.body.style.overflow = open ? 'hidden' : ''
+    if (open) {
+      window.addEventListener('keydown', handleEscape)
+    } else {
+      window.removeEventListener('keydown', handleEscape)
+    }
+  }
+})
+
+onUnmounted(() => {
+  if (typeof window !== 'undefined') {
+    document.body.style.overflow = ''
+    window.removeEventListener('keydown', handleEscape)
+  }
+})
 
 // Initialize
 onMounted(() => {
@@ -755,4 +818,29 @@ useHead({
 })
 </script>
 
+<style scoped>
+.dialog-fade-enter-active,
+.dialog-fade-leave-active {
+  transition: opacity 0.2s ease;
+}
 
+.dialog-fade-enter-from,
+.dialog-fade-leave-to {
+  opacity: 0;
+}
+
+@keyframes dialog-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.animate-dialog-in {
+  animation: dialog-in 0.2s ease-out;
+}
+</style>

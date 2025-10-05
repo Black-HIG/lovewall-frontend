@@ -83,9 +83,9 @@
   }
   
   .glass-input {
-    @apply rounded-xl bg-white/80 backdrop-blur-sm border-2 border-white/50;
+    @apply rounded-xl bg-white/80 backdrop-blur-sm border-2 border-gray-300;
     @apply px-4; /* 水平内边距，保证点击区域与文字留白 */
-    @apply focus:ring-4 focus:ring-pink-300/40 focus:border-pink-400/70 focus:bg-white/90;
+    @apply focus:ring-4 focus:ring-brand-300/40 focus:border-brand-400 focus:bg-white/90;
     @apply placeholder-gray-500/70 text-gray-800;
     @apply transition-all duration-300 ease-in-out;
     @apply outline-none;
@@ -213,7 +213,7 @@
   .glass-section-lite {
     /* Liquid glass container: very light fill to avoid stacking darkness */
     @apply w-full mx-auto px-4 sm:px-6 lg:px-8;
-    @apply backdrop-blur-xl rounded-3xl border border-white/15 shadow-glow;
+    @apply backdrop-blur-xl rounded-3xl border border-white/15 shadow-lg;
     background: rgba(255, 255, 255, 0.12);
     isolation: isolate; /* prevent backdrop/opacity stacking with parents */
   }
@@ -438,7 +438,7 @@
   }
   
   .glass-section-lite {
-    @apply border-white/10 shadow-glow;
+    @apply border-white/10 shadow-lg;
     background: rgba(0, 0, 0, 0.15);
   }
   

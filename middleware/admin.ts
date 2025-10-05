@@ -9,7 +9,7 @@ export default defineNuxtRouteMiddleware(async (to) => {
   console.debug('[admin:mw] entering', { path: to.fullPath, authed: auth.isAuthenticated })
 
   // Ensure auth state is initialized
-  if (!auth.isAuthenticated) {
+  if (!auth.isAuthenticated) {3
     try {
       await auth.initAuth()
     } catch (e) {

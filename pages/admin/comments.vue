@@ -234,32 +234,6 @@
       </div>
     </GlassCard>
 
-    <!-- Delete Confirmation Modal: unified GlassModal -->
-    <GlassModal
-      :is-open="deleteModal.show"
-      title="确认删除"
-      max-width="max-w-md"
-      @close="deleteModal.show = false"
-    >
-      <p class="text-gray-700 mb-6">确定要删除这条评论吗？删除后无法恢复。</p>
-
-      <template #footer>
-        <div class="flex gap-3 justify-end">
-          <button type="button" class="glass-button-secondary" @click="deleteModal.show = false">
-            取消
-          </button>
-          <button
-            type="button"
-            class="glass-button !bg-red-600 hover:!bg-red-700"
-            :disabled="actionLoading === deleteModal.comment?.id"
-            @click="deleteComment"
-          >
-            <LoadingSpinner v-if="actionLoading === deleteModal.comment?.id" size="sm" class="mr-2" />
-            确认删除
-          </button>
-        </div>
-      </template>
-    </GlassModal>
   </div>
 </template>
 
@@ -271,7 +245,6 @@ import {
   EyeOffIcon,
   TrashIcon
 } from 'lucide-vue-next'
-import GlassModal from '~/components/ui/GlassModal.vue'
 import type { CommentDto, Pagination } from '~/types'
 const assetUrl = useAssetUrl()
 
@@ -295,11 +268,6 @@ const filters = reactive({
   status: '',
   post_id: '',
   user_id: ''
-})
-
-const deleteModal = reactive({
-  show: false,
-  comment: null as CommentDto | null
 })
 
 // Computed
@@ -378,6 +346,16 @@ const nextPage = () => {
 }
 
 const hideComment = async (comment: CommentDto) => {
+  const { confirm } = useAdminDialog()
+  const confirmed = await confirm({
+    title: '确认隐藏',
+    message: '确定要隐藏这条评论吗？',
+    confirmText: '确认隐藏',
+    cancelText: '取消'
+  })
+
+  if (!confirmed) return
+
   actionLoading.value = comment.id
   try {
     const api = useApi()
@@ -392,6 +370,16 @@ const hideComment = async (comment: CommentDto) => {
 }
 
 const showComment = async (comment: CommentDto) => {
+  const { confirm } = useAdminDialog()
+  const confirmed = await confirm({
+    title: '确认恢复',
+    message: '确定要恢复这条评论吗？',
+    confirmText: '确认恢复',
+    cancelText: '取消'
+  })
+
+  if (!confirmed) return
+
   actionLoading.value = comment.id
   try {
     const api = useApi()
@@ -405,28 +393,29 @@ const showComment = async (comment: CommentDto) => {
   }
 }
 
-const confirmDelete = (comment: CommentDto) => {
-  deleteModal.comment = comment
-  deleteModal.show = true
-}
+const confirmDelete = async (comment: CommentDto) => {
+  const { confirm } = useAdminDialog()
+  const confirmed = await confirm({
+    title: '确认删除',
+    message: '确定要删除这条评论吗？删除后无法恢复。',
+    confirmText: '确认删除',
+    cancelText: '取消'
+  })
 
-const deleteComment = async () => {
-  if (!deleteModal.comment) return
-  
-  actionLoading.value = deleteModal.comment.id
+  if (!confirmed) return
+
+  actionLoading.value = comment.id
   try {
     const api = useApi()
-    await api.deleteComment(deleteModal.comment.id)
-    
+    await api.deleteComment(comment.id)
+
     // Remove from local list
-    comments.value = comments.value.filter(c => c.id !== deleteModal.comment!.id)
+    comments.value = comments.value.filter(c => c.id !== comment.id)
     if (commentsData.value) {
       commentsData.value.total -= 1
     }
-    
+
     toast.success('评论已删除')
-    deleteModal.show = false
-    deleteModal.comment = null
   } catch (error) {
     toast.error('删除失败')
   } finally {

@@ -79,7 +79,6 @@ const data = ref<Pagination<NotificationDto> | null>(null)
 
 interface AutoReadObserver {
   observer: IntersectionObserver
-  timerId: ReturnType<typeof setTimeout> | null
   visible: boolean
 }
 
@@ -90,9 +89,6 @@ const cleanupObserver = (id: string) => {
   const entry = autoReadObservers.get(id)
   if (!entry) return
   entry.observer.disconnect()
-  if (entry.timerId !== null) {
-    window.clearTimeout(entry.timerId)
-  }
   autoReadObservers.delete(id)
 }
 
@@ -100,9 +96,6 @@ const cleanupObservers = () => {
   if (!process.client) return
   autoReadObservers.forEach((entry) => {
     entry.observer.disconnect()
-    if (entry.timerId !== null) {
-      window.clearTimeout(entry.timerId)
-    }
   })
   autoReadObservers.clear()
 }
@@ -120,19 +113,10 @@ const registerNotificationCard = (notification: NotificationDto, el: Element | n
       if (!entry) return
       state.visible = entry.isIntersecting
       if (state.visible && !notification.is_read) {
-        if (state.timerId === null) {
-          state.timerId = window.setTimeout(async () => {
-            if (state.visible && !notification.is_read) {
-              await markRead(notification)
-            }
-          }, 1000)
-        }
-      } else if (!state.visible && state.timerId !== null) {
-        window.clearTimeout(state.timerId)
-        state.timerId = null
+        // 立即发送已读请求,无延迟
+        markRead(notification)
       }
     }, { threshold: 0.5 }),
-    timerId: null,
     visible: false
   }
 
@@ -147,13 +131,25 @@ const load = async (page = 1) => {
     const res = await api.listNotifications({ page, page_size: 20 })
     if (page === 1) {
       cleanupObservers()
-      items.value = res.items
       notificationContainers.clear()
-    } else {
-      items.value.push(...res.items)
     }
+    const newItems = page === 1 ? res.items : [...items.value, ...res.items]
+    const dompurify = nuxtApp.$dompurify
+    const map: Record<string, string> = {}
+    for (const notification of newItems) {
+      if (process.client && dompurify) {
+        map[notification.id] = transformNotificationContent(notification, dompurify)
+      } else {
+        map[notification.id] = fallbackNotificationContent(notification)
+      }
+    }
+    processedContent.value = map
+    items.value = newItems
     data.value = res
-    await rebuildNotificationContent()
+    if (process.client) {
+      await nextTick()
+      newItems.forEach(attachHandlers)
+    }
   } catch (e) {
     toast.error('加载通知失败')
   } finally {
@@ -201,26 +197,6 @@ const registerNotificationContainer = (id: string, el: HTMLElement | null) => {
     }
   } else {
     notificationContainers.delete(id)
-  }
-}
-
-const rebuildNotificationContent = async () => {
-  const dompurify = nuxtApp.$dompurify
-  const map: Record<string, string> = {}
-  if (process.client && dompurify) {
-    for (const notification of items.value) {
-      map[notification.id] = transformNotificationContent(notification, dompurify)
-    }
-  } else {
-    for (const notification of items.value) {
-      map[notification.id] = fallbackNotificationContent(notification)
-    }
-  }
-  processedContent.value = map
-
-  if (process.client) {
-    await nextTick()
-    items.value.forEach(attachHandlers)
   }
 }
 
@@ -428,5 +404,3 @@ onMounted(() => load(1))
 
 useHead({ title: '系统通知 - Love Wall' })
 </script>
-
-

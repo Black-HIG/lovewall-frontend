@@ -83,8 +83,10 @@
               <!-- 未读红点 -->
               <span
                 v-if="unreadCount > 0"
-                class="absolute top-1 right-1 inline-block w-2 h-2 bg-red-500 rounded-full"
-              />
+                class="absolute -top-1 -right-1 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 text-[10px] font-bold text-white bg-red-500 rounded-full border-2 border-white"
+              >
+                {{ unreadCount > 99 ? '99+' : unreadCount }}
+              </span>
             </NuxtLink>
 
             <div class="relative" ref="userMenuRef">

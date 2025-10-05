@@ -48,26 +48,62 @@
     </GlassCard>
 
     <!-- Delete User Confirmation Modal -->
-    <GlassModal
-      :is-open="deleteUserModal.show"
-      title="确认删除用户"
-      max-width="max-w-md"
-      @close="closeDeleteUser()"
-    >
-      <div class="space-y-3">
-        <p class="text-gray-700">此操作将软删除该用户并立即注销其所有会话，且不可恢复。用户的帖子与评论会保留。</p>
-        <p class="text-sm text-gray-500">请谨慎操作，仅超级管理员可执行。</p>
-        <div v-if="deleteUserModal.user" class="text-sm text-gray-600">
-          目标用户：<strong>@{{ deleteUserModal.user.username }}</strong>
+    <Teleport to="body">
+      <Transition name="dialog-fade">
+        <div
+          v-if="deleteUserModal.show"
+          class="fixed inset-0 z-[9999] flex items-center justify-center p-4"
+        >
+          <div class="absolute inset-0 bg-black/20 backdrop-blur-sm" @click="closeDeleteUser" />
+
+          <div
+            class="relative bg-white rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-hidden flex flex-col animate-dialog-in"
+            @click.stop
+          >
+            <div class="relative p-6 pb-4 pr-12">
+              <h3 class="text-xl font-semibold text-gray-900">确认删除用户</h3>
+              <button
+                type="button"
+                class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
+                @click="closeDeleteUser"
+              >
+                <XIcon class="w-5 h-5" />
+              </button>
+            </div>
+
+            <div class="px-6 pb-6 space-y-3 text-gray-700">
+              <p>此操作将软删除该用户并立即注销其所有会话，且不可恢复。用户的帖子与评论会保留。</p>
+              <p class="text-sm text-gray-500">请谨慎操作，仅超级管理员可执行。</p>
+              <div v-if="deleteUserModal.user" class="text-sm text-gray-600">
+                目标用户：<strong>@{{ deleteUserModal.user.username }}</strong>
+              </div>
+            </div>
+
+            <div class="flex gap-3 justify-end px-6 pb-6">
+              <button
+                type="button"
+                class="px-5 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                @click="closeDeleteUser"
+              >
+                取消
+              </button>
+              <button
+                type="button"
+                class="px-5 py-2.5 text-sm font-medium text-white bg-brand-500 hover:bg-brand-600 rounded-lg transition-colors shadow-sm flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+                :disabled="deletingUser"
+                @click="deleteUser"
+              >
+                <span
+                  v-if="deletingUser"
+                  class="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin"
+                ></span>
+                <span>确认删除</span>
+              </button>
+            </div>
+          </div>
         </div>
-      </div>
-      <template #footer>
-        <div class="flex gap-3 justify-end">
-          <GlassButton @click="closeDeleteUser" variant="secondary">取消</GlassButton>
-          <GlassButton @click="deleteUser" :loading="deletingUser" class="!bg-red-600 hover:!bg-red-700">确认删除</GlassButton>
-        </div>
-      </template>
-    </GlassModal>
+      </Transition>
+    </Teleport>
 
     <!-- Users Table -->
     <GlassCard class="overflow-hidden">
@@ -275,7 +311,7 @@
                   <!-- Ban/Unban Button -->
                   <GlassButton
                     v-if="user.id !== auth.currentUser?.id && !user.is_superadmin && (auth.isSuperadmin || auth.hasPerm('MANAGE_USERS'))"
-                    @click="user.is_banned ? confirmUnbanUser(user) : openBanModal(user)"
+                    @click="user.is_banned ? confirmUnbanUser(user) : confirmBanUser(user)"
                     variant="secondary"
                     :class="{
                       '!text-red-600 hover:!bg-red-50': !user.is_banned,
@@ -413,477 +449,493 @@
     </GlassCard>
 
     <!-- Edit Permissions Modal -->
-    <GlassModal
-      :is-open="permissionsModal.show"
-      title="编辑用户权限"
-      max-width="max-w-md"
-      @close="closePermissionsModal"
-    >
-      <div v-if="permissionsModal.user" class="mb-6">
-        <div class="flex items-center gap-3 mb-4">
-          <div class="w-10 h-10 rounded-full bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center text-white font-medium">
-            <img
-              v-if="permissionsModal.user.avatar_url"
-              :src="assetUrl(permissionsModal.user.avatar_url)"
-              :alt="permissionsModal.user.username"
-              class="w-10 h-10 rounded-full object-cover"
-            >
-            <span v-else>{{ permissionsModal.user.username.slice(0, 2).toUpperCase() }}</span>
-          </div>
-          <div>
-            <div class="font-medium">{{ permissionsModal.user.display_name || permissionsModal.user.username }}</div>
-            <div class="text-sm text-gray-600">@{{ permissionsModal.user.username }}</div>
-          </div>
-        </div>
+    <Teleport to="body">
+      <Transition name="dialog-fade">
+        <div
+          v-if="permissionsModal.show"
+          class="fixed inset-0 z-[9999] flex items-center justify-center p-4"
+        >
+          <div class="absolute inset-0 bg-black/20 backdrop-blur-sm" @click="closePermissionsModal" />
 
-        <div class="space-y-3">
-          <label
-            v-for="permission in availablePermissions"
-            :key="permission.key"
-            class="flex items-center gap-3 p-3 border border-white/20 rounded-lg hover:bg-white/5 cursor-pointer"
+          <div
+            class="relative bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col animate-dialog-in"
+            @click.stop
           >
-            <input
-              type="checkbox"
-              :checked="permissionsForm.includes(permission.key)"
-              @change="togglePermission(permission.key)"
-              class="rounded"
-            >
-            <div>
-              <div class="font-medium text-sm">{{ permission.name }}</div>
-              <div class="text-xs text-gray-600">{{ permission.description }}</div>
+            <div class="relative p-6 pb-4 pr-12">
+              <h3 class="text-xl font-semibold text-gray-900">编辑用户权限</h3>
+              <button
+                type="button"
+                class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
+                @click="closePermissionsModal"
+              >
+                <XIcon class="w-5 h-5" />
+              </button>
             </div>
-          </label>
-        </div>
-      </div>
 
-      <template #footer>
-        <div class="flex gap-3 justify-end">
-          <GlassButton
-            @click="closePermissionsModal"
-            variant="secondary"
-          >
-            取消
-          </GlassButton>
-          <GlassButton
-            @click="savePermissions"
-            :loading="savingPermissions"
-          >
-            保存
-          </GlassButton>
+            <div v-if="permissionsModal.user" class="px-6 pb-6 space-y-6 overflow-y-auto">
+              <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-full bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center text-white font-medium">
+                  <img
+                    v-if="permissionsModal.user.avatar_url"
+                    :src="assetUrl(permissionsModal.user.avatar_url)"
+                    :alt="permissionsModal.user.username"
+                    class="w-10 h-10 rounded-full object-cover"
+                  >
+                  <span v-else>{{ permissionsModal.user.username.slice(0, 2).toUpperCase() }}</span>
+                </div>
+                <div>
+                  <div class="font-medium text-gray-900">{{ permissionsModal.user.display_name || permissionsModal.user.username }}</div>
+                  <div class="text-sm text-gray-600">@{{ permissionsModal.user.username }}</div>
+                </div>
+              </div>
+
+              <div class="space-y-3">
+                <label
+                  v-for="permission in availablePermissions"
+                  :key="permission.key"
+                  class="flex items-start gap-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
+                >
+                  <input
+                    type="checkbox"
+                    :checked="permissionsForm.includes(permission.key)"
+                    @change="togglePermission(permission.key)"
+                    class="mt-1 w-4 h-4 rounded border-gray-300 text-brand-500 focus:ring-brand-400"
+                  >
+                  <div>
+                    <div class="font-medium text-sm text-gray-900">{{ permission.name }}</div>
+                    <div class="text-xs text-gray-600 leading-relaxed">{{ permission.description }}</div>
+                  </div>
+                </label>
+              </div>
+            </div>
+
+            <div class="flex gap-3 justify-end px-6 pb-6">
+              <button
+                type="button"
+                class="px-5 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                @click="closePermissionsModal"
+              >
+                取消
+              </button>
+              <button
+                type="button"
+                class="px-5 py-2.5 text-sm font-medium text-white bg-brand-500 hover:bg-brand-600 rounded-lg transition-colors shadow-sm flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+                :disabled="savingPermissions"
+                @click="savePermissions"
+              >
+                <span
+                  v-if="savingPermissions"
+                  class="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin"
+                ></span>
+                <span>保存</span>
+              </button>
+            </div>
+          </div>
         </div>
-      </template>
-    </GlassModal>
+      </Transition>
+    </Teleport>
 
     <!-- Change Password Modal -->
-    <GlassModal
-      :is-open="passwordModal.show"
-      title="修改用户密码"
-      max-width="max-w-md"
-      @close="closePasswordModal"
-    >
-      <div v-if="passwordModal.user" class="mb-6">
-        <div class="flex items-center gap-3 mb-4">
-          <div class="w-10 h-10 rounded-full bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center text-white font-medium">
-            <img
-              v-if="passwordModal.user.avatar_url"
-              :src="assetUrl(passwordModal.user.avatar_url)"
-              :alt="passwordModal.user.username"
-              class="w-10 h-10 rounded-full object-cover"
-            >
-            <span v-else>{{ passwordModal.user.username.slice(0, 2).toUpperCase() }}</span>
-          </div>
-          <div>
-            <div class="font-medium text-gray-900">
-              {{ passwordModal.user.display_name || passwordModal.user.username }}
-            </div>
-            <div class="text-sm text-gray-600">@{{ passwordModal.user.username }}</div>
-          </div>
-        </div>
-        
-        <form @submit.prevent="submitPasswordChange" class="space-y-4">
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">
-              新密码 *
-            </label>
-            <GlassInput
-              v-model="passwordForm.new_password"
-              type="password"
-              placeholder="请输入新密码（至少6位）"
-              :error="passwordErrors.new_password"
-              required
-            />
-          </div>
-          
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">
-              确认新密码 *
-            </label>
-            <GlassInput
-              v-model="passwordForm.confirm_password"
-              type="password"
-              placeholder="请再次输入新密码"
-              :error="passwordErrors.confirm_password"
-              required
-            />
-          </div>
-        </form>
-      </div>
+    <Teleport to="body">
+      <Transition name="dialog-fade">
+        <div
+          v-if="passwordModal.show"
+          class="fixed inset-0 z-[9999] flex items-center justify-center p-4"
+        >
+          <div class="absolute inset-0 bg-black/20 backdrop-blur-sm" @click="closePasswordModal" />
 
-      <template #footer>
-        <div class="flex gap-3 justify-end">
-          <GlassButton
-            @click="closePasswordModal"
-            variant="secondary"
+          <div
+            class="relative bg-white rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-hidden flex flex-col animate-dialog-in"
+            @click.stop
           >
-            取消
-          </GlassButton>
-          <GlassButton
-            @click="submitPasswordChange"
-            :loading="passwordSubmitting"
-            :disabled="!isPasswordFormValid"
-          >
-            {{ passwordSubmitting ? '修改中...' : '修改密码' }}
-          </GlassButton>
+            <div class="relative p-6 pb-4 pr-12">
+              <h3 class="text-xl font-semibold text-gray-900">修改用户密码</h3>
+              <button
+                type="button"
+                class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
+                @click="closePasswordModal"
+              >
+                <XIcon class="w-5 h-5" />
+              </button>
+            </div>
+
+            <div v-if="passwordModal.user" class="px-6 pb-6 space-y-6 overflow-y-auto">
+              <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-full bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center text-white font-medium">
+                  <img
+                    v-if="passwordModal.user.avatar_url"
+                    :src="assetUrl(passwordModal.user.avatar_url)"
+                    :alt="passwordModal.user.username"
+                    class="w-10 h-10 rounded-full object-cover"
+                  >
+                  <span v-else>{{ passwordModal.user.username.slice(0, 2).toUpperCase() }}</span>
+                </div>
+                <div>
+                  <div class="font-medium text-gray-900">
+                    {{ passwordModal.user.display_name || passwordModal.user.username }}
+                  </div>
+                  <div class="text-sm text-gray-600">@{{ passwordModal.user.username }}</div>
+                </div>
+              </div>
+
+              <form @submit.prevent="submitPasswordChange" class="space-y-4">
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">
+                    新密码 *
+                  </label>
+                  <GlassInput
+                    v-model="passwordForm.new_password"
+                    type="password"
+                    placeholder="请输入新密码（至少6位）"
+                    :error="passwordErrors.new_password"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">
+                    确认新密码 *
+                  </label>
+                  <GlassInput
+                    v-model="passwordForm.confirm_password"
+                    type="password"
+                    placeholder="请再次输入新密码"
+                    :error="passwordErrors.confirm_password"
+                    required
+                  />
+                </div>
+              </form>
+            </div>
+
+            <div class="flex gap-3 justify-end px-6 pb-6">
+              <button
+                type="button"
+                class="px-5 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                @click="closePasswordModal"
+              >
+                取消
+              </button>
+              <button
+                type="button"
+                class="px-5 py-2.5 text-sm font-medium text-white bg-brand-500 hover:bg-brand-600 rounded-lg transition-colors shadow-sm flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+                :disabled="!isPasswordFormValid || passwordSubmitting"
+                @click="submitPasswordChange"
+              >
+                <span
+                  v-if="passwordSubmitting"
+                  class="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin"
+                ></span>
+                <span>{{ passwordSubmitting ? '修改中...' : '修改密码' }}</span>
+              </button>
+            </div>
+          </div>
         </div>
-      </template>
-    </GlassModal>
+      </Transition>
+    </Teleport>
 
     <!-- Edit User Modal -->
-    <GlassModal
-      :is-open="editModal.show"
-      title="编辑用户信息"
-      max-width="max-w-2xl"
-      @close="closeEditModal"
-    >
-      <div v-if="editModal.user" class="mb-6">
-        <div class="flex items-center gap-3 mb-6">
-          <div class="w-12 h-12 rounded-full bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center text-white font-medium">
-            <img
-              v-if="editModal.user.avatar_url"
-              :src="assetUrl(editModal.user.avatar_url)"
-              :alt="editModal.user.username"
-              class="w-12 h-12 rounded-full object-cover"
-            >
-            <span v-else>{{ editModal.user.username.slice(0, 2).toUpperCase() }}</span>
-          </div>
-          <div>
-            <div class="font-medium text-gray-900">编辑用户信息</div>
-            <div class="text-sm text-gray-600">@{{ editModal.user.username }}</div>
-          </div>
-        </div>
-        
-        <form @submit.prevent="submitUserEdit" class="space-y-4">
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <!-- Username -->
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">
-                用户名 *
-              </label>
-              <GlassInput
-                v-model="editForm.username"
-                placeholder="请输入用户名"
-                :error="editErrors.username"
-                required
-              />
-            </div>
-            
-            <!-- Display Name -->
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">
-                显示名称
-              </label>
-              <GlassInput
-                v-model="editForm.display_name"
-                placeholder="请输入显示名称（可选）"
-                :error="editErrors.display_name"
-              />
-            </div>
-          </div>
-          
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <!-- Email -->
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">
-                邮箱
-              </label>
-              <GlassInput
-                v-model="editForm.email"
-                type="email"
-                placeholder="请输入邮箱（可选）"
-                :error="editErrors.email"
-              />
-            </div>
-            
-            <!-- Phone -->
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">
-                手机号
-              </label>
-              <GlassInput
-                v-model="editForm.phone"
-                placeholder="请输入手机号（可选）"
-                :error="editErrors.phone"
-              />
-            </div>
-          </div>
-          
-          <!-- Bio -->
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">
-              个人简介
-            </label>
-            <textarea
-              v-model="editForm.bio"
-              placeholder="请输入个人简介（可选）"
-              rows="3"
-              class="w-full glass-input resize-none"
-            ></textarea>
-          </div>
-          
-          <!-- Avatar Upload -->
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">
-              头像
-            </label>
-            <div class="flex items-center gap-4">
-              <!-- Avatar Preview -->
-              <div class="w-16 h-16 rounded-full bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center text-white font-medium overflow-hidden">
-                <img
-                  v-if="avatarPreview"
-                  :src="avatarPreview"
-                  alt="头像预览"
-                  class="w-16 h-16 rounded-full object-cover"
-                >
-                <img
-                  v-else-if="editModal.user?.avatar_url"
-                  :src="assetUrl(editModal.user.avatar_url)"
-                  :alt="editModal.user.username"
-                  class="w-16 h-16 rounded-full object-cover"
-                >
-                <span v-else>{{ (editForm.username || '').slice(0, 2).toUpperCase() }}</span>
-              </div>
-              
-              <!-- File Input -->
-              <div class="flex-1">
-                <input
-                  type="file"
-                  ref="avatarInput"
-                  accept="image/*"
-                  @change="handleAvatarChange"
-                  class="hidden"
-                >
-                <GlassButton
-                  type="button"
-                  @click="avatarInput?.click()"
-                  variant="secondary"
-                >
-                  选择头像
-                </GlassButton>
-                <p class="text-xs text-gray-500 mt-1">
-                  支持 JPG、PNG、GIF 格式，大小不超过 5MB
-                </p>
-              </div>
-            </div>
-          </div>
-        </form>
-      </div>
+    <Teleport to="body">
+      <Transition name="dialog-fade">
+        <div
+          v-if="editModal.show"
+          class="fixed inset-0 z-[9999] flex items-center justify-center p-4"
+        >
+          <div class="absolute inset-0 bg-black/20 backdrop-blur-sm" @click="closeEditModal" />
 
-      <template #footer>
-        <div class="flex gap-3 justify-end">
-          <GlassButton
-            @click="closeEditModal"
-            variant="secondary"
+          <div
+            class="relative bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-hidden flex flex-col animate-dialog-in"
+            @click.stop
           >
-            取消
-          </GlassButton>
-          <GlassButton
-            @click="submitUserEdit"
-            :loading="editSubmitting"
-            :disabled="!isEditFormValid"
-          >
-            {{ editSubmitting ? '保存中...' : '保存' }}
-          </GlassButton>
+            <div class="relative p-6 pb-4 pr-12">
+              <h3 class="text-xl font-semibold text-gray-900">编辑用户信息</h3>
+              <button
+                type="button"
+                class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
+                @click="closeEditModal"
+              >
+                <XIcon class="w-5 h-5" />
+              </button>
+            </div>
+
+            <div v-if="editModal.user" class="px-6 pb-6 overflow-y-auto">
+              <div class="space-y-6">
+                <div class="flex items-center gap-3">
+                  <div class="w-12 h-12 rounded-full bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center text-white font-medium">
+                    <img
+                      v-if="editModal.user.avatar_url"
+                      :src="assetUrl(editModal.user.avatar_url)"
+                      :alt="editModal.user.username"
+                      class="w-12 h-12 rounded-full object-cover"
+                    >
+                    <span v-else>{{ editModal.user.username.slice(0, 2).toUpperCase() }}</span>
+                  </div>
+                  <div>
+                    <div class="font-medium text-gray-900">编辑用户信息</div>
+                    <div class="text-sm text-gray-600">@{{ editModal.user.username }}</div>
+                  </div>
+                </div>
+
+                <form @submit.prevent="submitUserEdit" class="space-y-6">
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label class="block text-sm font-medium text-gray-700 mb-2">
+                        用户名 *
+                      </label>
+                      <GlassInput
+                        v-model="editForm.username"
+                        placeholder="请输入用户名"
+                        :error="editErrors.username"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label class="block text-sm font-medium text-gray-700 mb-2">
+                        显示名称
+                      </label>
+                      <GlassInput
+                        v-model="editForm.display_name"
+                        placeholder="请输入显示名称（可选）"
+                        :error="editErrors.display_name"
+                      />
+                    </div>
+                  </div>
+
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label class="block text-sm font-medium text-gray-700 mb-2">
+                        邮箱
+                      </label>
+                      <GlassInput
+                        v-model="editForm.email"
+                        type="email"
+                        placeholder="请输入邮箱（可选）"
+                        :error="editErrors.email"
+                      />
+                    </div>
+
+                    <div>
+                      <label class="block text-sm font-medium text-gray-700 mb-2">
+                        手机号
+                      </label>
+                      <GlassInput
+                        v-model="editForm.phone"
+                        placeholder="请输入手机号（可选）"
+                        :error="editErrors.phone"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                      个人简介
+                    </label>
+                    <textarea
+                      v-model="editForm.bio"
+                      placeholder="请输入个人简介（可选）"
+                      rows="3"
+                      class="w-full glass-input resize-none"
+                    ></textarea>
+                  </div>
+
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                      头像
+                    </label>
+                    <div class="flex items-center gap-4">
+                      <input
+                        type="file"
+                        ref="avatarInput"
+                        accept="image/*"
+                        @change="handleAvatarChange"
+                        class="hidden"
+                      >
+                      <div
+                        class="w-16 h-16 rounded-full bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center text-white font-medium overflow-hidden cursor-pointer hover:opacity-80 transition-opacity"
+                        @click="avatarInput?.click()"
+                        title="点击更换头像"
+                      >
+                        <img
+                          v-if="avatarPreview"
+                          :src="avatarPreview"
+                          alt="头像预览"
+                          class="w-16 h-16 rounded-full object-cover"
+                        >
+                        <img
+                          v-else-if="editModal.user?.avatar_url"
+                          :src="assetUrl(editModal.user.avatar_url)"
+                          :alt="editModal.user.username"
+                          class="w-16 h-16 rounded-full object-cover"
+                        >
+                        <span v-else>{{ (editForm.username || '').slice(0, 2).toUpperCase() }}</span>
+                      </div>
+
+                      <div class="flex-1">
+                        <p class="text-sm text-gray-700 font-medium mb-1">
+                          点击头像更换
+                        </p>
+                        <p class="text-xs text-gray-500">
+                          支持 JPG、PNG、GIF 格式，大小不超过 5MB
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </form>
+              </div>
+            </div>
+
+            <div class="flex gap-3 justify-end px-6 pb-6">
+              <button
+                type="button"
+                class="px-5 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                @click="closeEditModal"
+              >
+                取消
+              </button>
+              <button
+                type="button"
+                class="px-5 py-2.5 text-sm font-medium text-white bg-brand-500 hover:bg-brand-600 rounded-lg transition-colors shadow-sm flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+                :disabled="!isEditFormValid || editSubmitting"
+                @click="submitUserEdit"
+              >
+                <span
+                  v-if="editSubmitting"
+                  class="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin"
+                ></span>
+                <span>{{ editSubmitting ? '保存中...' : '保存' }}</span>
+              </button>
+            </div>
+          </div>
         </div>
-      </template>
-    </GlassModal>
+      </Transition>
+    </Teleport>
 
     <!-- User Tags Management Modal -->
-    <GlassModal
-      :is-open="userTagsModal.show"
-      title="管理用户标签"
-      max-width="max-w-md"
-      @close="closeUserTagsModal"
-    >
-      <div v-if="userTagsModal.user" class="mb-6">
-        <div class="flex items-center gap-3 mb-4">
-          <div class="w-10 h-10 rounded-full bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center text-white font-medium">
-            <img
-              v-if="userTagsModal.user.avatar_url"
-              :src="assetUrl(userTagsModal.user.avatar_url)"
-              :alt="userTagsModal.user.username"
-              class="w-10 h-10 rounded-full object-cover"
-            >
-            <span v-else>{{ userTagsModal.user.username.slice(0, 2).toUpperCase() }}</span>
-          </div>
-          <div>
-            <div class="font-medium">{{ userTagsModal.user.display_name || userTagsModal.user.username }}</div>
-            <div class="text-sm text-gray-600">@{{ userTagsModal.user.username }}</div>
-          </div>
-        </div>
+    <Teleport to="body">
+      <Transition name="dialog-fade">
+        <div
+          v-if="userTagsModal.show"
+          class="fixed inset-0 z-[9999] flex items-center justify-center p-4"
+        >
+          <div class="absolute inset-0 bg-black/20 backdrop-blur-sm" @click="closeUserTagsModal" />
 
-        <!-- Current Tags -->
-        <div class="mb-6">
-          <h4 class="text-sm font-medium text-gray-700 mb-2">当前标签</h4>
-          <div class="flex flex-wrap gap-2">
-            <div 
-              v-for="userTag in getUserTags(userTagsModal.user.id)"
-              :key="userTag.user_tag_id"
-              class="flex items-center gap-2 p-2 border border-gray-200 rounded-lg"
-            >
-              <TagBadge
-                :title="userTag.tag?.title || ''"
-                :background="userTag.tag?.background_color || '#6b7280'"
-                :text="userTag.tag?.text_color || '#ffffff'"
-                :class="{ 'ring-2 ring-blue-300': userTag.is_active }"
-              />
+          <div
+            class="relative bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-hidden flex flex-col animate-dialog-in"
+            @click.stop
+          >
+            <div class="relative p-6 pb-4 pr-12">
+              <h3 class="text-xl font-semibold text-gray-900">管理用户标签</h3>
               <button
-                v-if="userTag.tag?.id"
-                @click="removeUserTag(userTagsModal.user!.id, userTag.tag.id)"
-                class="text-red-500 hover:text-red-700 text-sm"
-                title="删除标签"
+                type="button"
+                class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
+                @click="closeUserTagsModal"
               >
-                ×
+                <XIcon class="w-5 h-5" />
               </button>
+            </div>
+
+            <div v-if="userTagsModal.user" class="px-6 pb-6 space-y-6 overflow-y-auto">
+              <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-full bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center text-white font-medium">
+                  <img
+                    v-if="userTagsModal.user.avatar_url"
+                    :src="assetUrl(userTagsModal.user.avatar_url)"
+                    :alt="userTagsModal.user.username"
+                    class="w-10 h-10 rounded-full object-cover"
+                  >
+                  <span v-else>{{ userTagsModal.user.username.slice(0, 2).toUpperCase() }}</span>
+                </div>
+                <div>
+                  <div class="font-medium text-gray-900">{{ userTagsModal.user.display_name || userTagsModal.user.username }}</div>
+                  <div class="text-sm text-gray-600">@{{ userTagsModal.user.username }}</div>
+                </div>
+              </div>
+
+              <div class="space-y-6">
+                <div>
+                  <h4 class="text-sm font-medium text-gray-700 mb-2">当前标签</h4>
+                  <div class="flex flex-wrap gap-2">
+                    <div
+                      v-for="userTag in getUserTags(userTagsModal.user.id)"
+                      :key="userTag.user_tag_id"
+                      class="flex items-center gap-2 p-2 border border-gray-200 rounded-lg"
+                    >
+                      <TagBadge
+                        :title="userTag.tag?.title || ''"
+                        :background="userTag.tag?.background_color || '#6b7280'"
+                        :text="userTag.tag?.text_color || '#ffffff'"
+                        :class="{ 'ring-2 ring-blue-300': userTag.is_active }"
+                      />
+                      <button
+                        v-if="userTag.tag?.id"
+                        @click="removeUserTag(userTagsModal.user!.id, userTag.tag.id)"
+                        class="text-red-500 hover:text-red-700 text-sm"
+                        title="删除标签"
+                      >
+                        ×
+                      </button>
+                      <button
+                        v-if="!userTag.is_active && userTag.tag?.id"
+                        @click="setActiveUserTag(userTagsModal.user!.id, userTag.tag.id)"
+                        class="text-blue-500 hover:text-blue-700 text-xs"
+                        title="设为活跃"
+                      >
+                        激活
+                      </button>
+                      <span v-else class="text-xs text-blue-600">活跃</span>
+                    </div>
+                    <div v-if="!getUserTags(userTagsModal.user.id).length" class="text-sm text-gray-500">
+                      暂无标签
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <h4 class="text-sm font-medium text-gray-700 mb-2">添加标签</h4>
+                  <div class="flex gap-2 items-center">
+                    <select
+                      v-model="selectedTagId"
+                      class="flex-1 px-3 py-2.5 text-sm border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-400 focus:border-transparent bg-white transition-all"
+                    >
+                      <option value="">选择标签...</option>
+                      <option
+                        v-for="tag in availableTags"
+                        :key="tag.id"
+                        :value="tag.id"
+                      >
+                        {{ tag.title }}
+                      </option>
+                    </select>
+                    <button
+                      type="button"
+                      class="px-5 py-2.5 text-sm font-medium text-white bg-brand-500 hover:bg-brand-600 rounded-lg transition-colors shadow-sm flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+                      :disabled="!selectedTagId || assigningTag"
+                      @click="assignUserTag"
+                    >
+                      <span
+                        v-if="assigningTag"
+                        class="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin"
+                      ></span>
+                      <span>添加</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="flex gap-3 justify-end px-6 pb-6">
               <button
-                v-if="!userTag.is_active && userTag.tag?.id"
-                @click="setActiveUserTag(userTagsModal.user!.id, userTag.tag.id)"
-                class="text-blue-500 hover:text-blue-700 text-xs"
-                title="设为活跃"
+                type="button"
+                class="px-5 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                @click="closeUserTagsModal"
               >
-                激活
+                关闭
               </button>
-              <span v-else class="text-xs text-blue-600">活跃</span>
-            </div>
-            <div v-if="!getUserTags(userTagsModal.user.id).length" class="text-sm text-gray-500">
-              暂无标签
             </div>
           </div>
         </div>
-
-        <!-- Add New Tag -->
-        <div>
-          <h4 class="text-sm font-medium text-gray-700 mb-2">添加标签</h4>
-          <div class="flex gap-2 mb-3">
-            <select
-              v-model="selectedTagId"
-              class="glass-input px-3 py-2 flex-1"
-            >
-              <option value="">选择标签...</option>
-              <option 
-                v-for="tag in availableTags" 
-                :key="tag.id" 
-                :value="tag.id"
-              >
-                {{ tag.title }}
-              </option>
-            </select>
-            <GlassButton
-              @click="assignUserTag"
-              :disabled="!selectedTagId"
-              :loading="assigningTag"
-            >
-              添加
-            </GlassButton>
-          </div>
-        </div>
-      </div>
-
-      <template #footer>
-        <div class="flex gap-3 justify-end">
-          <GlassButton
-            @click="closeUserTagsModal"
-            variant="secondary"
-          >
-            关闭
-          </GlassButton>
-        </div>
-      </template>
-    </GlassModal>
-
-    <!-- Ban User Modal -->
-    <GlassModal
-      :is-open="banModal.show"
-      title="封禁用户"
-      max-width="max-w-md"
-      @close="closeBanModal"
-    >
-      <div v-if="banModal.user" class="mb-6">
-        <div class="flex items-center gap-3 mb-4">
-          <div class="w-10 h-10 rounded-full bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center text-white font-medium">
-            <img
-              v-if="banModal.user.avatar_url"
-              :src="assetUrl(banModal.user.avatar_url)"
-              :alt="banModal.user.username"
-              class="w-10 h-10 rounded-full object-cover"
-            >
-            <span v-else>{{ banModal.user.username.slice(0, 2).toUpperCase() }}</span>
-          </div>
-          <div>
-            <div class="font-medium text-gray-900">
-              {{ banModal.user.display_name || banModal.user.username }}
-            </div>
-            <div class="text-sm text-gray-600">@{{ banModal.user.username }}</div>
-          </div>
-        </div>
-
-        <div class="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-          <div class="flex items-center">
-            <BanIcon class="w-5 h-5 text-red-500 mr-2" />
-            <div class="text-sm text-red-800">
-              <strong>警告：</strong>封禁用户将阻止其登录系统，请谨慎操作。
-            </div>
-          </div>
-        </div>
-        
-        <form @submit.prevent="submitBanUser" class="space-y-4">
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">
-              封禁原因 *
-            </label>
-            <textarea
-              v-model="banForm.reason"
-              placeholder="请输入封禁原因（必填）"
-              rows="3"
-              class="w-full glass-input resize-none"
-              :class="{ 'border-red-300': banErrors.reason }"
-              required
-            ></textarea>
-            <div v-if="banErrors.reason" class="text-red-600 text-xs mt-1">
-              {{ banErrors.reason }}
-            </div>
-          </div>
-        </form>
-      </div>
-
-      <template #footer>
-        <div class="flex gap-3 justify-end">
-          <GlassButton
-            @click="closeBanModal"
-            variant="secondary"
-          >
-            取消
-          </GlassButton>
-          <GlassButton
-            @click="submitBanUser"
-            :loading="banSubmitting"
-            :disabled="!isBanFormValid"
-            class="!bg-red-600 !text-white hover:!bg-red-700"
-          >
-            {{ banSubmitting ? '封禁中...' : '确认封禁' }}
-          </GlassButton>
-        </div>
-      </template>
-    </GlassModal>
+      </Transition>
+    </Teleport>
   </div>
 </template>
 
@@ -901,9 +953,9 @@ import {
   ChevronsLeftIcon,
   ChevronsRightIcon,
   BanIcon,
-  ShieldCheckIcon
+  ShieldCheckIcon,
+  XIcon
 } from 'lucide-vue-next'
-import GlassModal from '~/components/ui/GlassModal.vue'
 import GlassInput from '~/components/ui/GlassInput.vue'
 import TagBadge from '~/components/ui/TagBadge.vue'
 import { PERMISSIONS } from '~/types'
@@ -979,18 +1031,6 @@ const allTags = ref<TagDto[]>([])
 const userTags = ref<Record<string, UserTagDto[]>>({})
 const selectedTagId = ref<string>('')
 const assigningTag = ref(false)
-
-// Ban user modal state
-const banModal = reactive({
-  show: false,
-  user: null as User | null
-})
-
-const banForm = reactive<AdminBanUserForm>({
-  reason: ''
-})
-const banErrors = reactive<Partial<Record<keyof AdminBanUserForm, string>>>({})
-const banSubmitting = ref(false)
 
 // Pagination state
 const pageSize = ref(20)
@@ -1081,13 +1121,9 @@ const isPasswordFormValid = computed(() => {
 })
 
 const isEditFormValid = computed(() => {
-  return editForm.username && 
+  return editForm.username &&
     editForm.username.length >= 3 &&
     Object.keys(editErrors).length === 0
-})
-
-const isBanFormValid = computed(() => {
-  return banForm.reason.trim().length > 0
 })
 
 // Methods
@@ -1242,18 +1278,28 @@ const togglePermission = (permission: string) => {
 
 const savePermissions = async () => {
   if (!permissionsModal.user) return
-  
+
+  const { confirm } = useAdminDialog()
+  const confirmed = await confirm({
+    title: '确认保存',
+    message: `确定要保存用户"${permissionsModal.user.username}"的权限修改吗？`,
+    confirmText: '确认保存',
+    cancelText: '取消'
+  })
+
+  if (!confirmed) return
+
   // 保存用户引用，避免在异步操作过程中被清空
   const currentUser = permissionsModal.user
-  
+
   savingPermissions.value = true
   try {
     const api = useApi()
     await api.setUserPerms(currentUser.id, { permissions: permissionsForm.value })
-    
+
     // Update local state
     userPermissions.value[currentUser.id] = [...permissionsForm.value]
-    
+
     toast.success('权限设置已保存')
     closePermissionsModal()
   } catch (error: any) {
@@ -1266,6 +1312,26 @@ const savePermissions = async () => {
 // Delete user (superadmin only)
 const deleteUserModal = reactive<{ show: boolean; user: User | null }>({ show: false, user: null })
 const deletingUser = ref(false)
+
+const isAnyModalOpen = computed(() => (
+  deleteUserModal.show ||
+  permissionsModal.show ||
+  passwordModal.show ||
+  editModal.show ||
+  userTagsModal.show
+))
+
+watch(isAnyModalOpen, (open) => {
+  if (typeof window !== 'undefined') {
+    document.body.style.overflow = open ? 'hidden' : ''
+  }
+})
+
+onUnmounted(() => {
+  if (typeof window !== 'undefined') {
+    document.body.style.overflow = ''
+  }
+})
 
 const openDeleteUser = (user: User) => {
   deleteUserModal.user = user
@@ -1391,17 +1457,27 @@ const assignUserTag = async () => {
 }
 
 const removeUserTag = async (userId: string, tagId: string) => {
+  const { confirm } = useAdminDialog()
+  const confirmed = await confirm({
+    title: '确认删除',
+    message: '确定要删除该用户标签吗？',
+    confirmText: '确认删除',
+    cancelText: '取消'
+  })
+
+  if (!confirmed) return
+
   try {
     const api = useApi()
     console.log('删除用户标签：', { userId, tagId })
-    
+
     await api.adminRemoveUserTag(userId, tagId)
-    
+
     // Remove from local state
     if (userTags.value[userId]) {
       userTags.value[userId] = userTags.value[userId].filter(ut => ut.tag?.id !== tagId)
     }
-    
+
     toast.success('标签已删除')
   } catch (error: any) {
     console.error('删除标签失败：', error)
@@ -1649,51 +1725,29 @@ const submitUserEdit = async () => {
 }
 
 // Ban user methods
-const openBanModal = (user: User) => {
-  banModal.user = user
-  banModal.show = true
-  // Reset form
-  banForm.reason = ''
-  Object.keys(banErrors).forEach(key => delete banErrors[key as keyof AdminBanUserForm])
-}
+const confirmBanUser = async (user: User) => {
+  const { prompt } = useAdminDialog()
+  const reason = await prompt({
+    title: '封禁用户',
+    message: `确定要封禁用户 "${user.username}" 吗?请输入封禁原因:`,
+    confirmText: '确认封禁',
+    cancelText: '取消',
+    placeholder: '请输入封禁原因(至少5个字符)...'
+  })
 
-const closeBanModal = () => {
-  banModal.show = false
-  banModal.user = null
-  banForm.reason = ''
-  Object.keys(banErrors).forEach(key => delete banErrors[key as keyof AdminBanUserForm])
-}
-
-const validateBanForm = () => {
-  Object.keys(banErrors).forEach(key => delete banErrors[key as keyof AdminBanUserForm])
-  
-  if (!banForm.reason.trim()) {
-    banErrors.reason = '请输入封禁原因'
-    return false
+  if (!reason || reason.trim().length < 5) {
+    if (reason !== null) {
+      toast.error('封禁原因至少需要5个字符')
+    }
+    return
   }
-  
-  if (banForm.reason.trim().length < 5) {
-    banErrors.reason = '封禁原因至少需要5个字符'
-    return false
-  }
-  
-  return true
-}
 
-const submitBanUser = async () => {
-  if (!validateBanForm() || !banModal.user) return
-  
-  // 保存用户引用，避免在异步操作过程中被清空
-  const currentUser = banModal.user
-  
-  banSubmitting.value = true
-  
   try {
     const api = useApi()
-    const result = await api.banUser(currentUser.id, { reason: banForm.reason })
-    
+    const result = await api.banUser(user.id, { reason: reason.trim() })
+
     // Update local state
-    const index = users.value.findIndex(u => u.id === currentUser.id)
+    const index = users.value.findIndex(u => u.id === user.id)
     if (index >= 0) {
       users.value[index] = {
         ...users.value[index],
@@ -1701,15 +1755,12 @@ const submitBanUser = async () => {
         ban_reason: result.ban_reason
       }
     }
-    
-    toast.success(`用户 ${currentUser.username} 已被封禁`)
-    closeBanModal()
+
+    toast.success(`用户 ${user.username} 已被封禁`)
   } catch (error: any) {
     console.error('Ban user failed:', error)
     const errorMessage = error.response?.data?.error?.message || error.message || '封禁用户失败'
     toast.error(`封禁用户失败: ${errorMessage}`)
-  } finally {
-    banSubmitting.value = false
   }
 }
 
@@ -1744,14 +1795,6 @@ const confirmUnbanUser = async (user: User) => {
   }
 }
 
-// Watch ban form for real-time validation
-watch(() => banForm.reason, () => {
-  // 实时清除错误，让用户能够立即看到按钮状态变化
-  if (Object.keys(banErrors).length > 0) {
-    validateBanForm()
-  }
-})
-
 // SEO
 useHead({
   title: '用户管理 - Love Wall',
@@ -1761,3 +1804,29 @@ useHead({
 })
 </script>
 
+<style scoped>
+.dialog-fade-enter-active,
+.dialog-fade-leave-active {
+  transition: opacity 0.2s ease;
+}
+
+.dialog-fade-enter-from,
+.dialog-fade-leave-to {
+  opacity: 0;
+}
+
+@keyframes dialog-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.animate-dialog-in {
+  animation: dialog-in 0.2s ease-out;
+}
+</style>
