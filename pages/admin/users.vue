@@ -148,7 +148,7 @@
                     <!-- 管理员光圈效果 -->
                     <div
                       v-if="user.isadmin"
-                      class="absolute -inset-0.5 rounded-full bg-blue-500/30 blur-[6px]"
+                      class="absolute -inset-0.5 rounded-full bg-blue-900/70 blur-[8px]"
                     ></div>
 
                     <!-- 头像容器 -->

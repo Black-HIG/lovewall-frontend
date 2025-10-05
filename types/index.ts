@@ -73,7 +73,7 @@ export interface PostDto {
   author_name: string
   target_name: string
   content: string
-  card_type?: 'confession' | 'communication' // 卡片类型
+  card_type?: 'confession' | 'communication' | 'social' // 卡片类型
   images: string[]
   status: 0 | 1 | 2 // 0=published, 1=hidden, 2=deleted
   is_pinned: boolean
@@ -165,7 +165,7 @@ export interface PostForm {
   author_name: string
   target_name: string
   content: string
-  card_type?: 'confession' | 'communication' // 卡片类型
+  card_type?: 'confession' | 'communication' | 'social' // 卡片类型
   images: File[]
 }
 

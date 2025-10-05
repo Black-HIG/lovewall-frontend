@@ -27,13 +27,13 @@
             <ImageGrid
               v-if="post.images?.length"
               :images="post.images"
-              :alt-prefix="`${post.author_name}对${post.target_name}的表白`"
+              :alt-prefix="post.card_type !== 'communication' && post.card_type !== 'social' && post.target_name ? `${post.author_name}对${post.target_name}的表白` : `${post.author_name}的交流`"
             />
             <div v-else class="relative w-24 h-24 mx-auto">
               <!-- 管理员光圈效果 -->
               <div
                 v-if="post.author_isadmin"
-                class="absolute -inset-0.5 rounded-full bg-blue-500/30 blur-[6px]"
+                class="absolute -inset-0.5 rounded-full bg-blue-900/70 blur-[8px]"
               ></div>
 
               <!-- 头像容器 -->
@@ -67,7 +67,7 @@
                     <!-- 管理员光圈效果 -->
                     <div
                       v-if="post.author_isadmin"
-                      class="absolute -inset-0.5 rounded-full bg-blue-500/30 blur-[6px]"
+                      class="absolute -inset-0.5 rounded-full bg-blue-900/70 blur-[8px]"
                     ></div>
 
                     <!-- 头像容器 -->
@@ -102,7 +102,10 @@
                   />
                 </div>
                 
-                <h1 class="text-2xl font-bold text-gray-800">
+                <h1
+                  v-if="(post.card_type !== 'communication' && post.card_type !== 'social') && post.target_name"
+                  class="text-2xl font-bold text-gray-800"
+                >
                   → {{ post.target_name }}
                 </h1>
               </div>
@@ -295,7 +298,7 @@
                     <!-- 管理员光圈效果 -->
                     <div
                       v-if="comment.user_isadmin"
-                      class="absolute -inset-0.5 rounded-full bg-blue-500/30 blur-[6px]"
+                      class="absolute -inset-0.5 rounded-full bg-blue-900/70 blur-[8px]"
                     ></div>
 
                     <!-- 头像容器 -->
@@ -944,9 +947,12 @@ useHead(() => {
   if (!post.value) {
     return { title: '加载中 - 郑州四中表白墙' }
   }
-  
+  const isConfession = post.value.card_type !== 'communication' && post.value.card_type !== 'social'
+  const title = isConfession && post.value.target_name
+    ? `${post.value.author_name}对${post.value.target_name}的表白 - 郑州四中表白墙`
+    : `${post.value.author_name}的交流 - 郑州四中表白墙`
   return {
-    title: `${post.value.author_name}对${post.value.target_name}的表白 - 郑州四中表白墙`,
+    title,
     meta: [
       { name: 'description', content: post.value.content.slice(0, 150) + '...' },
     ]

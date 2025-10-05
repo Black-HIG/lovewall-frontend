@@ -19,7 +19,7 @@
           <!-- 管理员光圈效果 -->
           <div
             v-if="post.author_isadmin"
-            class="absolute -inset-0.5 rounded-full bg-blue-500/30 blur-[6px]"
+            class="absolute -inset-0.5 rounded-full bg-blue-900/70 blur-[8px]"
           ></div>
 
           <!-- 头像容器 -->
@@ -193,10 +193,13 @@
     ]">
       <!-- Love declaration -->
       <div :class="deviceType === 'mobile' ? 'mb-2' : 'mb-3'">
-        <p :class="[
-          'font-medium text-gray-900 mb-2',
-          deviceType === 'mobile' ? 'text-base' : 'text-lg'
-        ]">
+        <p
+          v-if="(post.card_type !== 'communication' && post.card_type !== 'social') && post.target_name"
+          :class="[
+            'font-medium text-gray-900 mb-2',
+            deviceType === 'mobile' ? 'text-base' : 'text-lg'
+          ]"
+        >
           → {{ post.target_name }}
         </p>
         <p :class="[
@@ -229,7 +232,7 @@
     >
       <ImageGrid
         :images="post.images"
-        :alt-prefix="post.author_name + ' 的表白图片'"
+        :alt-prefix="(post.card_type !== 'communication' && post.card_type !== 'social' && post.target_name) ? (post.author_name + ' 的表白图片') : (post.author_name + ' 的交流图片')"
       />
     </div>
 
@@ -378,8 +381,12 @@ const isModerator = computed(() => auth.isSuperadmin || auth.hasPerm('MANAGE_POS
 // 分享数据
 const shareData = computed(() => {
   const origin = process.client ? window.location.origin : 'https://your-domain.com'
+  const isConfession = props.post.card_type !== 'communication' && props.post.card_type !== 'social'
+  const title = isConfession && props.post.target_name
+    ? `${props.post.author_name} 对 ${props.post.target_name} 的表白`
+    : `${props.post.author_name} 的交流`
   return {
-    title: `${props.post.author_name} 对 ${props.post.target_name} 的表白`,
+    title,
     text: props.post.content.length > 100 ? 
       `${props.post.content.substring(0, 100)}...` : 
       props.post.content,
