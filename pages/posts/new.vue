@@ -520,7 +520,8 @@ const handleSubmit = async () => {
 
     // 添加卡片类型
     if (form.card_type) {
-      formData.append('card_type', form.card_type)
+      // 若为交流卡，后端期望的值为 social
+      formData.append('card_type', form.card_type === 'communication' ? 'social' : form.card_type)
     }
 
     form.images.forEach(image => {
@@ -560,7 +561,5 @@ useHead({
   title: '发布信息 - 郑州四中表白墙'
 })
 </script>
-
-
 
 
