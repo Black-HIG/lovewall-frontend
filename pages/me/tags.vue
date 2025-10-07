@@ -41,15 +41,13 @@
         </div>
         
         <div class="flex items-center gap-3">
-          <GlassButton
+          <button
               @click="openRedeemModal"
-              variant="secondary"
-              class="px-6 py-3"
-              style="display:inline-flex;align-items:center;white-space:nowrap;"
+              class="glass-button-secondary px-6 py-3 inline-flex items-center gap-2"
           >
-            <TagIcon class="w-5 h-5 mr-2" style="flex:0 0 auto;margin-right:0.5rem;" />
-            <span style="display:inline-block;">兑换标签</span>
-          </GlassButton>
+            <TagIcon class="w-5 h-5" />
+            <span>兑换标签</span>
+          </button>
         </div>
       </div>
       <!-- Redeem History (if any) -->
@@ -134,17 +132,16 @@
 
               <!-- Actions -->
               <div class="flex gap-2 shrink-0 whitespace-nowrap items-center">
-                <GlassButton
+                <button
                   v-if="!userTag.is_active"
                   @click="activateTag(userTag)"
-                  :loading="activating === userTag.user_tag_id"
-                  :disabled="!userTag.tag?.is_active"
+                  :disabled="activating === userTag.user_tag_id || !userTag.tag?.is_active"
                   :title="userTag.tag?.is_active ? '设为当前标签' : '该标签已被停用，无法设为当前标签'"
-                  variant="secondary"
-                  class="text-sm px-4 py-2"
+                  class="glass-button-secondary text-sm px-4 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  设为当前标签
-                </GlassButton>
+                  <span v-if="activating === userTag.user_tag_id">设置中...</span>
+                  <span v-else>设为当前标签</span>
+                </button>
                 
                 <div v-else class="flex items-center gap-2">
                   <div class="flex items-center gap-2 px-4 py-2 bg-green-100/50 text-green-800 rounded-lg text-sm">
@@ -171,109 +168,13 @@
         </div>
       </div>
     </div>
-
-    <!-- Redeem Modal -->
-    <GlassModal
-      :is-open="redeemModal.show"
-      title="兑换标签"
-      max-width="max-w-md"
-      @close="closeRedeemModal"
-    >
-      <div class="text-center mb-6">
-        <div class="w-16 h-16 bg-gradient-to-br from-purple-400 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
-          <TagIcon class="w-8 h-8 text-white" />
-        </div>
-        <p class="text-gray-600">输入兑换码获取专属标签</p>
-      </div>
-      
-      <form @submit.prevent="redeemCode" class="space-y-6">
-        <div>
-          <label for="redeemCode" class="block text-sm font-medium text-gray-700 mb-2">兑换码 *</label>
-          <input
-            id="redeemCode"
-            v-model="redeemForm.code"
-            type="text"
-            placeholder="请输入兑换码"
-            class="glass-input w-full py-3 text-sm font-mono text-center tracking-wider"
-            required
-          />
-          <div v-if="redeemErrors.code" class="mt-1 text-sm text-red-500">
-            {{ redeemErrors.code }}
-          </div>
-          <p class="text-xs text-gray-500 mt-1 text-center">
-            格式: XXXX-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX
-          </p>
-        </div>
-
-      </form>
-
-      <template #footer>
-        <div class="flex gap-3 justify-end">
-          <GlassButton
-            @click="closeRedeemModal"
-            variant="secondary"
-          >
-            取消
-          </GlassButton>
-          <GlassButton
-            @click="redeemCode"
-            :loading="redeeming"
-            :disabled="!isValidRedeemCode"
-            variant="secondary"
-          >
-            {{ redeeming ? '兑换中...' : '立即兑换' }}
-          </GlassButton>
-        </div>
-      </template>
-    </GlassModal>
-
-    <!-- Success Modal -->
-    <GlassModal
-      :is-open="redeemSuccess.show"
-      title="兑换成功！"
-      max-width="max-w-md"
-      @close="closeSuccessModal"
-    >
-      <div class="text-center">
-        <div class="w-16 h-16 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center mx-auto mb-4">
-          <CheckCircleIcon class="w-8 h-8 text-white" />
-        </div>
-        
-        <p class="text-gray-600 mb-4">恭喜你获得了新标签并已自动激活：</p>
-        
-        <div v-if="redeemSuccess.tag" class="mb-6">
-          <TagBadge
-            :title="redeemSuccess.tag.tag?.title || ''"
-            :background="redeemSuccess.tag.tag?.background_color || '#6b7280'"
-            :text="redeemSuccess.tag.tag?.text_color || '#ffffff'"
-            class="text-lg px-4 py-2"
-          />
-        </div>
-        
-        <p class="text-sm text-gray-500">
-          新标签已自动设为当前标签，你可以在帖子和评论中看到它的显示效果。
-        </p>
-      </div>
-
-      <template #footer>
-        <div class="flex gap-3 justify-end">
-          <GlassButton
-            @click="closeSuccessModal"
-            class="w-full"
-          >
-            好的
-          </GlassButton>
-        </div>
-      </template>
-    </GlassModal>
   </div>
 </template>
 
 <script setup lang="ts">
 import { TagIcon, CheckCircleIcon } from 'lucide-vue-next'
-import GlassModal from '~/components/ui/GlassModal.vue'
 import TagBadge from '~/components/ui/TagBadge.vue'
-import type { UserTagDto, RedeemForm, RedeemResponse, MyActiveTagStatusResponse } from '~/types'
+import type { UserTagDto, RedeemResponse, MyActiveTagStatusResponse } from '~/types'
 
 definePageMeta({
   middleware: 'auth'
@@ -282,27 +183,13 @@ definePageMeta({
 // Stores
 const auth = useAuthStore()
 const toast = useToast()
+const adminDialog = useAdminDialog()
 
 // State
 const userTags = ref<UserTagDto[]>([])
 const loading = ref(true)
-const redeeming = ref(false)
 const activating = ref<string | null>(null)
 const deactivating = ref<string | null>(null)
-
-const redeemForm = reactive<RedeemForm>({
-  code: ''
-})
-const redeemErrors = ref<Partial<RedeemForm>>({})
-
-const redeemModal = reactive({
-  show: false
-})
-
-const redeemSuccess = reactive({
-  show: false,
-  tag: null as UserTagDto | null
-})
 
 // Active tag status from new API
 const activeStatus = ref<MyActiveTagStatusResponse | null>(null)
@@ -326,67 +213,39 @@ const recentlyRedeemed = computed(() => {
     .slice(0, 3)
 })
 
-const isValidRedeemCode = computed(() => {
-  const cleanCode = redeemForm.code.replace(/-/g, '')
-  return cleanCode.length === 32 // Total length without dashes (8 groups * 4 characters)
-})
-
-// Methods
-const openRedeemModal = () => {
-  redeemModal.show = true
-  redeemForm.code = ''
-  redeemErrors.value = {}
-}
-
-const closeRedeemModal = () => {
-  redeemModal.show = false
-  redeemForm.code = ''
-  redeemErrors.value = {}
-}
-
-const formatRedeemCode = () => {
+// Helper function to format redeem code
+const formatRedeemCodeString = (code: string): string => {
   // Remove all non-alphanumeric characters and convert to uppercase
-  let code = redeemForm.code.replace(/[^A-Za-z0-9]/g, '').toUpperCase()
-  
-  // Limit to 32 characters (8 groups * 4 characters)
-  code = code.slice(0, 32)
-  
+  const cleanCode = code.replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(0, 32)
+
   // Format with dashes: XXXX-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX
   let formatted = ''
-  for (let i = 0; i < code.length; i++) {
+  for (let i = 0; i < cleanCode.length; i++) {
     if (i > 0 && i % 4 === 0) {
       formatted += '-'
     }
-    formatted += code[i]
+    formatted += cleanCode[i]
   }
-  
-  redeemForm.code = formatted
+  return formatted
 }
 
-// Watch for code input changes and format automatically
-watch(() => redeemForm.code, (newValue) => {
-  if (newValue && typeof newValue === 'string') {
-    // Only format if not already properly formatted
-    const cleanCode = newValue.replace(/[^A-Za-z0-9]/g, '').toUpperCase()
-    if (cleanCode.length > 0) {
-      // Format the clean code into 8 groups of 4 characters
-      let formatted = ''
-      for (let i = 0; i < Math.min(cleanCode.length, 32); i++) {
-        if (i > 0 && i % 4 === 0) {
-          formatted += '-'
-        }
-        formatted += cleanCode[i]
-      }
-      
-      // Only update if the formatted version is different from current value
-      if (formatted !== newValue) {
-        nextTick(() => {
-          redeemForm.code = formatted
-        })
-      }
-    }
-  }
-})
+// Methods
+const openRedeemModal = async () => {
+  const code = await adminDialog.prompt({
+    title: '兑换标签',
+    message: '请输入兑换码获取专属标签\n格式: XXXX-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX',
+    inputLabel: '兑换码',
+    placeholder: '请输入兑换码',
+    confirmText: '立即兑换',
+    cancelText: '取消',
+    defaultValue: ''
+  })
+
+  if (!code) return
+
+  const formattedCode = formatRedeemCodeString(code)
+  await redeemCode(formattedCode)
+}
 
 const loadUserTags = async () => {
   loading.value = true
@@ -406,26 +265,23 @@ const loadUserTags = async () => {
   }
 }
 
-const redeemCode = async () => {
-  redeemErrors.value = {}
-  
-  if (!redeemForm.code.trim()) {
-    redeemErrors.value.code = '请输入兑换码'
+const redeemCode = async (code: string) => {
+  if (!code.trim()) {
+    toast.error('请输入兑换码')
     return
   }
-  
+
   // Basic format validation - 8 groups of 4 characters each
   const codePattern = /^[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$/
-  if (!codePattern.test(redeemForm.code.toUpperCase())) {
-    redeemErrors.value.code = '兑换码格式不正确'
+  if (!codePattern.test(code.toUpperCase())) {
+    toast.error('兑换码格式不正确')
     return
   }
-  
-  redeeming.value = true
+
   try {
     const api = useApi()
-    const result: RedeemResponse = await api.redeem({ code: redeemForm.code.toUpperCase() })
-    
+    const result: RedeemResponse = await api.redeem({ code: code.toUpperCase() })
+
     // Merge into list (update if exists, else add)
     const newUserTag = result.user_tag
     const existingIdx = userTags.value.findIndex(t => t.user_tag_id === newUserTag.user_tag_id)
@@ -436,24 +292,25 @@ const redeemCode = async () => {
     }
     // Auto-activate new tag locally; deactivate others
     userTags.value.forEach(t => { t.is_active = (t.user_tag_id === newUserTag.user_tag_id) })
-    
-    // Close redeem modal
-    closeRedeemModal()
-    
-    // Show success modal
-    redeemSuccess.tag = result.user_tag
-    redeemSuccess.show = true
-    
-    toast.success('兑换成功！新标签已自动设为当前标签')
+
     // 刷新活动标签状态徽章
     try {
       const api = useApi()
       activeStatus.value = await api.getMyActiveTagStatus()
     } catch {}
+
+    // Show success dialog
+    const tagTitle = newUserTag.tag?.title || '新标签'
+    await adminDialog.confirm({
+      title: '兑换成功！',
+      message: `恭喜你获得了新标签"${tagTitle}"并已自动激活！\n\n新标签已自动设为当前标签，你可以在帖子和评论中看到它的显示效果。`,
+      confirmText: '好的',
+      cancelText: ''
+    })
+
+    toast.success('兑换成功！新标签已自动设为当前标签')
   } catch (error: any) {
-    redeemErrors.value.code = error.message || '兑换失败'
-  } finally {
-    redeeming.value = false
+    toast.error(error.message || '兑换失败')
   }
 }
 
@@ -507,11 +364,6 @@ const deactivateTag = async (userTag: UserTagDto) => {
   } finally {
     deactivating.value = null
   }
-}
-
-const closeSuccessModal = () => {
-  redeemSuccess.show = false
-  redeemSuccess.tag = null
 }
 
 const showAllTags = async () => {
