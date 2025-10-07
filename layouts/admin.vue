@@ -74,6 +74,13 @@ const auth = useAuthStore()
 const route = useRoute()
 const sidebarOpen = ref(false)
 
+// 桌面端默认打开侧边栏
+onMounted(() => {
+  if (process.client && window.innerWidth >= 1024) {
+    sidebarOpen.value = true
+  }
+})
+
 // 背景图片
 const { src: backgroundSrc, loading: backgroundLoading } = useRandomBg()
 

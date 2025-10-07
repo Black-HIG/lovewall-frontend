@@ -91,9 +91,11 @@
       </div>
 
       <!-- Page Content -->
-      <main class="content-container flex-1 min-h-0 py-6 relative">
+      <main class="flex-1 min-h-0 relative">
         <div class="h-full overflow-auto no-scrollbar">
-          <NuxtPage />
+          <div class="content-container py-6">
+            <NuxtPage />
+          </div>
         </div>
         <!-- Toast Notifications -->
         <ToastContainer />

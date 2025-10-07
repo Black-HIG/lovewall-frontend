@@ -1,13 +1,16 @@
 <template>
-  <aside class="fixed left-0 top-16 bottom-0 w-64 glass-card z-40 transform transition-transform duration-300 ease-in-out" 
-         :class="{ '-translate-x-full': !isOpen, 'translate-x-0': isOpen }">
-    
-    <!-- Mobile overlay -->
-    <div 
-      v-if="isOpen" 
-      class="fixed inset-0 bg-black/50 lg:hidden z-30"
-      @click="$emit('close')"
-    ></div>
+  <!-- Mobile overlay -->
+  <div
+    v-if="isOpen"
+    class="fixed inset-0 bg-black/50 lg:hidden z-30"
+    @click="$emit('close')"
+  ></div>
+
+  <!-- 桌面端: 始终显示 (lg:translate-x-0)
+       移动端: 根据 isOpen 显示/隐藏 -->
+  <aside
+    class="fixed left-0 top-0 bottom-0 w-64 glass-card z-40 lg:z-20 transform transition-transform duration-300 ease-in-out lg:translate-x-0"
+    :class="{ '-translate-x-full lg:translate-x-0': !isOpen }">
     
     <nav class="h-full overflow-y-auto p-4">
       <!-- Header -->
