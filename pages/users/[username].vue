@@ -23,18 +23,31 @@
         <div class="flex flex-col md:flex-row items-center md:items-start gap-6">
           <!-- Avatar -->
           <div class="flex-shrink-0">
-            <div class="w-32 h-32 rounded-full overflow-hidden shadow-lg">
-              <img
-                v-if="user.avatar_url"
-                :src="assetUrl(user.avatar_url)"
-                :alt="userDisplayName"
-                class="w-32 h-32 object-cover"
+            <div class="relative w-32 h-32">
+              <template v-if="user.isadmin">
+                <div
+                  class="absolute -inset-[5px] rounded-full border-[4px] border-sky-400/95 pointer-events-none"
+                ></div>
+                <div
+                  class="absolute -inset-[10px] rounded-full bg-sky-300/40 blur-3xl pointer-events-none"
+                ></div>
+              </template>
+              <div
+                class="relative z-10 w-full h-full rounded-full overflow-hidden shadow-lg"
+                :class="user.isadmin ? 'border-0' : 'border-2 border-white/20'"
               >
-              <div 
-                v-else
-                class="w-32 h-32 bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center text-white text-4xl font-bold"
-              >
-                {{ userDisplayName.slice(0, 2) }}
+                <img
+                  v-if="user.avatar_url"
+                  :src="assetUrl(user.avatar_url)"
+                  :alt="userDisplayName"
+                  class="w-full h-full object-cover"
+                >
+                <div 
+                  v-else
+                  class="w-full h-full bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center text-white text-4xl font-bold"
+                >
+                  {{ userDisplayName.slice(0, 2) }}
+                </div>
               </div>
             </div>
           </div>
@@ -114,7 +127,7 @@
               <div v-if="post.images?.length" class="flex-shrink-0">
                 <img
                   :src="assetUrl(post.images[0])"
-                  :alt="`${post.author_name}对${post.target_name}的表白`"
+                  :alt="post.card_type !== 'communication' && post.card_type !== 'social' && post.target_name ? `${post.author_name}对${post.target_name}的表白` : `${post.author_name}的交流`"
                   class="w-20 h-20 object-cover rounded-lg"
                 >
               </div>
@@ -123,7 +136,12 @@
               <div class="flex-1">
                 <div class="flex items-center gap-2 mb-2">
                   <h3 class="font-semibold text-gray-800">
-                    {{ post.author_name }} → {{ post.target_name }}
+                    <template v-if="post.card_type !== 'communication' && post.card_type !== 'social' && post.target_name">
+                      {{ post.author_name }} → {{ post.target_name }}
+                    </template>
+                    <template v-else>
+                      {{ post.author_name }} 的交流
+                    </template>
                   </h3>
                   <TagBadge
                     v-if="post.author_tag"

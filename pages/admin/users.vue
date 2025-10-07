@@ -144,22 +144,33 @@
               <!-- User Info -->
               <td class="px-6 py-4">
                 <div class="flex items-center gap-3">
-                  <div class="relative">
+                  <div
+                    class="relative w-10 h-10 flex-shrink-0 transition-transform hover:scale-105"
+                  >
                     <!-- 管理员光圈效果 -->
-                    <div
-                      v-if="user.isadmin"
-                      class="absolute -inset-0.5 rounded-full bg-blue-900/70 blur-[8px]"
-                    ></div>
+                    <template v-if="user.isadmin">
+                      <div
+                        class="absolute -inset-[3px] rounded-full border-[3px] border-sky-400/95 pointer-events-none"
+                      ></div>
+                      <div
+                        class="absolute -inset-[7px] rounded-full bg-sky-300/40 blur-2xl pointer-events-none"
+                      ></div>
+                    </template>
 
                     <!-- 头像容器 -->
-                    <div class="relative w-10 h-10 rounded-full bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center text-white font-medium">
-                      <img
-                        v-if="user.avatar_url"
-                        :src="assetUrl(user.avatar_url)"
-                        :alt="user.username"
-                        class="w-10 h-10 rounded-full object-cover border border-white/20"
-                      >
-                      <span v-else>{{ user.username.slice(0, 2).toUpperCase() }}</span>
+                    <img
+                      v-if="user.avatar_url"
+                      :src="assetUrl(user.avatar_url)"
+                      :alt="user.username"
+                      class="relative z-10 w-full h-full rounded-full object-cover"
+                      :class="user.isadmin ? 'border-0' : 'border border-white/20'"
+                    >
+                    <div
+                      v-else
+                      class="relative z-10 w-full h-full rounded-full bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center text-white font-medium"
+                      :class="user.isadmin ? 'border-0' : 'border border-white/20'"
+                    >
+                      {{ user.username.slice(0, 2).toUpperCase() }}
                     </div>
                   </div>
                   <div>

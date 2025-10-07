@@ -29,30 +29,34 @@
               :images="post.images"
               :alt-prefix="post.card_type !== 'communication' && post.card_type !== 'social' && post.target_name ? `${post.author_name}对${post.target_name}的表白` : `${post.author_name}的交流`"
             />
-            <div v-else class="relative w-24 h-24 mx-auto">
+            <div
+              class="relative w-24 h-24 mx-auto flex-shrink-0 transition-transform hover:scale-105 cursor-pointer"
+              @click="navigateToUser(post)"
+            >
               <!-- 管理员光圈效果 -->
-              <div
-                v-if="post.author_isadmin"
-                class="absolute -inset-0.5 rounded-full bg-blue-900/70 blur-[8px]"
-              ></div>
+              <template v-if="post.author_isadmin">
+                <div
+                  class="absolute -inset-[4px] rounded-full border-[4px] border-sky-400/95 pointer-events-none"
+                ></div>
+                <div
+                  class="absolute -inset-[10px] rounded-full bg-sky-300/40 blur-3xl pointer-events-none"
+                ></div>
+              </template>
 
               <!-- 头像容器 -->
-              <div
-                class="relative w-24 h-24 mx-auto rounded-full flex-shrink-0 cursor-pointer hover:ring-2 hover:ring-brand-300/50 transition-all"
-                @click="navigateToUser(post)"
+              <img
+                v-if="authorAvatar"
+                :src="authorAvatar"
+                :alt="post.author_name"
+                class="relative z-10 w-full h-full rounded-full object-cover"
+                :class="post.author_isadmin ? 'border-0' : 'border-2 border-white/20'"
               >
-                <img
-                  v-if="authorAvatar"
-                  :src="authorAvatar"
-                  :alt="post.author_name"
-                  class="w-24 h-24 rounded-full object-cover border-2 border-white/20"
-                >
-                <div
-                  v-else
-                  class="w-24 h-24 bg-gradient-to-br from-brand-400 to-brand-600 rounded-full flex items-center justify-center text-white text-lg font-medium border-2 border-white/20"
-                >
-                  {{ post.author_name.slice(0, 2) }}
-                </div>
+              <div
+                v-else
+                class="relative z-10 w-full h-full bg-gradient-to-br from-brand-400 to-brand-600 rounded-full flex items-center justify-center text-white text-lg font-medium"
+                :class="post.author_isadmin ? 'border-0' : 'border-2 border-white/20'"
+              >
+                {{ post.author_name.slice(0, 2) }}
               </div>
             </div>
           </div>
@@ -63,30 +67,35 @@
               <div class="flex items-center gap-2 mb-2">
                 <div class="flex items-center gap-2">
                   <!-- Author avatar (if post has image) -->
-                  <div v-if="post.images?.length" class="relative w-8 h-8">
+                  <div
+                    v-if="post.images?.length"
+                    class="relative w-8 h-8 flex-shrink-0 transition-transform hover:scale-110 cursor-pointer"
+                    @click="navigateToUser(post)"
+                  >
                     <!-- 管理员光圈效果 -->
-                    <div
-                      v-if="post.author_isadmin"
-                      class="absolute -inset-0.5 rounded-full bg-blue-900/70 blur-[8px]"
-                    ></div>
+                    <template v-if="post.author_isadmin">
+                      <div
+                        class="absolute -inset-[3px] rounded-full border-[3px] border-sky-400/95 pointer-events-none"
+                      ></div>
+                      <div
+                        class="absolute -inset-[7px] rounded-full bg-sky-300/40 blur-2xl pointer-events-none"
+                      ></div>
+                    </template>
 
                     <!-- 头像容器 -->
-                    <div
-                      class="relative w-8 h-8 rounded-full flex-shrink-0 cursor-pointer hover:ring-2 hover:ring-brand-300/50 transition-all"
-                      @click="navigateToUser(post)"
+                    <img
+                      v-if="authorAvatar"
+                      :src="authorAvatar"
+                      :alt="post.author_name"
+                      class="relative z-10 w-full h-full rounded-full object-cover"
+                      :class="post.author_isadmin ? 'border-0' : 'border border-white/20'"
                     >
-                      <img
-                        v-if="authorAvatar"
-                        :src="authorAvatar"
-                        :alt="post.author_name"
-                        class="w-8 h-8 rounded-full object-cover border border-white/20"
-                      >
-                      <div
-                        v-else
-                        class="w-8 h-8 bg-gradient-to-br from-brand-400 to-brand-600 rounded-full flex items-center justify-center text-white text-xs font-medium border border-white/20"
-                      >
-                        {{ post.author_name.slice(0, 2) }}
-                      </div>
+                    <div
+                      v-else
+                      class="relative z-10 w-full h-full bg-gradient-to-br from-brand-400 to-brand-600 rounded-full flex items-center justify-center text-white text-xs font-medium"
+                      :class="post.author_isadmin ? 'border-0' : 'border border-white/20'"
+                    >
+                      {{ post.author_name.slice(0, 2) }}
                     </div>
                   </div>
                   
@@ -294,31 +303,35 @@
               >
                 <div class="flex items-start gap-3">
                   <!-- User Avatar -->
-                  <div class="relative w-10 h-10">
+                  <div
+                    class="relative w-10 h-10 flex-shrink-0 transition-transform hover:scale-110 cursor-pointer"
+                    @click="navigateToUser(comment)"
+                  >
                     <!-- 管理员光圈效果 -->
-                    <div
-                      v-if="comment.user_isadmin"
-                      class="absolute -inset-0.5 rounded-full bg-blue-900/70 blur-[8px]"
-                    ></div>
+                    <template v-if="comment.user_isadmin">
+                      <div
+                        class="absolute -inset-[3px] rounded-full border-[3px] border-sky-400/95 pointer-events-none"
+                      ></div>
+                      <div
+                        class="absolute -inset-[7px] rounded-full bg-sky-300/40 blur-2xl pointer-events-none"
+                      ></div>
+                    </template>
 
                     <!-- 头像容器 -->
-                    <div
-                      class="relative w-10 h-10 rounded-full flex-shrink-0 cursor-pointer hover:ring-2 hover:ring-brand-300/50 transition-all"
-                      @click="navigateToUser(comment)"
+                    <img
+                      v-if="comment.user_avatar_url"
+                      :src="assetUrl(comment.user_avatar_url)"
+                      :alt="commentDisplayName(comment)"
+                      class="relative z-10 w-full h-full rounded-full object-cover"
+                      :class="comment.user_isadmin ? 'border-0' : 'border-2 border-white/20'"
+                      @error="() => { comment.user_avatar_url = null }"
                     >
-                      <img
-                        v-if="comment.user_avatar_url"
-                        :src="assetUrl(comment.user_avatar_url)"
-                        :alt="commentDisplayName(comment)"
-                        class="w-10 h-10 rounded-full object-cover border-2 border-white/20"
-                        @error="() => { comment.user_avatar_url = null }"
-                      >
-                      <div
-                        v-else
-                        class="w-10 h-10 bg-gradient-to-br from-brand-400 to-brand-600 rounded-full flex items-center justify-center text-white text-sm font-medium border-2 border-white/20"
-                      >
-                        {{ commentDisplayName(comment).slice(0, 2) }}
-                      </div>
+                    <div
+                      v-else
+                      class="relative z-10 w-full h-full bg-gradient-to-br from-brand-400 to-brand-600 rounded-full flex items-center justify-center text-white text-sm font-medium"
+                      :class="comment.user_isadmin ? 'border-0' : 'border-2 border-white/20'"
+                    >
+                      {{ commentDisplayName(comment).slice(0, 2) }}
                     </div>
                   </div>
                   

@@ -75,24 +75,33 @@
             <!-- Comment Header -->
             <div class="flex items-start justify-between">
               <div class="flex items-center gap-3">
-                <div class="relative">
+                <div
+                  class="relative w-8 h-8 flex-shrink-0 transition-transform hover:scale-110"
+                >
                   <!-- 管理员光圈效果 -->
-                  <div
-                    v-if="auth.currentUser?.isadmin"
-                    class="absolute -inset-0.5 rounded-full bg-blue-900/70 blur-[8px]"
-                  ></div>
+                  <template v-if="auth.currentUser?.isadmin">
+                    <div
+                      class="absolute -inset-[3px] rounded-full border-[3px] border-sky-400/95 pointer-events-none"
+                    ></div>
+                    <div
+                      class="absolute -inset-[7px] rounded-full bg-sky-300/40 blur-2xl pointer-events-none"
+                    ></div>
+                  </template>
 
                   <!-- 头像容器 -->
-                  <div class="relative w-8 h-8 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center text-white text-sm font-medium">
-                    <img
-                      v-if="auth.currentUser?.avatar_url"
-                      :src="assetUrl(auth.currentUser.avatar_url)"
-                      :alt="auth.userDisplayName"
-                      class="w-8 h-8 rounded-full object-cover border border-white/20"
-                    >
-                    <span v-else>
-                      {{ auth.userDisplayName.slice(0, 2) }}
-                    </span>
+                  <img
+                    v-if="auth.currentUser?.avatar_url"
+                    :src="assetUrl(auth.currentUser.avatar_url)"
+                    :alt="auth.userDisplayName"
+                    class="relative z-10 w-full h-full rounded-full object-cover"
+                    :class="auth.currentUser?.isadmin ? 'border-0' : 'border border-white/20'"
+                  >
+                  <div
+                    v-else
+                    class="relative z-10 w-full h-full bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center text-white text-sm font-medium"
+                    :class="auth.currentUser?.isadmin ? 'border-0' : 'border border-white/20'"
+                  >
+                    {{ auth.userDisplayName.slice(0, 2) }}
                   </div>
                 </div>
                 

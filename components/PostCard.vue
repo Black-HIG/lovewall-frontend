@@ -15,52 +15,50 @@
     ]">
       <div class="flex items-center gap-3 flex-1 min-w-0">
         <!-- Author Avatar -->
-        <div class="relative">
+        <div
+          :class="[
+            'relative flex-shrink-0 transition-transform hover:scale-110 cursor-pointer',
+            deviceType === 'mobile' ? 'w-8 h-8' : 'w-10 h-10'
+          ]"
+          @click.stop="navigateToAuthor"
+        >
           <!-- 管理员光圈效果 -->
-          <div
-            v-if="post.author_isadmin"
-            class="absolute -inset-0.5 rounded-full bg-blue-900/70 blur-[8px]"
-          ></div>
+          <template v-if="post.author_isadmin">
+            <div
+              class="absolute -inset-[4px] rounded-full border-[4px] border-sky-400/95 pointer-events-none"
+            ></div>
+            <div
+              class="absolute -inset-[8px] rounded-full bg-sky-300/40 blur-2xl pointer-events-none"
+            ></div>
+          </template>
 
           <!-- 头像容器 -->
-          <div
-            :class="[
-              'relative rounded-full flex-shrink-0 cursor-pointer transition-all hover:scale-110',
-              deviceType === 'mobile' ? 'w-8 h-8' : 'w-10 h-10'
-            ]"
-            @click.stop="navigateToAuthor"
+          <img
+            v-if="authorHasAvatar === true && authorAvatar"
+            :src="authorAvatar"
+            :alt="post.author_name"
+            class="relative z-10 w-full h-full rounded-full object-cover"
+            :class="post.author_isadmin ? 'border-0' : 'border-2 border-white/20'"
+            @error="handleAuthorAvatarError"
           >
-            <!-- Avatar image when confirmed exists -->
-            <img
-              v-if="authorHasAvatar === true && authorAvatar"
-              :src="authorAvatar"
-              :alt="post.author_name"
-              :class="[
-                'rounded-full object-cover border-2 border-white/20',
-                deviceType === 'mobile' ? 'w-8 h-8' : 'w-10 h-10'
-              ]"
-              @error="handleAuthorAvatarError"
-            >
 
-            <!-- Transparent placeholder while loading/unknown -->
-            <div
-              v-else-if="authorHasAvatar === null"
-              :class="[
-                'rounded-full',
-                deviceType === 'mobile' ? 'w-8 h-8' : 'w-10 h-10'
-              ]"
-            />
+          <!-- Transparent placeholder while loading/unknown -->
+          <div
+            v-else-if="authorHasAvatar === null"
+            class="relative z-10 w-full h-full rounded-full bg-white/10"
+            :class="post.author_isadmin ? 'border-0' : 'border-2 border-white/20'"
+          />
 
-            <!-- Default initials only when user has no avatar -->
-            <div
-              v-else
-              :class="[
-                'bg-gradient-to-br from-brand-400 to-brand-600 rounded-full flex items-center justify-center text-white font-medium border-2 border-white/20',
-                deviceType === 'mobile' ? 'w-8 h-8 text-xs' : 'w-10 h-10 text-sm'
-              ]"
-            >
-              {{ post.author_name.slice(0, 2) }}
-            </div>
+          <!-- Default initials only when user has no avatar -->
+          <div
+            v-else
+            class="relative z-10 w-full h-full bg-gradient-to-br from-brand-400 to-brand-600 rounded-full flex items-center justify-center text-white font-medium"
+            :class="[
+              deviceType === 'mobile' ? 'text-xs' : 'text-sm',
+              post.author_isadmin ? 'border-0' : 'border-2 border-white/20'
+            ]"
+          >
+            {{ post.author_name.slice(0, 2) }}
           </div>
         </div>
         
