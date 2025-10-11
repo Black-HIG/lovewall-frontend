@@ -29,11 +29,10 @@ export const useHomeStore = defineStore('home', {
   }),
   getters: {
     hasData: (s) => s.loaded && (s.posts.length > 0 || s.pinned.length > 0 || s.featured.length > 0),
-    // 全局排序优先级: 置顶+精华 > 置顶 > 精华 > 普通 > 隐藏(> 已删除)
+    // 全局排序优先级: 置顶+精华 > 置顶 > 精华 > 普通 > 隐藏
     sortedPosts: (s) =>
       s.posts.slice().sort((a, b) => {
         const score = (p: PostDto) => {
-          if (p.status === 2) return 5
           if (p.status === 1) return 4
           // status === 0
           if (p.is_pinned && p.is_featured) return 0
@@ -90,14 +89,9 @@ export const useHomeStore = defineStore('home', {
         })
         
         // Normalize shape to be robust against slight backend variations
-        const normalizeStatus = (s: any): 0 | 1 | 2 => {
-          if (typeof s === 'number') return (s === 1 || s === 2) ? s : 0
-          if (typeof s === 'string') {
-            const v = s.toLowerCase()
-            if (v.includes('hide')) return 1
-            if (v.includes('delete') || v.includes('remove')) return 2
-            return 0
-          }
+        const normalizeStatus = (s: any): 0 | 1 => {
+          if (typeof s === 'number') return s === 1 ? 1 : 0
+          if (typeof s === 'string' && s.toLowerCase().includes('hide')) return 1
           return 0
         }
         // 统一的图片字段规范化函数
@@ -116,7 +110,7 @@ export const useHomeStore = defineStore('home', {
           target_name: String(p.target_name ?? p.to_name ?? 'TA'),
           content: String(p.content ?? ''),
           images: normalizeImages(p),
-          status: normalizeStatus(p.status) as 0 | 1 | 2,
+          status: normalizeStatus(p.status),
           is_pinned: !!p.is_pinned,
           is_featured: !!p.is_featured,
           created_at: p.created_at ?? new Date().toISOString(),
@@ -138,7 +132,7 @@ export const useHomeStore = defineStore('home', {
           ?? (Array.isArray((listResp as any)?.data) ? (listResp as any).data : [])
         const normalizedItems: PostDto[] = (rawItems || []).map(normalizePost)
         if (canModerate) {
-          this.posts = normalizedItems.filter((p: PostDto) => p.status !== 2) // show hidden, exclude deleted
+          this.posts = normalizedItems
           console.log('HomeStore: Filtered posts for moderator:', this.posts.length)
         } else {
           this.posts = normalizedItems.filter((p: PostDto) => p.status === 0)
@@ -217,6 +211,12 @@ export const useHomeStore = defineStore('home', {
           ?? (listResp as any)?.records
           ?? (listResp as any)?.rows
           ?? (Array.isArray((listResp as any)?.data) ? (listResp as any).data : [])
+        const normalizeStatus = (s: any): 0 | 1 => {
+          if (typeof s === 'number') return s === 1 ? 1 : 0
+          if (typeof s === 'string' && s.toLowerCase().includes('hide')) return 1
+          return 0
+        }
+
         const items = itemsRaw.map((p: any) => ({
           id: String(p.id),
           author_id: String(p.author_id ?? p.user_id ?? ''),
@@ -224,7 +224,7 @@ export const useHomeStore = defineStore('home', {
           target_name: String(p.target_name ?? p.to_name ?? 'TA'),
           content: String(p.content ?? ''),
           images: normalizeImages(p),
-          status: (typeof (p as any).status === 'number' ? (p as any).status : (String((p as any).status || '').toLowerCase().includes('hide') ? 1 : (String((p as any).status || '').toLowerCase().includes('delete') || String((p as any).status || '').toLowerCase().includes('remove') ? 2 : 0))) as 0 | 1 | 2,
+          status: normalizeStatus((p as any).status),
           is_pinned: !!(p as any).is_pinned,
           is_featured: !!(p as any).is_featured,
           created_at: (p as any).created_at ?? new Date().toISOString(),
@@ -233,7 +233,7 @@ export const useHomeStore = defineStore('home', {
           author_isadmin: p.author_isadmin,
         } as PostDto))
         const newPosts = canModerate
-          ? items.filter((p: PostDto) => p.status !== 2)
+          ? items
           : items.filter((p: PostDto) => p.status === 0)
           
         this.posts.push(...newPosts)

@@ -2,9 +2,183 @@
   <div class="w-full space-y-6">
     <!-- Page Header -->
     <div class="page-header">
-      <h1 class="page-title">系统日志</h1>
-      <p class="text-gray-600 mt-2">查看系统提交和操作日志</p>
+      <h1 class="page-title">系统信息</h1>
+      <p class="text-gray-600 mt-2">查看系统运行状态和基本信息</p>
     </div>
+
+    <!-- System Info -->
+    <GlassCard class="p-6">
+      <h2 class="text-lg font-semibold text-gray-800 mb-4">系统信息</h2>
+      
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="space-y-4">
+          <div class="flex justify-between py-2 border-b border-gray-100">
+            <span class="text-gray-600">系统版本</span>
+            <span class="font-medium">郑州四中表白墙 v1.0</span>
+          </div>
+          
+          <div class="flex justify-between py-2 border-b border-gray-100">
+            <span class="text-gray-600">当前时间</span>
+            <span class="font-medium">{{ currentTime }}</span>
+          </div>
+          
+          <div class="flex justify-between py-2 border-b border-gray-100">
+            <span class="text-gray-600">前端框架</span>
+            <span class="font-medium">Nuxt 3 + Vue 3</span>
+          </div>
+        </div>
+        
+        <div class="space-y-4">
+          <div class="flex justify-between py-2 border-b border-gray-100">
+            <span class="text-gray-600">界面状态</span>
+            <span class="inline-flex items-center px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full">
+              <div class="w-2 h-2 bg-green-500 rounded-full mr-1"></div>
+              正常运行
+            </span>
+          </div>
+          
+          <div class="flex justify-between py-2 border-b border-gray-100">
+            <span class="text-gray-600">用户类型</span>
+            <span class="font-medium">
+              {{ auth.isSuperadmin ? '超级管理员' : '管理员' }}
+            </span>
+          </div>
+          
+          <div class="flex justify-between py-2 border-b border-gray-100">
+            <span class="text-gray-600">权限数量</span>
+            <span class="font-medium">{{ auth.permissions.length }} 项</span>
+          </div>
+        </div>
+      </div>
+    </GlassCard>
+
+    <!-- Quick Stats -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+      <GlassCard class="p-4 text-center">
+        <div class="w-12 h-12 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center mx-auto mb-3">
+          <UsersIcon class="w-6 h-6 text-white" />
+        </div>
+        <div class="text-2xl font-bold text-blue-600 mb-1">{{ stats.users }}</div>
+        <div class="text-sm text-gray-600">注册用户</div>
+      </GlassCard>
+      
+      <GlassCard class="p-4 text-center">
+        <div class="w-12 h-12 bg-gradient-to-br from-brand-400 to-brand-600 rounded-full flex items-center justify-center mx-auto mb-3">
+          <FileTextIcon class="w-6 h-6 text-white" />
+        </div>
+        <div class="text-2xl font-bold text-brand-600 mb-1">{{ stats.posts }}</div>
+        <div class="text-sm text-gray-600">表白总数</div>
+      </GlassCard>
+      
+      <GlassCard class="p-4 text-center">
+        <div class="w-12 h-12 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center mx-auto mb-3">
+          <MessageSquareIcon class="w-6 h-6 text-white" />
+        </div>
+        <div class="text-2xl font-bold text-green-600 mb-1">{{ stats.comments }}</div>
+        <div class="text-sm text-gray-600">评论总数</div>
+      </GlassCard>
+      
+      <GlassCard class="p-4 text-center">
+        <div class="w-12 h-12 bg-gradient-to-br from-purple-400 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-3">
+          <TagIcon class="w-6 h-6 text-white" />
+        </div>
+        <div class="text-2xl font-bold text-purple-600 mb-1">{{ stats.tags }}</div>
+        <div class="text-sm text-gray-600">标签总数</div>
+      </GlassCard>
+    </div>
+
+    <!-- User Info -->
+    <GlassCard class="p-6">
+      <h2 class="text-lg font-semibold text-gray-800 mb-4">当前用户信息</h2>
+      
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="space-y-3">
+          <div class="flex justify-between">
+            <span class="text-gray-600">用户名</span>
+            <span class="font-medium">{{ auth.currentUser?.username }}</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-gray-600">显示名称</span>
+            <span class="font-medium">{{ auth.currentUser?.display_name || '未设置' }}</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-gray-600">用户状态</span>
+            <span class="inline-flex items-center px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full">
+              {{ auth.currentUser?.status === 0 ? '正常' : '异常' }}
+            </span>
+          </div>
+        </div>
+        
+        <div class="space-y-3">
+          <div class="flex justify-between">
+            <span class="text-gray-600">注册时间</span>
+            <span class="font-medium">{{ formatDate(auth.currentUser?.created_at || '') }}</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-gray-600">最后登录</span>
+            <span class="font-medium">{{ auth.currentUser?.last_login_at ? formatDate(auth.currentUser.last_login_at) : '未知' }}</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-gray-600">管理权限</span>
+            <span class="font-medium">{{ auth.isSuperadmin ? '全部权限' : `${auth.permissions.length} 项权限` }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Permissions List -->
+      <div v-if="!auth.isSuperadmin && auth.permissions.length" class="mt-6 pt-4 border-t border-gray-200">
+        <h3 class="text-sm font-medium text-gray-700 mb-3">具体权限</h3>
+        <div class="flex flex-wrap gap-2">
+          <span
+            v-for="permission in auth.permissions"
+            :key="permission"
+            class="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded"
+          >
+            {{ getPermissionName(permission) }}
+          </span>
+        </div>
+      </div>
+    </GlassCard>
+
+    <!-- Quick Actions -->
+    <GlassCard class="p-6">
+      <h2 class="text-lg font-semibold text-gray-800 mb-4">快速操作</h2>
+      
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <NuxtLink
+          to="/admin"
+          class="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-center"
+        >
+          <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-2">
+            <HomeIcon class="w-4 h-4 text-blue-600" />
+          </div>
+          <div class="font-medium text-gray-800 mb-1">管理首页</div>
+          <div class="text-sm text-gray-600">返回管理控制台</div>
+        </NuxtLink>
+
+        <NuxtLink
+          to="/admin/users"
+          class="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-center"
+        >
+          <div class="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-2">
+            <UsersIcon class="w-4 h-4 text-green-600" />
+          </div>
+          <div class="font-medium text-gray-800 mb-1">用户管理</div>
+          <div class="text-sm text-gray-600">管理用户和权限</div>
+        </NuxtLink>
+
+        <NuxtLink
+          to="/admin/posts"
+          class="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-center"
+        >
+          <div class="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-2">
+            <FileTextIcon class="w-4 h-4 text-purple-600" />
+          </div>
+          <div class="font-medium text-gray-800 mb-1">内容管理</div>
+          <div class="text-sm text-gray-600">管理表白和评论</div>
+        </NuxtLink>
+      </div>
+    </GlassCard>
 
     <!-- System Logs (Only for Superadmin) -->
     <GlassCard class="p-6">
@@ -265,11 +439,18 @@
 
 <script setup lang="ts">
 import {
+  UsersIcon,
+  FileTextIcon,
+  MessageSquareIcon,
+  TagIcon,
+  HomeIcon,
   ScrollTextIcon,
   DatabaseIcon,
+  ChevronUpIcon,
   ChevronDownIcon
 } from 'lucide-vue-next'
 import GlassModal from '~/components/ui/GlassModal.vue'
+import { PERMISSIONS } from '~/types'
 import type { LogEntry, LogFilters, Pagination, User } from '~/types'
 
 definePageMeta({
@@ -280,18 +461,26 @@ definePageMeta({
 const auth = useAuthStore()
 const toast = useToast()
 
-// Logs state
+// State
+const stats = reactive({
+  users: 0,
+  posts: 0,
+  comments: 0,
+  tags: 0
+})
+
+// Logs related state
 const activeLogType = ref<'submissions' | 'operations'>('submissions')
 const logs = ref<LogEntry[]>([])
 const logsData = ref<Pagination<LogEntry> | null>(null)
 const loadingLogs = ref(false)
+const expandedLogId = ref<string>('')
 const logsPageSize = ref<number>(20)
 const logDetails = reactive<{ show: boolean; log: LogEntry | null }>({ show: false, log: null })
 // cache user info to render names and links
 const userMap = ref<Record<string, User | null>>({})
 
 const logFilters = reactive<LogFilters>({
-  q: '',
   action: '',
   object_type: '',
   object_id: '',
@@ -303,11 +492,29 @@ const logFilters = reactive<LogFilters>({
   page_size: 20
 })
 
+// Computed
+const currentTime = computed(() => {
+  return new Date().toLocaleString('zh-CN')
+})
+
 // Methods
 const formatDate = (dateString: string) => {
   if (!dateString) return '未知'
   return new Date(dateString).toLocaleString('zh-CN')
 }
+
+const getPermissionName = (permission: string) => {
+  const permissionNames: Record<string, string> = {
+    [PERMISSIONS.MANAGE_USERS]: '用户管理',
+    [PERMISSIONS.MANAGE_POSTS]: '帖子管理',
+    [PERMISSIONS.MANAGE_FEATURED]: '精华管理',
+    [PERMISSIONS.MANAGE_ANNOUNCEMENTS]: '公告管理',
+    [PERMISSIONS.MANAGE_COMMENTS]: '评论管理',
+    [PERMISSIONS.MANAGE_TAGS]: '标签管理',
+  }
+  return permissionNames[permission] || permission
+}
+
 // Logs related methods
 const formatLogAction = (action: string): string => {
   const actionNames: Record<string, string> = {
@@ -416,6 +623,14 @@ const loadLogs = async (page = 1) => {
     console.error('Failed to load logs:', error)
   } finally {
     loadingLogs.value = false
+  }
+}
+
+const toggleLogDetails = (log: LogEntry) => {
+  if (expandedLogId.value === log.id) {
+    expandedLogId.value = ''
+  } else {
+    expandedLogId.value = log.id
   }
 }
 
@@ -545,11 +760,50 @@ watch(activeLogType, () => {
   // Clear current logs and reload
   logs.value = []
   logsData.value = null
+  expandedLogId.value = ''
   loadLogs(1)
 })
 
+// Load basic stats (if APIs are available)
+const loadStats = async () => {
+  try {
+    const api = useApi()
+    
+    // Load posts count
+    try {
+      const postsData = await api.listPosts({ page: 1, page_size: 1 })
+      stats.posts = postsData.total
+    } catch (error) {
+      console.warn('Failed to load posts count:', error)
+    }
+
+    // Load users count (if has permission)
+    if (auth.hasPerm('MANAGE_USERS') || auth.isSuperadmin) {
+      try {
+        const usersData = await api.listUsers({ page: 1, page_size: 1 })
+        stats.users = usersData.total
+      } catch (error) {
+        console.warn('Failed to load users count:', error)
+      }
+    }
+
+    // Load tags count (if has permission)
+    if (auth.hasPerm('MANAGE_TAGS')) {
+      try {
+        const tagsData = await api.listTags({ page: 1, page_size: 1 })
+        stats.tags = tagsData.total
+      } catch (error) {
+        console.warn('Failed to load tags count:', error)
+      }
+    }
+  } catch (error) {
+    console.warn('Failed to load system stats:', error)
+  }
+}
+
 // Initialize
 onMounted(() => {
+  loadStats()
   // 默认时间范围：站点建立时间（以当前管理员注册时间）到现在
   try {
     if (!logFilters.from && auth.currentUser?.created_at) {
@@ -566,9 +820,10 @@ onMounted(() => {
 
 // SEO
 useHead({
-  title: '系统日志 - 郑州四中表白墙',
+  title: '系统信息 - 郑州四中表白墙',
   meta: [
-    { name: 'description', content: '查看系统提交和操作日志' }
+    { name: 'description', content: '查看系统运行状态和基本信息' }
   ]
 })
 </script>
+

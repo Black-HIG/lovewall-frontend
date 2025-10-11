@@ -59,7 +59,10 @@
             <div class="mb-4">
               <div class="flex items-center justify-center md:justify-start gap-2 mb-2">
                 <h1 class="text-3xl font-bold text-gray-800">{{ userDisplayName }}</h1>
-                <span
+                <OnlineBadge
+                  v-if="!isDeleted && user?.id"
+                  :user-id="user.id"
+                />                <span
                   v-if="isDeleted"
                   class="px-2 py-0.5 text-xs bg-gray-200 text-gray-700 rounded-full"
                 >
@@ -89,7 +92,6 @@
             <!-- Stats -->
             <div class="flex justify-center md:justify-start gap-6 text-sm text-gray-600">
               <span>加入于 {{ formatDate(user.created_at) }}</span>
-              <span v-if="!isDeleted && user.status === 0" class="text-green-600">● 活跃</span>
             </div>
           </div>
         </div>
@@ -198,6 +200,7 @@ import GlassCard from '~/components/ui/GlassCard.vue'
 import GlassButton from '~/components/ui/GlassButton.vue'
 import LoadingSpinner from '~/components/ui/LoadingSpinner.vue'
 import TagBadge from '~/components/ui/TagBadge.vue'
+import OnlineBadge from '~/components/ui/OnlineBadge.vue'
 import { HeartIcon } from 'lucide-vue-next'
 import type { User, PostDto, Pagination } from '~/types'
 import type { ActiveTagDto } from '~/types/extra'
@@ -357,3 +360,4 @@ useHead(() => {
   overflow: hidden;
 }
 </style>
+

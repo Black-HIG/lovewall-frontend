@@ -74,7 +74,12 @@
           <!-- Geetest Captcha -->
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">安全验证</label>
-            <GeetestV4 ref="captchaRef" @verified="onCaptchaVerified" @error="onCaptchaError" />
+            <GeetestV4
+              ref="captchaRef"
+              :captcha-id="registerCaptchaId"
+              @verified="onCaptchaVerified"
+              @error="onCaptchaError"
+            />
           </div>
 
           <!-- Error Message -->
@@ -154,6 +159,10 @@ const captchaOk = ref(false)
 const captchaTokens = ref<any | null>(null)
 const captchaRef = ref<InstanceType<typeof GeetestV4Type> | null>(null)
 
+// 获取注册专用验证码ID
+const config = useRuntimeConfig()
+const registerCaptchaId = (config.public as any).geetestRegisterId as string | undefined
+
 // Stores
 const auth = useAuthStore()
 const route = useRoute()
@@ -211,29 +220,34 @@ const handleSubmit = async () => {
   error.value = ''
   
   try {
-    // Verify Geetest first
+    // 检查是否完成极验验证
     if (!captchaOk.value || !captchaTokens.value) {
       throw new Error('请先完成安全验证')
     }
-    const verify = await $fetch<{ success: boolean; error?: string }>('/geetest/validate', {
-      method: 'POST',
-      body: captchaTokens.value,
-    })
-    if (!verify.success) {
-      captchaOk.value = false
-      captchaRef.value?.reset?.()
-      throw new Error(verify.error || '安全验证失败')
-    }
+
     console.log('[Register] sending register request', { username: form.username })
-    await auth.register(form)
-    
+    // 将极验4个字段与表单数据一起传给后端
+    await auth.register({
+      ...form,
+      lot_number: captchaTokens.value.lot_number,
+      captcha_output: captchaTokens.value.captcha_output,
+      pass_token: captchaTokens.value.pass_token,
+      gen_time: captchaTokens.value.gen_time,
+    })
+
     // Redirect to intended destination or home
     const redirect = route.query.redirect as string
     await router.push(redirect || '/')
   } catch (err: any) {
     console.error('[Register] error', err)
     error.value = err.message || '注册失败，请稍后重试'
-    
+
+    // 如果是验证码错误,重置验证码
+    if (err.message?.includes('验证码') || err.message?.includes('captcha')) {
+      captchaOk.value = false
+      captchaRef.value?.reset?.()
+    }
+
     // Also show toast notification for registration errors
     const toast = useToast()
     toast.error(err.message || '注册失败，请稍后重试')

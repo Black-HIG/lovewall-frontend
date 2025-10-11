@@ -14,14 +14,16 @@
     <div v-else class="space-y-8">
       <!-- Quick Stats -->
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <!-- 表白数据 - 所有管理员都可查看 -->
-        <GlassCard class="p-6 text-center">
-          <div class="w-12 h-12 bg-gradient-to-br from-brand-400 to-brand-600 rounded-full flex items-center justify-center mx-auto mb-4">
-            <FileTextIcon class="w-6 h-6 text-white" />
-          </div>
-          <div class="text-2xl font-bold text-brand-600 mb-1">{{ stats.posts }}</div>
-          <div class="text-sm text-gray-600">总表白数</div>
-        </GlassCard>
+        <!-- 表白数据 - 仅拥有帖子相关权限的用户可见 -->
+        <PermissionGuard :any-perms="['MANAGE_POSTS','MANAGE_FEATURED']">
+          <GlassCard class="p-6 text-center">
+            <div class="w-12 h-12 bg-gradient-to-br from-brand-400 to-brand-600 rounded-full flex items-center justify-center mx-auto mb-4">
+              <FileTextIcon class="w-6 h-6 text-white" />
+            </div>
+            <div class="text-2xl font-bold text-brand-600 mb-1">{{ stats.posts }}</div>
+            <div class="text-sm text-gray-600">总表白数</div>
+          </GlassCard>
+        </PermissionGuard>
         
         <!-- 用户数据 - 需要权限 -->
         <PermissionGuard :any-perms="['MANAGE_USERS']">
@@ -78,20 +80,30 @@
 
       <!-- Quick Actions -->
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <!-- 表白管理 - 所有管理员都可访问 -->
-        <NuxtLink to="/admin/posts" class="block">
-          <GlassCard class="p-6 text-center hover:shadow-glow-lg transition-all group">
-            <div class="w-12 h-12 bg-gradient-to-br from-brand-400 to-brand-600 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
-              <FileTextIcon class="w-6 h-6 text-white" />
-            </div>
-            <h3 class="font-semibold text-gray-800 mb-2">表白管理</h3>
-            <p class="text-sm text-gray-600">审核、置顶和精华表白</p>
-          </GlassCard>
-        </NuxtLink>
+        <!-- 表白管理 - 仅拥有帖子相关权限的用户可见 -->
+        <PermissionGuard :any-perms="['MANAGE_POSTS', 'MANAGE_FEATURED']">
+          <NuxtLink
+            v-if="auth.isSuperadmin || auth.hasAnyPerm(['MANAGE_POSTS','MANAGE_FEATURED'])"
+            to="/admin/posts"
+            class="block"
+          >
+            <GlassCard class="p-6 text-center hover:shadow-glow-lg transition-all group">
+              <div class="w-12 h-12 bg-gradient-to-br from-brand-400 to-brand-600 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
+                <FileTextIcon class="w-6 h-6 text-white" />
+              </div>
+              <h3 class="font-semibold text-gray-800 mb-2">表白管理</h3>
+              <p class="text-sm text-gray-600">审核、置顶和精华表白</p>
+            </GlassCard>
+          </NuxtLink>
+        </PermissionGuard>
 
         <!-- 用户管理 - 需要权限 -->
         <PermissionGuard :any-perms="['MANAGE_USERS']">
-          <NuxtLink to="/admin/users" class="block">
+          <NuxtLink
+            v-if="auth.isSuperadmin || auth.hasPerm('MANAGE_USERS')"
+            to="/admin/users"
+            class="block"
+          >
             <GlassCard class="p-6 text-center hover:shadow-glow-lg transition-all group">
               <div class="w-12 h-12 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
                 <UsersIcon class="w-6 h-6 text-white" />
@@ -104,7 +116,11 @@
 
         <!-- 评论管理 - 需要权限 -->
         <PermissionGuard :any-perms="['MANAGE_COMMENTS']">
-          <NuxtLink to="/admin/comments" class="block">
+          <NuxtLink
+            v-if="auth.isSuperadmin || auth.hasPerm('MANAGE_COMMENTS')"
+            to="/admin/comments"
+            class="block"
+          >
             <GlassCard class="p-6 text-center hover:shadow-glow-lg transition-all group">
               <div class="w-12 h-12 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
                 <MessageSquareIcon class="w-6 h-6 text-white" />
@@ -117,7 +133,11 @@
 
         <!-- 公告管理 - 需要权限 -->
         <PermissionGuard :any-perms="['MANAGE_ANNOUNCEMENTS']">
-          <NuxtLink to="/admin/announcements" class="block">
+          <NuxtLink
+            v-if="auth.isSuperadmin || auth.hasPerm('MANAGE_ANNOUNCEMENTS')"
+            to="/admin/announcements"
+            class="block"
+          >
             <GlassCard class="p-6 text-center hover:shadow-glow-lg transition-all group">
               <div class="w-12 h-12 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
                 <MegaphoneIcon class="w-6 h-6 text-white" />
@@ -130,7 +150,11 @@
 
         <!-- 标签管理 - 需要权限 -->
         <PermissionGuard :any-perms="['MANAGE_TAGS']">
-          <NuxtLink to="/admin/tags" class="block">
+          <NuxtLink
+            v-if="auth.isSuperadmin || auth.hasPerm('MANAGE_TAGS')"
+            to="/admin/tags"
+            class="block"
+          >
             <GlassCard class="p-6 text-center hover:shadow-glow-lg transition-all group">
               <div class="w-12 h-12 bg-gradient-to-br from-purple-400 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
                 <TagIcon class="w-6 h-6 text-white" />
@@ -143,7 +167,11 @@
 
         <!-- 系统设置 - 仅超管 -->
         <PermissionGuard require-superadmin>
-          <NuxtLink to="/admin/system" class="block">
+          <NuxtLink
+            v-if="auth.isSuperadmin"
+            to="/admin/system"
+            class="block"
+          >
             <GlassCard class="p-6 text-center hover:shadow-glow-lg transition-all group">
               <div class="w-12 h-12 bg-gradient-to-br from-gray-400 to-gray-600 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
                 <SettingsIcon class="w-6 h-6 text-white" />

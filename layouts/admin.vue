@@ -93,7 +93,7 @@ const currentPageName = computed(() => {
     '/admin/comments': '评论管理',
     '/admin/announcements': '公告管理',
     '/admin/tags': '标签管理',
-    '/admin/system': '系统设置',
+    '/admin/system': '系统日志',
   }
   return pathMap[route.path] || ''
 })

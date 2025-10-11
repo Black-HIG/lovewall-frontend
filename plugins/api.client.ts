@@ -29,7 +29,10 @@ import type {
   MyActiveTagStatusResponse,
   MyTagStatusResponse,
   DeleteRedemptionCodesRequest,
-  DeleteRedemptionCodesResponse
+  DeleteRedemptionCodesResponse,
+  HeartbeatResponse,
+  UserOnlineStatus,
+  MyOnlineStatus
 } from '~/types'
 import type { ActiveTagDto, NotificationDto, UserStatusDto } from '~/types/extra'
 
@@ -236,9 +239,25 @@ export default defineNuxtPlugin(() => {
       return unwrap(response)
     },
 
-    async getOnlineStatus(): Promise<{ online: boolean; expires_at?: string }> {
-      const response = await instance.get<ApiResp<{ online: boolean; expires_at?: string }>>('/users/me/online')
+    async getMyOnlineStatus(): Promise<MyOnlineStatus> {
+      const response = await instance.get<ApiResp<MyOnlineStatus>>('users/me/online')
       return unwrap(response)
+    },
+
+    // 心跳接口
+    async heartbeat(): Promise<HeartbeatResponse> {
+      const response = await instance.post<ApiResp<HeartbeatResponse>>('heartbeat')
+      return unwrap(response)
+    },
+
+    // 查询任意用户在线状态 (公开接口)
+    async getUserOnlineStatus(userId: string): Promise<UserOnlineStatus> {
+      const response = await instance.get<ApiResp<UserOnlineStatus>>(`users/${userId}/online`)
+      return unwrap(response)
+    },
+
+    async getOnlineStatus(): Promise<MyOnlineStatus> {
+      return this.getMyOnlineStatus()
     },
 
     async updateProfile(data: any): Promise<User> {
@@ -712,6 +731,4 @@ export default defineNuxtPlugin(() => {
     }
   }
 })
-
-
 

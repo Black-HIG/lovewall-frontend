@@ -75,7 +75,7 @@ export interface PostDto {
   content: string
   card_type?: 'confession' | 'communication' | 'social' // 卡片类型
   images: string[]
-  status: 0 | 1 | 2 // 0=published, 1=hidden, 2=deleted
+  status: 0 | 1 // 0=显示, 1=隐藏 (拒绝后直接删除,不可查询)
   is_pinned: boolean
   is_featured: boolean
   created_at: string
@@ -86,9 +86,10 @@ export interface PostDto {
   // Optional stats fields when available from certain endpoints
   view_count?: number
   comment_count?: number
-  // 新增：审核相关字段（仅管理员接口返回）
-  audit_status?: 0 | 2 // 0=通过, 2=AI拒绝
-  audit_msg?: string | null // AI拒绝原因
+  // 审核相关字段（仅管理员接口返回）
+  audit_status?: 0 | 1 // 0=普通帖子, 1=待审核
+  is_pending_review?: boolean // 快速判断是否待审核
+  audit_msg?: string | null // 审核相关消息
   manual_review_requested?: boolean // 是否已申请人工复核
 }
 
@@ -159,6 +160,11 @@ export interface LoginForm {
 export interface RegisterForm {
   username: string
   password: string
+  // 极验验证码字段(可选,服务器配置验证码时必填)
+  lot_number?: string
+  captcha_output?: string
+  pass_token?: string
+  gen_time?: string
 }
 
 export interface PostForm {
@@ -344,4 +350,23 @@ export interface LogFilters {
   page_size?: number
 }
 
+
+// Heartbeat Types (在线状态相关)
+export interface HeartbeatResponse {
+  online: boolean
+  timestamp: string
+}
+
+export interface UserOnlineStatus {
+  user_id: string
+  online: boolean
+  last_heartbeat: string
+}
+
+export interface MyOnlineStatus {
+  online: boolean
+  last_heartbeat: string
+  expires_at?: string        // 兼容旧字段
+  token_expires_at?: string  // 新字段
+}
 

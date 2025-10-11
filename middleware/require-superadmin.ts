@@ -27,7 +27,10 @@ export default defineNuxtRouteMiddleware(async (to) => {
   // Only superadmin can access
   if (!auth.isSuperadmin) {
     const toast = useToast()
-    toast.error('访问被拒绝：需要超级管理员权限', '权限不足')
-    return navigateTo('/admin')
+    toast.error('无权限访问：需要超级管理员权限')
+    if (process.client && window.history.length > 1) {
+      return navigateTo(-1)
+    }
+    return navigateTo('/')
   }
 })

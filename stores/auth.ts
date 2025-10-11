@@ -47,6 +47,12 @@ export const useAuthStore = defineStore('auth', {
 
   actions: {
     async clearSession(options?: { toastMessage?: string; toastType?: 'success' | 'error' | 'warning' | 'info'; redirectTo?: string | null }) {
+      // 停止心跳服务
+      if (process.client) {
+        const { stopHeartbeat } = useHeartbeat()
+        stopHeartbeat()
+      }
+
       this.currentUser = null
       this.permissions = []
       this.accessToken = null
@@ -101,6 +107,12 @@ export const useAuthStore = defineStore('auth', {
         
         const toast = useToast()
         toast.success('注册成功!')
+
+        // 启动心跳服务
+        if (process.client) {
+          const { startHeartbeat } = useHeartbeat()
+          startHeartbeat()
+        }
       } catch (error: any) {
         this.error = error.message || 'Registration failed'
         throw error
@@ -141,6 +153,12 @@ export const useAuthStore = defineStore('auth', {
         
         const toast = useToast()
         toast.success(`欢迎回来, ${this.userDisplayName}!`)
+
+        // 启动心跳服务
+        if (process.client) {
+          const { startHeartbeat } = useHeartbeat()
+          startHeartbeat()
+        }
       } catch (error: any) {
         console.error('Auth store: Login failed:', error)
         this.error = error.message || 'Login failed'
@@ -224,6 +242,12 @@ export const useAuthStore = defineStore('auth', {
         }
         try {
           await this.fetchProfile()
+          
+          // 启动心跳服务 (会话恢复时)
+          if (process.client) {
+            const { startHeartbeat } = useHeartbeat()
+            startHeartbeat()
+          }
         } catch (error) {
           // Token is invalid, clear it but don't throw error
           console.warn('Auth initialization failed, clearing invalid token:', error)

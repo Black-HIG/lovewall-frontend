@@ -973,7 +973,8 @@ import { PERMISSIONS } from '~/types'
 import type { User, Pagination, AdminChangePasswordForm, AdminUpdateUserForm, AdminBanUserForm, TagDto, UserTagDto } from '~/types'
 
 definePageMeta({
-  middleware: ['admin', 'require-superadmin']
+  middleware: ['admin', 'require-perms'],
+  requiredPerms: ['MANAGE_USERS']
 })
 
 // Stores
@@ -1382,7 +1383,9 @@ const deleteUser = async () => {
 // Initialize
 onMounted(() => {
   loadUsers()
-  loadTags()
+  if (auth.isSuperadmin || auth.hasPerm('MANAGE_TAGS')) {
+    loadTags()
+  }
 })
 
 // User Tags Methods

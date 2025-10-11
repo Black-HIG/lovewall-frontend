@@ -63,8 +63,10 @@ export default defineNuxtConfig({
       apiBase: '/api',
       randomImageApiUrl: process.env.NUXT_PUBLIC_RANDOM_IMAGE_API_URL || 'https://pic.zz4th.space/',
       pageSize: process.env.NUXT_PUBLIC_PAGE_SIZE ? parseInt(process.env.NUXT_PUBLIC_PAGE_SIZE) : undefined,
-      // Geetest (client needs captchaId)
+      // Geetest 登录验证码ID (前端验证)
       geetestId: process.env.NUXT_PUBLIC_GEETEST_ID,
+      // Geetest 注册验证码ID (后端验证)
+      geetestRegisterId: process.env.NUXT_PUBLIC_GEETEST_REGISTER_ID,
       // Mainland-friendly jsDelivr origin (used when building CDN links)
       jsdelivrOrigin: process.env.NUXT_PUBLIC_JSDELIVR_ORIGIN || 'https://fastly.jsdelivr.net',
     }

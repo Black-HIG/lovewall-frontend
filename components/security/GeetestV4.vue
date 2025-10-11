@@ -35,6 +35,7 @@ const props = defineProps<{
   product?: 'bind' | 'float' | 'popup'
   riskType?: string
   width?: string | number
+  captchaId?: string // 支持自定义验证码ID
 }>()
 
 const ready = ref(false)
@@ -65,7 +66,8 @@ const waitForSize = async (el: HTMLElement) => {
 
 const init = async () => {
   const config = useRuntimeConfig()
-  const captchaId = (config.public as any).geetestId as string | undefined
+  // 优先使用传入的captchaId,否则使用默认的geetestId
+  const captchaId = props.captchaId || (config.public as any).geetestId as string | undefined
   if (!captchaId) {
     emit('error', '未配置 Geetest 验证ID')
     return

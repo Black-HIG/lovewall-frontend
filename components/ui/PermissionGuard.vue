@@ -10,21 +10,21 @@
   </template>
 </template>
 
+
 <script setup lang="ts">
+import { computed, watch } from 'vue'
 import type { PermissionType } from '~/types'
 
+defineOptions({
+  name: 'PermissionGuard'
+})
+
 interface Props {
-  // 必需的权限列表
   requiredPerms?: PermissionType[]
-  // 需要满足的任一权限
-  anyPerms?: PermissionType[] 
-  // 需要满足的所有权限
+  anyPerms?: PermissionType[]
   allPerms?: PermissionType[]
-  // 是否需要超管权限
   requireSuperadmin?: boolean
-  // 是否显示无权限时的占位内容
   showFallback?: boolean
-  // 是否允许超管绕过权限检查
   superadminBypass?: boolean
 }
 
@@ -39,40 +39,77 @@ const props = withDefaults(defineProps<Props>(), {
 
 const auth = useAuthStore()
 const permissions = usePermissions()
+const route = useRoute()
 
-// 用户权限列表
-const userPermissions = computed(() => auth.permissions)
+const normalizePerms = (list: readonly PermissionType[]) =>
+  list.filter((perm): perm is PermissionType => typeof perm === 'string' && perm.length > 0)
 
-// 权限检查逻辑
+const requiredPerms = computed(() => normalizePerms(props.requiredPerms))
+const anyPerms = computed(() => normalizePerms(props.anyPerms))
+const allPerms = computed(() => normalizePerms(props.allPerms))
+
+const userPermissions = computed(() => auth.permissions.slice())
+
+const debugGuard = (result: 'allow' | 'deny', reason: string, extra: Record<string, unknown> = {}) => {
+  if (!process.dev) return
+  console.debug('[PermissionGuard]', {
+    route: route.fullPath,
+    result,
+    reason,
+    requireSuperadmin: props.requireSuperadmin,
+    superadminBypass: props.superadminBypass,
+    required: requiredPerms.value,
+    any: anyPerms.value,
+    all: allPerms.value,
+    userPerms: userPermissions.value,
+    isSuperadmin: auth.isSuperadmin,
+    ...extra,
+  })
+}
+
 const hasAccess = computed(() => {
-  // 超管绕过检查
   if (props.superadminBypass && auth.isSuperadmin) {
+    debugGuard('allow', 'superadmin bypass')
     return true
   }
-  
-  // 必需超管权限
+
   if (props.requireSuperadmin) {
-    return auth.isSuperadmin
+    if (auth.isSuperadmin) {
+      debugGuard('allow', 'require superadmin satisfied')
+      return true
+    }
+    debugGuard('deny', 'require superadmin not met')
+    return false
   }
-  
-  // 检查必需权限
-  if (props.requiredPerms.length > 0) {
-    const hasRequired = props.requiredPerms.every(perm => auth.hasPerm(perm))
-    if (!hasRequired) return false
+
+  if (requiredPerms.value.length > 0) {
+    const missing = requiredPerms.value.filter(perm => !permissions.hasPerm(perm))
+    if (missing.length > 0) {
+      debugGuard('deny', 'missing required perms', { missing })
+      return false
+    }
   }
-  
-  // 检查任一权限
-  if (props.anyPerms.length > 0) {
-    const hasAny = auth.hasAnyPerm(props.anyPerms)
-    if (!hasAny) return false
+
+  if (anyPerms.value.length > 0 && !permissions.hasAnyPerm(anyPerms.value)) {
+    debugGuard('deny', 'missing any perms')
+    return false
   }
-  
-  // 检查所有权限
-  if (props.allPerms.length > 0) {
-    const hasAll = auth.hasAllPerms(props.allPerms)
-    if (!hasAll) return false
+
+  if (allPerms.value.length > 0) {
+    const missing = allPerms.value.filter(perm => !permissions.hasPerm(perm))
+    if (missing.length > 0) {
+      debugGuard('deny', 'missing all perms', { missing })
+      return false
+    }
   }
-  
+
+  debugGuard('allow', 'passed all checks')
   return true
 })
+
+if (process.dev && process.client) {
+  watch(hasAccess, (value) => {
+    debugGuard(value ? 'allow' : 'deny', 'reactive update')
+  })
+}
 </script>

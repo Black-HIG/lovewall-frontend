@@ -32,8 +32,9 @@
           description="系统概况"
         />
 
-        <!-- 表白管理 - 所有管理员都可访问 -->  
+        <!-- 表白管理 - 仅拥有帖子相关权限的用户可见 -->  
         <AdminSidebarItem 
+          v-if="canManagePosts"
           to="/admin/posts"
           icon="FileText"
           title="表白管理"
@@ -76,13 +77,13 @@
           description="管理标签和兑换码"
         />
 
-        <!-- 系统设置 - 超管专用 -->
+        <!-- 系统日志 - 超管专用 -->
         <AdminSidebarItem 
           v-if="auth.isSuperadmin"
           to="/admin/system"
           icon="Settings"
-          title="系统设置"
-          description="系统配置"
+          title="系统日志"
+          description="查看系统日志"
         />
       </div>
 
@@ -123,6 +124,9 @@ defineEmits<{
 const auth = useAuthStore()
 
 // 权限检查 computed
+const canManagePosts = computed(() =>
+  auth.isSuperadmin || auth.hasAnyPerm(['MANAGE_POSTS', 'MANAGE_FEATURED'])
+)
 const canManageUsers = computed(() => 
   auth.isSuperadmin || auth.hasPerm('MANAGE_USERS')
 )

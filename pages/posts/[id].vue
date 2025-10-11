@@ -102,6 +102,11 @@
                   <h1 class="text-2xl font-bold text-gray-800">
                     {{ post.author_name }}
                   </h1>
+                  <!-- 新增: 在线状态徽章 -->
+                  <OnlineBadge
+                    v-if="post.author_id"
+                    :user-id="post.author_id"
+                  />
                   <!-- Author Active Tag -->
                   <TagBadge
                     v-if="post.author_tag"
@@ -127,11 +132,11 @@
                   <div class="flex items-center gap-2 ml-auto flex-wrap">
                     <!-- 审核状态 -->
                     <span
-                      v-if="(auth.isSuperadmin || auth.hasPerm('MANAGE_POSTS')) && post.audit_status === 2"
-                      class="px-2 py-1 text-xs bg-red-100 text-red-800 rounded-full"
-                      :title="post.audit_msg || 'AI审核未通过'"
+                      v-if="(auth.isSuperadmin || auth.hasPerm('MANAGE_POSTS')) && post.is_pending_review"
+                      class="px-2 py-1 text-xs bg-yellow-100 text-yellow-800 rounded-full"
+                      :title="post.audit_msg || '需要人工审核'"
                     >
-                      AI拒绝
+                      待审核
                     </span>
                     
                     <span
@@ -171,16 +176,16 @@
 
             <!-- AI审核信息（仅管理员可见） -->
             <div 
-              v-if="(auth.isSuperadmin || auth.hasPerm('MANAGE_POSTS')) && post.audit_status === 2 && post.audit_msg" 
-              class="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg"
+              v-if="(auth.isSuperadmin || auth.hasPerm('MANAGE_POSTS')) && post.is_pending_review && post.audit_msg" 
+              class="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg"
             >
               <div class="flex items-start gap-2">
-                <div class="w-5 h-5 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <span class="text-red-600 text-xs font-bold">!</span>
+                <div class="w-5 h-5 bg-yellow-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <span class="text-yellow-600 text-xs font-bold">!</span>
                 </div>
                 <div>
-                  <p class="text-sm font-medium text-red-800 mb-1">AI审核意见</p>
-                  <p class="text-sm text-red-700">{{ post.audit_msg }}</p>
+                  <p class="text-sm font-medium text-yellow-800 mb-1">审核意见</p>
+                  <p class="text-sm text-yellow-700">{{ post.audit_msg }}</p>
                   <p v-if="post.manual_review_requested" class="text-xs text-orange-600 mt-1">
                     用户已申请人工复核，请管理员审查。
                   </p>
@@ -214,7 +219,7 @@
                 </template>
                 
                 <GlassButton
-                  v-if="auth.hasPerm('MANAGE_POSTS') && post.status !== 2"
+                  v-if="auth.hasPerm('MANAGE_POSTS')"
                   @click="toggleHide"
                   :loading="actionLoading"
                   variant="secondary"
@@ -340,6 +345,11 @@
                       <span class="text-sm font-medium text-gray-700">
                         {{ commentDisplayName(comment) }}
                       </span>
+                      <!-- 新增: 在线状态徽章 -->
+                      <OnlineBadge
+                        v-if="comment.user_id"
+                        :user-id="comment.user_id"
+                      />
                       <TagBadge
                         v-if="comment.user_tag"
                         :title="comment.user_tag.title"
@@ -471,6 +481,7 @@ import GlassButton from '~/components/ui/GlassButton.vue'
 import GlassTextarea from '~/components/ui/GlassTextarea.vue'
 import GlassModal from '~/components/ui/GlassModal.vue'
 import TagBadge from '~/components/ui/TagBadge.vue'
+import OnlineBadge from '~/components/ui/OnlineBadge.vue'
 import LoadingSpinner from '~/components/ui/LoadingSpinner.vue'
 import GlassCard from '~/components/ui/GlassCard.vue'
 import ImageGrid from '~/components/ui/ImageGrid.vue'

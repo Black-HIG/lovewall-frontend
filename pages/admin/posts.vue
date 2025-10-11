@@ -19,7 +19,6 @@
             <option value="">全部状态</option>
             <option value="0">已发布</option>
             <option value="1">已隐藏</option>
-            <option value="2">已删除</option>
           </select>
           
           <select
@@ -148,8 +147,7 @@
                       <span
                         :class="{
                           'bg-green-100 text-green-800': post.status === 0,
-                          'bg-yellow-100 text-yellow-800': post.status === 1,
-                          'bg-red-100 text-red-800': post.status === 2
+                          'bg-yellow-100 text-yellow-800': post.status === 1
                         }"
                         class="px-2 py-0.5 text-xs rounded-full"
                       >
@@ -158,11 +156,11 @@
                       
                       <!-- 审核状态 -->
                       <span
-                        v-if="post.audit_status === 2"
-                        class="px-2 py-0.5 text-xs bg-red-100 text-red-800 rounded-full"
-                        :title="post.audit_msg || 'AI审核未通过'"
+                        v-if="post.is_pending_review"
+                        class="px-2 py-0.5 text-xs bg-yellow-100 text-yellow-800 rounded-full"
+                        :title="post.audit_msg || '需要人工审核'"
                       >
-                        AI拒绝
+                        待审核
                       </span>
                       
                       <span
@@ -189,9 +187,9 @@
                     </div>
                     
                     <!-- AI拒绝原因 -->
-                    <div v-if="post.audit_status === 2 && post.audit_msg" class="mt-2 p-2 bg-red-50 border border-red-200 rounded-lg">
-                      <p class="text-xs text-red-700">
-                        <strong>AI审核意见：</strong>{{ post.audit_msg }}
+                    <div v-if="post.is_pending_review && post.audit_msg" class="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded-lg">
+                      <p class="text-xs text-yellow-700">
+                        <strong>审核意见：</strong>{{ post.audit_msg }}
                       </p>
                     </div>
                   </div>
@@ -215,7 +213,7 @@
                 <div class="flex flex-wrap gap-2 pt-3 border-t border-white/10">
                   <!-- Moderation: approve/reject -->
                   <GlassButton
-                    v-if="permissions.hasPostModerationPermission && post.status !== 0"
+                    v-if="permissions.hasPostModerationPermission && post.is_pending_review"
                     @click.stop="approvePost(post)"
                     :loading="actionLoading === post.id"
                     class="text-sm px-3 py-1 !text-green-600"
@@ -224,17 +222,17 @@
                     通过审核
                   </GlassButton>
                   <GlassButton
-                    v-if="permissions.hasPostModerationPermission && post.status !== 0"
+                    v-if="permissions.hasPostModerationPermission && post.is_pending_review"
                     @click.stop="openReject(post)"
                     :loading="actionLoading === post.id"
                     class="text-sm px-3 py-1 !text-red-600"
                     variant="secondary"
                   >
-                    拒绝审核
+                    拒绝并删除
                   </GlassButton>
 
                   <GlassButton
-                    v-if="auth.hasPerm('MANAGE_FEATURED')"
+                    v-if="auth.isSuperadmin || auth.hasPerm('MANAGE_FEATURED')"
                     @click.stop="togglePin(post)"
                     :loading="actionLoading === post.id"
                     variant="secondary"
@@ -244,7 +242,7 @@
                   </GlassButton>
                   
                   <GlassButton
-                    v-if="auth.hasPerm('MANAGE_FEATURED')"
+                    v-if="auth.isSuperadmin || auth.hasPerm('MANAGE_FEATURED')"
                     @click.stop="toggleFeature(post)"
                     :loading="actionLoading === post.id"
                     variant="secondary"
@@ -254,7 +252,7 @@
                   </GlassButton>
                   
                   <GlassButton
-                    v-if="auth.hasPerm('MANAGE_POSTS') && post.status === 0"
+                    v-if="(auth.isSuperadmin || auth.hasPerm('MANAGE_POSTS')) && post.status === 0"
                     @click.stop="hidePost(post)"
                     :loading="actionLoading === post.id"
                     variant="secondary"
@@ -264,7 +262,7 @@
                   </GlassButton>
                   
                   <GlassButton
-                    v-if="auth.hasPerm('MANAGE_POSTS') && post.status === 1"
+                    v-if="(auth.isSuperadmin || auth.hasPerm('MANAGE_POSTS')) && post.status === 1 && !post.is_pending_review"
                     @click.stop="restoreHiddenPost(post)"
                     :loading="actionLoading === post.id"
                     variant="secondary"
@@ -272,19 +270,17 @@
                   >
                     恢复
                   </GlassButton>
-                  
-                  <GlassButton
-                    v-if="(auth.isSuperadmin || auth.hasPerm('MANAGE_POSTS')) && post.status === 2"
-                    @click.stop="restoreDeletedPost(post)"
-                    :loading="actionLoading === post.id"
-                    variant="secondary"
-                    class="text-sm px-3 py-1 !text-green-600"
+
+                  <span
+                    v-if="(auth.isSuperadmin || auth.hasPerm('MANAGE_POSTS')) && post.status === 1 && post.is_pending_review"
+                    class="text-xs text-gray-500 px-3 py-1"
+                    title="待审核帖子不能直接恢复,请使用上方的'通过审核'按钮"
                   >
-                    恢复
-                  </GlassButton>
+                    待审核帖子需先审核
+                  </span>
                   
                   <GlassButton
-                    v-if="auth.hasPerm('MANAGE_POSTS')"
+                    v-if="auth.isSuperadmin || auth.hasPerm('MANAGE_POSTS')"
                     @click.stop="confirmDelete(post)"
                     :loading="actionLoading === post.id"
                     variant="secondary"
@@ -463,7 +459,8 @@ import {
 import type { PostDto, Pagination } from '~/types'
 
 definePageMeta({
-  middleware: 'admin'
+  middleware: ['admin', 'require-perms'],
+  anyPerms: ['MANAGE_POSTS', 'MANAGE_FEATURED']
 })
 
 // Stores
@@ -512,11 +509,10 @@ const hiddenCount = computed(() => {
   return posts.value.filter(post => post.status === 1).length
 })
 
-// 全局排序优先级: 置顶+精华 > 置顶 > 精华 > 普通 > 隐藏(> 已删除)
+// 全局排序优先级: 置顶+精华 > 置顶 > 精华 > 普通 > 隐藏
 const sortedPosts = computed(() =>
   posts.value.slice().sort((a, b) => {
     const score = (p: PostDto) => {
-      if (p.status === 2) return 5
       if (p.status === 1) return 4
       if (p.is_pinned && p.is_featured) return 0
       if (p.is_pinned) return 1
@@ -588,7 +584,6 @@ const getStatusText = (status: number) => {
   switch (status) {
     case 0: return '已发布'
     case 1: return '已隐藏'
-    case 2: return '已删除'
     default: return '未知'
   }
 }
@@ -623,21 +618,12 @@ const hidePost = (post: PostDto) => {
 }
 
 const restoreHiddenPost = (post: PostDto) => {
-  openActionReason(post, 'hide', false)
-}
-
-const restoreDeletedPost = async (post: PostDto) => {
-  actionLoading.value = post.id
-  try {
-    const api = useApi()
-    await api.restorePost(post.id)
-    post.status = 0
-    toast.success('表白已恢复')
-  } catch (error) {
-    toast.error('操作失败')
-  } finally {
-    actionLoading.value = null
+  if (post.is_pending_review) {
+    toast.error('待审核帖子不能直接恢复,请使用"通过审核"功能')
+    return
   }
+
+  openActionReason(post, 'hide', false)
 }
 
 const actionReasonTitle = computed(() => {
@@ -702,9 +688,9 @@ const approvePost = async (post: PostDto) => {
     const api = useApi()
     await api.adminApprovePost(post.id)
     post.status = 0
-    ;(post as any).audit_status = 0
-    ;(post as any).audit_msg = null
-    toast.success('审核通过')
+    post.is_pending_review = false
+    post.audit_msg = null
+    toast.success('审核通过,帖子已显示')
   } catch (error) {
     toast.error('操作失败')
   } finally {
@@ -720,14 +706,26 @@ const openReject = (post: PostDto) => {
 
 const rejectPost = async () => {
   if (!rejectModal.post) return
-  actionLoading.value = rejectModal.post.id
+
+  if (!confirm('⚠️ 拒绝后帖子将永久删除,确定继续?')) {
+    return
+  }
+
+  const rejectedId = rejectModal.post.id
+  actionLoading.value = rejectedId
   try {
     const api = useApi()
     await api.adminRejectPost(rejectModal.post.id, rejectModal.reason || undefined)
-    ;(rejectModal.post as any).audit_status = 2
-    ;(rejectModal.post as any).audit_msg = rejectModal.reason || (rejectModal.post as any).audit_msg
-    toast.success('已拒绝')
+
+    posts.value = posts.value.filter(p => p.id !== rejectedId)
+    if (postsData.value) {
+      postsData.value.total -= 1
+    }
+
+    toast.success('已拒绝并删除')
     rejectModal.show = false
+    rejectModal.post = null
+    rejectModal.reason = ''
   } catch (error) {
     toast.error('操作失败')
   } finally {
