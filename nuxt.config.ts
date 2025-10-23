@@ -59,8 +59,10 @@ export default defineNuxtConfig({
     // Private runtime config (server only)
     geetestKey: process.env.NUXT_GEETEST_KEY,
     public: {
-      // 使用相对路径，通过代理访问API
-      apiBase: '/api',
+      // API 基址：优先使用环境变量，其次回落到同域 `/api`
+      // 在生产环境设置 NUXT_PUBLIC_API_BASE，例如：
+      //   https://api.example.com/api  或  http://127.0.0.1:8124/api
+      apiBase: process.env.NUXT_PUBLIC_API_BASE || '/api',
       randomImageApiUrl: process.env.NUXT_PUBLIC_RANDOM_IMAGE_API_URL || 'https://pic.zz4th.space/',
       pageSize: process.env.NUXT_PUBLIC_PAGE_SIZE ? parseInt(process.env.NUXT_PUBLIC_PAGE_SIZE) : undefined,
       // Geetest 登录验证码ID (前端验证)
